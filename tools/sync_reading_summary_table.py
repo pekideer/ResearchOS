@@ -74,11 +74,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--project-root",
         help=(
-            "Project root. Defaults cards to 01-reading-cards, HTML output "
-            "to 02-literature-matrix/LM-004_reading-summary-table.html, Markdown fallback "
-            "to 02-literature-matrix/LM-004_reading-summary-table.md, and CSV output to "
-            "02-literature-matrix/.internal/reading-summary-table.csv."
+            "Project root. Defaults cards to corpus/reading-cards/cards under "
+            "--researchos-root, and writes project summary outputs to "
+            "03-文献矩阵/04-阅读总表/."
         ),
+    )
+    parser.add_argument(
+        "--researchos-root",
+        default=str(Path(__file__).resolve().parent.parent),
+        help="ResearchOS root. Used to locate corpus/reading-cards/cards when --cards-root is omitted.",
     )
     parser.add_argument("--cards-root", help="Directory containing reading cards.")
     parser.add_argument("--output", help="Output CSV path. Defaults to .internal CSV.")
@@ -86,14 +90,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--markdown-output",
         help=(
             "Markdown fallback table path. Defaults to "
-            "02-literature-matrix/LM-004_reading-summary-table.md when --project-root is used."
+            "03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.md when --project-root is used."
         ),
     )
     parser.add_argument(
         "--html-output",
         help=(
             "Human-facing HTML wide table path. Defaults to "
-            "02-literature-matrix/LM-004_reading-summary-table.html when --project-root is used."
+            "03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html when --project-root is used."
         ),
     )
     parser.add_argument(
@@ -111,7 +115,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--reminders-output",
         help=(
             "Output CSV path for reminders. Defaults to "
-            "02-literature-matrix/.internal/reading-summary-reminders.csv when "
+            "03-文献矩阵/04-阅读总表/LM-004_reading-summary-reminders.csv when "
             "--project-root is used."
         ),
     )
@@ -320,7 +324,7 @@ def topic_directions_for_row(row: dict[str, str], topic_directions: list[dict[st
 
 
 def topic_table_path(html_output: Path, code: str) -> Path:
-    return html_output.parent / "reading-summary-tables" / f"{html_output.stem}-{code}.html"
+    return html_output.parent / "分主题阅读总表" / f"{html_output.stem}-{code}.html"
 
 
 def read_frontmatter(path: Path) -> tuple[dict[str, str], str]:
@@ -668,7 +672,7 @@ def topic_nav_html(path: Path, topic_direction: str, topic_directions: list[dict
     if topic_direction == "未分类":
         current_code = "UNCLASSIFIED"
 
-    child_page = path.parent.name == "reading-summary-tables"
+    child_page = path.parent.name == "分主题阅读总表"
     base_stem = topic_base_stem(path) if child_page else path.stem
     main_href = f"../{base_stem}.html" if child_page else f"{base_stem}.html"
     entries = [{"code": "ALL", "display_code": "全部", "display": "全部课题方向"}]
@@ -690,10 +694,10 @@ def topic_nav_html(path: Path, topic_direction: str, topic_directions: list[dict
             href = main_href
         elif target_code == "UNCLASSIFIED":
             filename = f"{base_stem}-UNCLASSIFIED.html"
-            href = filename if child_page else f"reading-summary-tables/{filename}"
+            href = filename if child_page else f"分主题阅读总表/{filename}"
         else:
             filename = f"{base_stem}-{target_code}.html"
-            href = filename if child_page else f"reading-summary-tables/{filename}"
+            href = filename if child_page else f"分主题阅读总表/{filename}"
         class_name = "topic-pill current" if target_code == current_code else "topic-pill"
         lines.append(
             f'<a class="{class_name}" href="{html_escape(href)}">'
@@ -975,8 +979,8 @@ def write_topic_html_tables(
 
 
 def cleanup_stale_topic_tables(html_output: Path, active_outputs: list[Path]) -> int:
-    topic_root = (html_output.parent / "reading-summary-tables").resolve()
-    if topic_root == topic_root.parent or topic_root.name != "reading-summary-tables":
+    topic_root = (html_output.parent / "分主题阅读总表").resolve()
+    if topic_root == topic_root.parent or topic_root.name != "分主题阅读总表":
         raise ValueError(f"refuse to clean unexpected topic table directory: {topic_root}")
     active = {path.resolve() for path in active_outputs if path.resolve().parent == topic_root}
     removed = 0
@@ -1122,32 +1126,31 @@ def find_cards(cards_root: Path) -> list[Path]:
 
 
 def resolve_paths(args: argparse.Namespace) -> tuple[Path | None, Path, Path, Path, Path, Path]:
+    researchos_root = Path(args.researchos_root).resolve()
     project_root = Path(args.project_root).resolve() if args.project_root else None
     if args.cards_root:
         cards_root = Path(args.cards_root).resolve()
-    elif project_root:
-        cards_root = project_root / "01-reading-cards"
     else:
-        raise ValueError("需要提供 --project-root 或 --cards-root。")
+        cards_root = researchos_root / "corpus" / "reading-cards" / "cards"
 
     if args.output:
         output = Path(args.output).resolve()
     elif project_root:
-        output = project_root / "02-literature-matrix" / ".internal" / "reading-summary-table.csv"
+        output = project_root / "03-文献矩阵" / "04-阅读总表" / "LM-004_reading-summary-table.csv"
     else:
-        output = cards_root.parent / ".internal" / "reading-summary-table.csv"
+        output = researchos_root / "corpus" / "reading-cards" / "indexes" / "reading-summary-table.csv"
 
     if args.markdown_output:
         markdown_output = Path(args.markdown_output).resolve()
     elif project_root:
-        markdown_output = project_root / "02-literature-matrix" / "LM-004_reading-summary-table.md"
+        markdown_output = project_root / "03-文献矩阵" / "04-阅读总表" / "LM-004_reading-summary-table.md"
     else:
         markdown_output = cards_root.parent / "reading-summary-table.md"
 
     if args.html_output:
         html_output = Path(args.html_output).resolve()
     elif project_root:
-        html_output = project_root / "02-literature-matrix" / "LM-004_reading-summary-table.html"
+        html_output = project_root / "03-文献矩阵" / "04-阅读总表" / "LM-004_reading-summary-table.html"
     else:
         html_output = cards_root.parent / "reading-summary-table.html"
 
@@ -1156,9 +1159,9 @@ def resolve_paths(args: argparse.Namespace) -> tuple[Path | None, Path, Path, Pa
     elif project_root:
         reminders_output = (
             project_root
-            / "02-literature-matrix"
-            / ".internal"
-            / "reading-summary-reminders.csv"
+            / "03-文献矩阵"
+            / "04-阅读总表"
+            / "LM-004_reading-summary-reminders.csv"
         )
     else:
         reminders_output = cards_root.parent / ".internal" / "reading-summary-reminders.csv"
@@ -1202,7 +1205,7 @@ def main() -> int:
     print(f"rows: {len(merged_rows)}")
     print(f"html_output: {html_output}")
     print(f"topic_directions: {len(topic_directions)}")
-    print(f"topic_html_outputs: {len(topic_outputs)} -> {html_output.parent / 'reading-summary-tables'}")
+    print(f"topic_html_outputs: {len(topic_outputs)} -> {html_output.parent / '分主题阅读总表'}")
     print(f"stale_topic_html_removed: {stale_topic_outputs}")
     print(f"markdown_output: {markdown_output}")
     print(f"csv_output: {output}")

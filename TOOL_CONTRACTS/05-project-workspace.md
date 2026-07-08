@@ -13,7 +13,7 @@
 
 - 创建经过用户确认的 ResearchOS 输出目录。
 - 根据用户指定项目工作区生成或读取项目上下文材料。
-- 在项目 manifest 中声明读书卡落点：`project_local` 使用课题目录 `01-reading-cards/`，`centralized_links` 使用 `00_ResearchOS/corpus/reading-cards/` 主卡和项目指针。
+- 在项目 manifest 中声明读书卡落点：只允许 `centralized_links`，主卡使用 `00_ResearchOS/corpus/reading-cards/cards/`，项目目录只保存项目指针、阅读总表和追踪报告。
 - 只读审计项目登记、manifest 和实际目录是否一致。
 - 只读扫描项目材料并生成治理计划。
 - 在用户批准后按计划整理项目文档结构。
@@ -26,7 +26,7 @@
 - 不把迁移日期当作点子或课题建立日期。
 - 不把项目材料治理结果写入 Zotero。
 - 不把具体课题事实提升为 ResearchOS 全局规则。
-- 不允许项目登记声明集中读书卡时，manifest 仍把不存在的 `01-reading-cards/` 写成有效落点。
+- 不允许项目登记或 manifest 声明旧英文本地读书卡目录。
 
 ## 5. 项目上下文恢复
 
@@ -38,12 +38,12 @@
 - 项目总览。
 - 材料索引。
 - 阅读计划或读书卡索引。
-- 读书卡落点模式；本地模式检查 `01-reading-cards/`，集中主卡模式检查 manifest 中的 `reading_cards_mode: "centralized_links"`、集中主卡位置和项目指针。
+- 读书卡落点模式；检查 manifest 中的 `reading_cards_mode: "centralized_links"`、集中主卡位置和项目指针。
 
 ## 6. 验收标准
 
 - 输出目录符合 ResearchOS 编号和命名规则。
-- 读书卡落点二选一且可解释：本地目录存在，或集中主卡模式已声明且不把缺失本地目录视为错误。
+- 读书卡落点唯一且可解释：集中主卡模式已声明，项目目录不生成旧本地读书卡目录。
 - 项目材料变更有计划、清单和人工确认。
 - 点子、课题、项目三类对象边界清楚；点子不写入 ResearchOS 根目录。
 - 生成的人读文档自然、可继续推进。

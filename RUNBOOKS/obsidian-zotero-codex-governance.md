@@ -1,4 +1,4 @@
-﻿# Obsidian、Zotero 与 Codex 协同边界
+# Obsidian、Zotero 与 Codex 协同边界
 
 本手册定义用户选择使用 Obsidian 阅读 Markdown 时，ResearchOS、Zotero、项目工作区和 Obsidian 的职责边界。默认事实源是 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 与 `corpus/fulltext/zotero-library-normalized/`。
 
@@ -62,10 +62,10 @@ Obsidian 可以打开 `docs/`、具体项目工作区或集中读书卡目录进
 具体项目的人读文档遵循 `RUNBOOKS/naming-governance.md`：
 
 ```text
-01-reading-cards/RC-###_短题名.md
-02-literature-matrix/LM-###_用途说明.md
-03-manuscript/MS-###_稿件部分.md
-04-reviewer-response/RR-###_回复主题.md
+corpus/reading-cards/cards/RC-###_短题名.md
+03-文献矩阵/LM-###_用途说明.md
+05-论文稿件/MS-###_稿件部分.md
+07-审稿回复/RR-###_回复主题.md
 ```
 
 集中读书卡文件名固定为：

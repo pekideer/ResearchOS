@@ -48,10 +48,10 @@ python tools\sync_reading_summary_table.py --project-root "课题目录"
 如课题使用 PRISMA records：
 
 ```powershell
-python tools\sync_reading_summary_table.py --project-root "课题目录" --prisma-records "课题目录\02-literature-matrix\prisma\prisma-records.csv"
+python tools\sync_reading_summary_table.py --project-root "课题目录" --prisma-records "课题目录\03-文献矩阵\prisma\prisma-records.csv"
 ```
 
-`LM-004_reading-summary-table.html` 用于紧凑浏览全部题录；`reading-summary-tables/LM-004_reading-summary-table-<code>.html` 按课题方向拆分，每个 HTML 标题区显示对应方向。方向由 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv` 指定；未配置时从读书卡 `tags` 中的 `T数字_方向名` 自动发现。表格包含一段话综述、相关程度、读书卡、Zotero 条目/PDF 链接、期刊缩写、评分、阅读状态和 PRISMA 字段；标题下方提供总表和各方向子表的本地 HTML 跳转导航；点击表头可排序，表头分隔线可拖拽调整列宽，同一路径下的列宽由浏览器本地记忆。`LM-004_reading-summary-table.md` 只是备用表，内部 CSV 镜像写入 `.internal/reading-summary-table.csv`。它不替代下一步的分析型 `literature-review-matrix.csv`。需要人工打开参阅的行使用 `RC-###` 编号；同步提醒写入 `.internal/reading-summary-reminders.csv`，并使用 `TODO-###` 编号。
+`03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html` 用于紧凑浏览全部题录；`03-文献矩阵/04-阅读总表/分主题阅读总表/LM-004_reading-summary-table-<code>.html` 按课题方向拆分，每个 HTML 标题区显示对应方向。方向由 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv` 指定；未配置时从读书卡 `tags` 中的 `T数字_方向名` 自动发现。表格包含一段话综述、相关程度、读书卡、Zotero 条目/PDF 链接、期刊缩写、评分、阅读状态和 PRISMA 字段；标题下方提供总表和各方向子表的本地 HTML 跳转导航；点击表头可排序，表头分隔线可拖拽调整列宽，同一路径下的列宽由浏览器本地记忆。`LM-004_reading-summary-table.md` 是备用表，CSV 镜像和提醒写入同一 `04-阅读总表/` 目录。它不替代下一步的分析型文献矩阵。需要人工打开参阅的行使用 `RC-###` 编号；同步提醒使用 `TODO-###` 编号。
 
 阅读总表中的“卡”按钮使用本地文件链接。
 

@@ -1,4 +1,4 @@
-﻿# Output Asset Governance
+# Output Asset Governance
 
 本操作手册规定 ResearchOS 根级 `docs/`、`corpus/`、低层运行留存区和未归属材料入口 `0.Inbox/` 的边界。目标是让人读说明、共享事实源、机器运行痕迹和未归属材料各自归位。
 
@@ -61,10 +61,17 @@ corpus/
 
 项目级课题目录继续使用既有编号结构：
 
-- `01-reading-cards/`：人工读书卡。
-- `02-literature-matrix/`：人工矩阵、报告和 PRISMA 主状态。
-- `02-literature-matrix/.internal/`：机器 CSV/JSON/cache/report。
+- `01-课题入口/`：课题入口、索引、项目说明和指针页。
+- `02-证据材料/`：来源记录、证据地图、材料索引和证据链。
+- `03-文献矩阵/`：人工矩阵、报告和 PRISMA 主状态。
+- `03-文献矩阵/.internal/`：机器 CSV/JSON/cache/report。
 - `.internal/zotero-collection-overlay/`：具体项目的 Zotero 文献集覆盖层试运行计划和执行记录。
+- `04-决策记录/`：点子判断、路线决策、候选分诊和研究进展。
+- `05-论文稿件/`：论文正文、稿件片段和投稿材料。
+- `06-报告材料/`：阶段性报告、汇报和对外材料。
+- `07-审稿回复/`：审稿意见、回复表和修改记录。
+- `08-写作材料/`：写作计划、提纲、草稿素材和导师反馈。
+- `10-批注/`：人工批注、处理记录和批注归档。
 - `.research/fulltext_cache/`：机器全文缓存，不是人工主入口。
 
 ## 3. 编号规则
@@ -101,7 +108,7 @@ corpus/
 | 临时 PDF 文本抽取 | 机器 | 项目 `.research/fulltext_cache/`；无项目时进入 `corpus/fulltext/` |
 | Zotero 新条目监控报告 | 人工 | `docs/reports/zotero-new-item-monitor/new-items-report.md` |
 | Zotero 新条目监控状态和试运行计划 | 机器留存 | `.researchos/outputs/machine/M-004-zotero-new-item-monitor/` |
-| 项目级 Zotero 文献集覆盖层报告 | 人工 | 具体项目工作区内，优先使用 `02-literature-matrix/project-collection-plan.md` |
+| 项目级 Zotero 文献集覆盖层报告 | 人工 | 具体项目工作区内，优先使用 `03-文献矩阵/project-collection-plan.md` |
 | 项目级 Zotero 文献集覆盖层计划和执行记录 | 机器留存 | 具体项目工作区内的 `.internal/zotero-collection-overlay/` |
 | ResearchOS 当前治理状态 | 人工 | `docs/governance/researchos-governance-restructure/current-governance-status.md` |
 

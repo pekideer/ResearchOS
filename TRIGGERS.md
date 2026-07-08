@@ -1,4 +1,4 @@
-﻿# ResearchOS Triggers
+# ResearchOS Triggers
 
 用户不需要记住 skill 名称。本文档只负责把自然语言表达映射到 `CAPABILITIES.md` 中的能力编号、优先 skill、工作流和质量检查；不定义能力边界、不展开执行细节、不复制质量标准正文。
 
@@ -275,7 +275,7 @@ TOOL_CONTRACTS.md / TOOL_CONTRACTS/ 仅在需要工具补足时介入
 
 ### 默认入口
 
-- 项目/idea 本地优先：`<project-or-idea-root>/annotations/inbox.md`
+- 项目/idea 本地优先：`<project-or-idea-root>/10-批注/inbox.md`
 - 全局未归属入口：`.researchos/human-annotation-inbox/inbox.md`
 - 模板：`templates/human-annotation-inbox-entry.md`
 
@@ -283,7 +283,7 @@ TOOL_CONTRACTS.md / TOOL_CONTRACTS/ 仅在需要工具补足时介入
 
 - 批注到目标文档位置的映射结果
 - 每条意见的检查判断、风险和建议更新
-- 同目录 `annotations/review-log.md` 或 `.researchos/human-annotation-inbox/review-log.md`
+- 同目录 `10-批注/review-log.md` 或 `.researchos/human-annotation-inbox/review-log.md`
 - 已处理条目归档到同目录 `processed/`
 - 可选：同目录 `.internal/annotation-action-plan.csv`
 
@@ -591,7 +591,7 @@ TOOL_CONTRACTS.md / TOOL_CONTRACTS/ 仅在需要工具补足时介入
 
 ### 完成标准
 
-- 读书卡优先保存到具体课题目录 `01-reading-cards/`；无课题目录时先要求确认项目路径。
+- 读书卡优先保存到 `corpus/reading-cards/cards/` 集中主卡；具体课题目录只保留项目指针、阅读总表和追踪报告。无课题目录时先要求确认项目路径。
 
 ## 文献检索路线
 
@@ -669,7 +669,7 @@ TOOL_CONTRACTS.md / TOOL_CONTRACTS/ 仅在需要工具补足时介入
 
 ### 完成标准
 
-- 矩阵可保存到 `02-literature-matrix/`，每个研究缺口有来源支撑
+- 矩阵可保存到 `03-文献矩阵/`，每个研究缺口有来源支撑
 - 如已有矩阵，只追加新增文献行，未知字段用 `?`
 
 ## PRISMA 检索筛选状态
@@ -1037,10 +1037,10 @@ TOOL_CONTRACTS.md / TOOL_CONTRACTS/ 仅在需要工具补足时介入
 
 ### 默认输出
 
-- `01-reading-cards/`
-- `02-literature-matrix/`
-- `03-manuscript/`
-- `04-reviewer-response/`
+- `01-课题入口/`
+- `03-文献矩阵/`
+- `05-论文稿件/`
+- `07-审稿回复/`
 
 ### 安全提醒
 

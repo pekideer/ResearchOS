@@ -81,7 +81,7 @@ HTML 中显示 Zotero 条目 key 时必须使用：
 
 1. 先查 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 与 `corpus/fulltext/zotero-library-normalized/`。
 2. 如果父文档 规范化文本 存在，只截取 第 1-2 页，必要时 第 3 页，供语义识别；不得再回头读取 Zotero/PDF 来做同一项单位识别。
-3. 如果课题目录 `.research/fulltext_cache/<cards-root-name>/ITEMKEY.txt` 已由父文档派生，也可复用该缓存；常见 priority 卡路径为 `.research/fulltext_cache/priority-cards/ITEMKEY.txt`。
+3. 如果课题目录 `.research/fulltext_cache/ITEMKEY.txt` 已由父文档派生，也可复用该缓存。
 4. 只有父文档和 全文缓存 均缺失时，才允许通过 Zotero Local API 只读定位 PDF 并抽取首页文本，并应优先回写父文档维护链路或可回溯的 缓存。
 5. 如果既无父文档文本、全文缓存 又无 PDF，必须标注 `needs_check` 或 `not_found`，不得凭机构常识补全。
 
@@ -93,7 +93,7 @@ HTML 中显示 Zotero 条目 key 时必须使用：
 - `first_author_affiliation_source`：写明 `PDF 第 1 页 作者区 语义抽取` 或对应页码。
 - `first_author_affiliation_status`：`ok`、`needs_check` 或 `not_found`。
 
-不得把本地启发式抽取结果直接当作最终单位。`tools/build_affiliation_semantic_packet.py` 用于从父文档派生文本或 全文缓存 生成供 AI/人工语义判断的首页证据包。`tools/sync_first_author_affiliations.py` 用于卡片排查、缓存复用或人工核查线索；它默认应优先读取父文档派生文本或 `.research/fulltext_cache/...`，再读取 `02-literature-matrix/.internal/affiliation-cache/`，只有这些缓存缺失时才只读解析 Zotero/PDF 前 1-2 页文本。
+不得把本地启发式抽取结果直接当作最终单位。`tools/build_affiliation_semantic_packet.py` 用于从父文档派生文本或 全文缓存 生成供 AI/人工语义判断的首页证据包。`tools/sync_first_author_affiliations.py` 用于卡片排查、缓存复用或人工核查线索；它默认应优先读取父文档派生文本或 `.research/fulltext_cache/...`，再读取 `03-文献矩阵/.internal/affiliation-cache/`，只有这些缓存缺失时才只读解析 Zotero/PDF 前 1-2 页文本。
 
 ## 3. 期刊等级来源
 
@@ -182,10 +182,12 @@ python tools\build_affiliation_semantic_packet.py --project-root "课题目录"
 
 行为：
 
-- 默认读取由父文档派生的 `<project-root>/.research/fulltext_cache/<cards-root-name>/ITEMKEY.txt`，priority 卡优先读取 `.research/fulltext_cache/priority-cards/`；没有项目 缓存 时，应先用父文档上下文包准备材料。
+- 默认读取由父文档派生的 `<project-root>/.research/fulltext_cache/ITEMKEY.txt`；没有项目缓存时，应先用父文档上下文包准备材料。
 - 只输出 第 1-3 页 的紧凑证据包和 JSONL，不读取 Zotero，不读取 PDF，不写读书卡。
-- 输出到 `02-literature-matrix/.internal/first-author-affiliation-semantic-packet.md` 和同名 `.jsonl`。
-- 后续 AI/人工语义判断必须基于该证据包、父文档 规范化文本 或同一 全文缓存 片段。
+- 证据包只作为临时语义判断材料，不作为长期项目成果保存；完成判断后，主结果应写入集中读书卡文末元数据。
+- 跨文献第一作者机构索引长期保存到 `corpus/indexes/first-author-affiliations.csv`。
+- 项目 `03-文献矩阵/` 只保留项目视角的团队追踪、矩阵和 gap 判断，不长期保存通用机构缓存或大段语义证据包。
+- 后续 AI/人工语义判断必须基于临时证据包、父文档 规范化文本 或同一 全文缓存 片段。
 
 `tools/sync_first_author_affiliations.py` 用于卡片核查和生成候选线索；若其结果与 PDF 首页语义识别冲突，以语义识别结果为准，并把冲突写入需要核查项。
 

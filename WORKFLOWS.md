@@ -1,4 +1,4 @@
-﻿# ResearchOS 工作流
+# ResearchOS 工作流
 
 本文档定义 ResearchOS 的标准科研流程。实际使用时可以只执行其中一部分。
 
@@ -89,7 +89,7 @@
 
 目标：让用户在项目/idea 本地固定文件中记录阅读想法、意见和疑问；未归属内容才进入全局入口。agent 后续读取这些条目，映射到对应文档位置，检查证据边界，并给出建议、更新或归档。
 
-1. 用户优先在当前项目/idea 的 `annotations/inbox.md` 追加批注条目；跨项目或暂时不知道归属时，写入 `.researchos/human-annotation-inbox/inbox.md`。可复制 `templates/human-annotation-inbox-entry.md`。
+1. 用户优先在当前项目/idea 的 `10-批注/inbox.md` 追加批注条目；跨项目或暂时不知道归属时，写入 `.researchos/human-annotation-inbox/inbox.md`。可复制 `templates/human-annotation-inbox-entry.md`。
 2. 用户触发“处理我的批注/读取我的阅读意见/根据批注更新文档”。
 3. 使用 `human-annotation-inbox` 选择本地 inbox 或全局 inbox，读取 `status: new`、`status: needs-confirmation` 或用户指定条目。
 4. 根据 `target_document`、`target_anchor`、引用片段、标题、IDEA ID、Zotero key 或关键词映射到目标文档位置。
@@ -100,11 +100,11 @@
 
 主要输出：
 
-- `<project-or-idea-root>/annotations/inbox.md`
-- `<project-or-idea-root>/annotations/review-log.md`
-- `<project-or-idea-root>/annotations/processed/YYYY-MM-processed.md`
+- `<project-or-idea-root>/10-批注/inbox.md`
+- `<project-or-idea-root>/10-批注/review-log.md`
+- `<project-or-idea-root>/10-批注/processed/YYYY-MM-processed.md`
 - `.researchos/human-annotation-inbox/inbox.md`（未归属入口）
-- 同目录 `.internal/annotation-action-plan.csv`（可选）
+- 被更新的目标人工文档（可选）
 - 被更新的目标人工文档（可选）
 
 完成标准：
@@ -212,7 +212,7 @@
 4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过 `tools/zotero_library_index.py sync` / `ocr-needed` / `normalize-text-cache` 更新父文档。
 5. 课题 `.research/fulltext_cache/` 可作为项目局部缓存，但应从父文档派生或能回溯到父文档。
 7. 使用 `tools/build_affiliation_semantic_packet.py` 或同等缓存片段准备首页题录区证据，再用 `paper-deep-reading` 生成读书卡；读书卡写法按 `RUNBOOKS/reading-card-governance.md` 执行。
-8. 保存读书卡前先确认课题读书卡落点：本地模式保存到课题目录 `01-reading-cards/`；集中主卡模式保存到 `corpus/reading-cards/cards/` 并在课题目录保留项目指针或阅读总表链接。无课题目录时先要求确认项目路径。临时 PDF 文本抽取进入项目 `.research/fulltext_cache/` 或 `corpus/fulltext/`。
+8. 保存读书卡前先确认课题读书卡落点：默认保存到 `corpus/reading-cards/cards/`，并在课题目录保留项目指针、阅读总表或团队追踪链接。无课题目录时先要求确认项目路径。临时 PDF 文本抽取进入项目 `.research/fulltext_cache/` 或 `corpus/fulltext/`。
 9. 如需维护项目级阅读总表，运行 `tools/sync_reading_summary_table.py` 同步 `LM-004_reading-summary-table.html`。
 
 命令入口：
@@ -234,7 +234,7 @@
 - PDF 附件 key 和 PDF 路径
 - PDF 文本抽取结果
 - 单篇读书卡
-- 可选：`02-literature-matrix/LM-004_reading-summary-table.md`
+- 可选：`03-文献矩阵/LM-004_reading-summary-table.md`
 
 完成标准：
 
@@ -251,8 +251,8 @@
 
 1. 读书卡文末 `## 7. 元数据（折叠）` 尽量填写 `zotero_item_key`、`generated_at`、`read_status`、`importance`、`planned_use`、`topic_relevance`、`tags`、`journal_abbrev`、`publication_tags`、`rating_5`、`evidence_strength`、`one_paragraph_review`、`prisma_record_id`、`prisma_stage` 和 `gap_ids`。
 2. 读书卡正文保留 `## 一段话综述`，用一段话压缩“背景 + 目的 + 方法 + 结论 + 意义”。
-3. 运行同步脚本，按课题 manifest 或项目登记确认读书卡来源；本地模式读取 `01-reading-cards/` 下所有 Markdown 读书卡，集中主卡模式读取集中主卡及项目链接，不把缺失的 `01-reading-cards/` 当作有效输入。
-4. 脚本生成或更新人工活动总表 `02-literature-matrix/LM-004_reading-summary-table.html`，并按课题方向生成 `02-literature-matrix/reading-summary-tables/LM-004_reading-summary-table-<code>.html`；方向优先来自 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv`，若未配置则从读书卡 `tags` 中的 `T数字_方向名` 自动发现；同时生成 Markdown 备用表，并在 `02-literature-matrix/.internal/` 生成 CSV 镜像和 `reading-summary-reminders.csv`。
+3. 运行同步脚本，按课题 manifest 或项目登记确认读书卡来源；默认读取 `corpus/reading-cards/cards/` 中的集中主卡及项目链接，不把缺失的旧本地读书卡目录当作有效输入。
+4. 脚本生成或更新人工活动总表 `03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html`，并按课题方向生成 `03-文献矩阵/04-阅读总表/分主题阅读总表/LM-004_reading-summary-table-<code>.html`；方向优先来自 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv`，若未配置则从读书卡 `tags` 中的 `T数字_方向名` 自动发现；同时生成 Markdown 备用表，并在 `03-文献矩阵/.internal/` 生成 CSV 镜像和 `reading-summary-reminders.csv`。
 5. 如已有总表，脚本按 Zotero 条目 key、读书卡路径或题目匹配既有行；读书卡中明确填写的字段可更新总表，读书卡缺失字段不覆盖既有人工填写内容。
 6. 这张表不替代 `literature-review-matrix.csv`：它偏阅读管理和写作素材汇总；完整综述矩阵仍负责研究对象、方法、指标、solved problem、real 研究缺口 和 pseudo 研究缺口。
 7. 所有需要人工打开参阅的条目使用 `RC-###` 编号；提醒使用 `TODO-###` 编号，便于逐条处理。
@@ -263,11 +263,11 @@
 
 输出建议：
 
-- `02-literature-matrix/LM-004_reading-summary-table.html`
-- `02-literature-matrix/reading-summary-tables/LM-004_reading-summary-table-<code>.html`
-- `02-literature-matrix/LM-004_reading-summary-table.md`
-- `02-literature-matrix/.internal/reading-summary-table.csv`
-- `02-literature-matrix/.internal/reading-summary-reminders.csv`
+- `03-文献矩阵/LM-004_reading-summary-table.html`
+- `03-文献矩阵/04-阅读总表/分主题阅读总表/LM-004_reading-summary-table-<code>.html`
+- `03-文献矩阵/LM-004_reading-summary-table.md`
+- `03-文献矩阵/.internal/reading-summary-table.csv`
+- `03-文献矩阵/.internal/reading-summary-reminders.csv`
 
 使用的质量检查：
 
@@ -294,7 +294,7 @@
 4. 使用 `literature-matrix` 比较研究对象、方法、数据、指标和结论。
 5. 只追加新增文献行，不覆盖已有人工确认字段。
 6. 区分真实研究缺口 和伪研究缺口。
-7. 保存到课题目录下的 `02-literature-matrix/`。
+7. 保存到课题目录下的 `03-文献矩阵/`。
 
 输出建议：
 
@@ -330,7 +330,7 @@
 
 目标：在文献综述过程中维护可复查的 PRISMA 主状态，并把少量状态镜像到 Zotero 标签。
 
-1. 在课题目录下使用 `02-literature-matrix/prisma/`。
+1. 在课题目录下使用 `03-文献矩阵/prisma/`。
 2. 用 `templates/prisma-search-log.csv` 记录每次检索的数据库、检索式、筛选条件和导出文件。
 3. 用 `templates/prisma-records.csv` 维护每条候选文献的 PRISMA 阶段、筛选决策、排除原因、阅读状态、重要性和计划用途。
 4. 读书卡使用 `templates/paper-reading-card.md`。全部元数据保存在文末 `## 7. 元数据（折叠）`。
@@ -553,7 +553,7 @@
 3. 使用 `paper-memory-builder` 建立 `.paper/` 记忆。
 4. 使用 `claim-evidence-audit` 检查摘要、引言、讨论和结论。
 5. 使用 `academic-polishing` 做保守润色。
-6. 保存到课题目录下的 `03-manuscript/`。
+6. 保存到课题目录下的 `05-论文稿件/`。
 
 必须执行的检查：
 
@@ -608,7 +608,7 @@
 5. 标注稿件修改位置。
 6. 执行 论断-证据 检查和 过度声称检查。
 7. 确认回复不承诺未完成实验，不改变技术含义。
-8. 保存到课题目录下的 `04-reviewer-response/`。
+8. 保存到课题目录下的 `07-审稿回复/`。
 
 输出建议：
 
@@ -649,11 +649,17 @@
 ```text
 课题目录/
   .research/
-  01-reading-cards/  # 本地读书卡模式；集中主卡模式可不建
-  02-literature-matrix/
+  01-课题入口/
+  02-证据材料/
+  03-文献矩阵/
     prisma/
-  03-manuscript/
-  04-reviewer-response/
+  04-决策记录/
+  05-论文稿件/
+  06-报告材料/
+  07-审稿回复/
+  08-写作材料/
+  09-计算工作区/
+  10-批注/
 ```
 
 示例：
@@ -661,11 +667,17 @@
 ```text
 <projects_root>\示例课题名称\
   .research/
-  01-reading-cards/  # 本地读书卡模式；集中主卡模式可不建
-  02-literature-matrix/
+  01-课题入口/
+  02-证据材料/
+  03-文献矩阵/
     prisma/
-  03-manuscript/
-  04-reviewer-response/
+  04-决策记录/
+  05-论文稿件/
+  06-报告材料/
+  07-审稿回复/
+  08-写作材料/
+  09-计算工作区/
+  10-批注/
 ```
 
 创建入口：使用 `research-project-workspace` skill；完整参数和跨设备路径规则见 `TOOL_CONTRACTS/05-project-workspace.md` 与 `docs/modes/AGENTS.local-research.md`。
@@ -676,7 +688,7 @@
 - 本机配置优先读取 `%USERPROFILE%\.researchos\machine_config.json`。
 - 如果没有配置，则默认使用 `00_ResearchOS` 的父目录作为 `projects_root`。
 - 仍然支持 `--root` 传入完整路径，适合一次性特殊目录。
-- `.research/` manifest 可使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。manifest 必须声明读书卡落点模式：`project_local` 对应 `01-reading-cards/`，`centralized_links` 对应集中主卡和项目指针。
+- `.research/` manifest 可使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。manifest 必须声明读书卡落点模式：默认 `centralized_links` 对应集中主卡和项目指针；如确需项目本地读书卡，必须显式声明中文本地落点。
 
 使用的质量检查：
 

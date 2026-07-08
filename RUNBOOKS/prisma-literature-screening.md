@@ -14,7 +14,7 @@
 具体课题目录中使用：
 
 ```text
-02-literature-matrix/prisma/
+03-文献矩阵/prisma/
   prisma-search-log.csv
   prisma-records.csv
   prisma-reminders.csv
@@ -91,11 +91,11 @@ review;intro
 
 ### 1. 初始化文件
 
-在课题目录下创建 `02-literature-matrix/prisma/`，复制模板：
+在课题目录下创建 `03-文献矩阵/prisma/`，复制模板：
 
 ```powershell
-Copy-Item templates\prisma-search-log.csv "课题目录\02-literature-matrix\prisma\prisma-search-log.csv"
-Copy-Item templates\prisma-records.csv "课题目录\02-literature-matrix\prisma\prisma-records.csv"
+Copy-Item templates\prisma-search-log.csv "课题目录\03-文献矩阵\prisma\prisma-search-log.csv"
+Copy-Item templates\prisma-records.csv "课题目录\03-文献矩阵\prisma\prisma-records.csv"
 ```
 
 ### 2. 记录检索日志
@@ -145,7 +145,7 @@ source_text_range: "pp. 1-8"
 ### 5. 生成提醒、计数和 mirror plan
 
 ```powershell
-python tools\build_prisma_status_outputs.py --records "课题目录\02-literature-matrix\prisma\prisma-records.csv"
+python tools\build_prisma_status_outputs.py --records "课题目录\03-文献矩阵\prisma\prisma-records.csv"
 ```
 
 输出：

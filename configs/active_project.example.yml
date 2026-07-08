@@ -12,6 +12,6 @@ focus:
   current_question: "例如：当前证据是否足以支撑这个研究问题继续推进"
   next_actions:
     - "读取 .research/project_overview_and_plan.md"
-    - "检查 01-reading-cards/priority-cards/"
-    - "同步 02-literature-matrix/reading-summary-table.html"
+    - "检查 corpus/reading-cards/cards/ 中的集中主卡"
+    - "同步 03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html"
 updated_at: "YYYY-MM-DDTHH:MM:SS+08:00"

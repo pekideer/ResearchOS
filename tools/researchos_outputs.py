@@ -1,7 +1,7 @@
 """Shared path conventions for ResearchOS framework assets.
 
 Project-specific workflows keep their existing numbered project directories
-(`01-reading-cards`, `02-literature-matrix`, `.internal`, etc.). This module is
+(`corpus/reading-cards/cards`, `03-文献矩阵`, `.research`, etc.). This module is
 for ResearchOS root framework assets that should be synchronized across
 terminals or kept as machine run outputs.
 """

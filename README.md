@@ -1,4 +1,4 @@
-﻿# ResearchOS
+# ResearchOS
 
 ResearchOS 是一个给 Codex 使用的科研助理 agent。它不是论文模板合集，也不是让你再维护一套复杂代码的开发项目；它更像一个可以放在本地长期使用的科研工作台，让 Codex 知道应该怎样读文献、怎样恢复课题上下文、怎样写读书卡、怎样做综述矩阵，以及怎样在论文写作和审稿回复中守住证据边界。
 
@@ -81,7 +81,7 @@ Local API 只读读取条目和附件信息主要用于 `tools/zotero_library_in
 具体课题目录/
 ```
 
-`0.Inbox/` 推荐包含 `01-unassigned-literature/`、`02-unassigned-ideas/`、`03-unassigned-materials/`、`04-to-triage/` 和 `.internal/`。明确归属后，再迁移到具体课题目录的 `01-reading-cards/`、`02-literature-matrix/`、`03-manuscript/`、`04-reviewer-response/` 或 `05-ai-code-workspace/`。
+`0.Inbox/` 推荐包含 `01-unassigned-literature/`、`02-unassigned-ideas/`、`03-unassigned-materials/`、`04-to-triage/` 和 `.internal/`。明确归属后，再迁移到具体课题目录的 `01-课题入口/`、`03-文献矩阵/`、`05-论文稿件/`、`07-审稿回复/` 或 `09-计算工作区/`；集中读书卡进入 `corpus/reading-cards/cards/`。
 
 ## 初始化步骤
 

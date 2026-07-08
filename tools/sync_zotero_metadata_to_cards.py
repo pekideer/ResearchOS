@@ -146,6 +146,11 @@ FIELD_INSERT_ORDER = [
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Sync Zotero metadata into reading cards.")
     parser.add_argument("--project-root", required=True)
+    parser.add_argument(
+        "--researchos-root",
+        default=str(Path(__file__).resolve().parent.parent),
+        help="ResearchOS root. Used to locate corpus/reading-cards/cards when --cards-root is omitted.",
+    )
     parser.add_argument("--cards-root")
     parser.add_argument("--api-base", default="http://127.0.0.1:23119/api")
     parser.add_argument("--user-id", default="0")
@@ -482,7 +487,8 @@ def find_cards(cards_root: Path) -> list[Path]:
 def main() -> int:
     args = build_parser().parse_args()
     project_root = Path(args.project_root).resolve()
-    cards_root = Path(args.cards_root).resolve() if args.cards_root else project_root / "01-reading-cards"
+    researchos_root = Path(args.researchos_root).resolve()
+    cards_root = Path(args.cards_root).resolve() if args.cards_root else researchos_root / "corpus" / "reading-cards" / "cards"
     if not cards_root.exists():
         raise ValueError(f"cards root not found: {cards_root}")
 
@@ -534,7 +540,7 @@ def main() -> int:
             }
         )
 
-    report_path = project_root / "02-literature-matrix" / ".internal" / "zotero-metadata-card-sync-report.csv"
+    report_path = project_root / "03-文献矩阵" / "03-文献管理元数据" / "zotero-metadata-card-sync-report.csv"
     if not args.dry_run:
         report_path.parent.mkdir(parents=True, exist_ok=True)
         import csv

@@ -8,45 +8,57 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 
-PROJECT_LOCAL_READING_CARDS = "project-local"
 CENTRALIZED_READING_CARDS = "centralized-links"
-LOCAL_READING_CARDS_DIRS = [
-    "01-reading-cards",
-    "01-reading-cards/priority-cards",
-]
 BASE_STANDARD_DIRS = [
     ".research",
-    "annotations",
-    "annotations/processed",
-    "annotations/.internal",
+    "01-课题入口",
+    "02-证据材料",
+    "03-文献矩阵",
+    "03-文献矩阵/01-检索路线与候选文献",
+    "03-文献矩阵/02-阅读计划",
+    "03-文献矩阵/03-文献管理元数据",
+    "03-文献矩阵/04-阅读总表",
+    "03-文献矩阵/04-阅读总表/分主题阅读总表",
+    "03-文献矩阵/05-读书卡审计与证据",
+    "03-文献矩阵/06-矩阵缺口与技术路线",
+    "03-文献矩阵/07-团队追踪",
+    "03-文献矩阵/08-项目文献集覆盖层",
+    "03-文献矩阵/08-项目文献集覆盖层/01-计划与条目分配",
+    "03-文献矩阵/08-项目文献集覆盖层/02-文献集创建审计",
+    "03-文献矩阵/08-项目文献集覆盖层/03-条目金丝雀审计",
+    "03-文献矩阵/08-项目文献集覆盖层/04-条目批量写入审计",
+    "03-文献矩阵/09-治理记录",
+    "04-决策记录",
+    "05-论文稿件",
+    "06-报告材料",
+    "07-审稿回复",
+    "08-写作材料",
+    "09-计算工作区",
+    "10-批注",
+    "10-批注/processed",
+]
+FORBIDDEN_OLD_DIRS = [
+    "01-reading-cards",
     "02-literature-matrix",
-    "02-literature-matrix/.internal",
-    "02-literature-matrix/prisma",
-    "02-literature-matrix/reading-summary-tables",
     "03-manuscript",
     "04-reviewer-response",
     "05-ai-code-workspace",
-    "05-ai-code-workspace/configs",
-    "05-ai-code-workspace/data/raw",
-    "05-ai-code-workspace/data/processed",
-    "05-ai-code-workspace/notebooks",
-    "05-ai-code-workspace/outputs/figures",
-    "05-ai-code-workspace/outputs/tables",
-    "05-ai-code-workspace/src",
-    "05-ai-code-workspace/tests",
-    "05-ai-code-workspace/logs",
+    "annotations",
+    "03-decisions",
+    "04-reports",
 ]
 
 
 def standard_dirs(reading_cards_mode: str) -> list[str]:
-    if reading_cards_mode == CENTRALIZED_READING_CARDS:
-        return BASE_STANDARD_DIRS
-    return [*BASE_STANDARD_DIRS[:4], *LOCAL_READING_CARDS_DIRS, *BASE_STANDARD_DIRS[4:]]
+    if reading_cards_mode != CENTRALIZED_READING_CARDS:
+        raise ValueError("只允许集中读书卡模式；项目目录不得生成旧本地读书卡目录。")
+    return BASE_STANDARD_DIRS
 
 
 def load_path_resolver() -> Any:
@@ -99,12 +111,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--reading-cards-mode",
-        choices=[PROJECT_LOCAL_READING_CARDS, CENTRALIZED_READING_CARDS],
-        default=PROJECT_LOCAL_READING_CARDS,
+        choices=[CENTRALIZED_READING_CARDS],
+        default=CENTRALIZED_READING_CARDS,
         help=(
-            "Where reading cards are represented. project-local creates "
-            "01-reading-cards; centralized-links uses corpus/reading-cards as "
-            "the main card store and does not require a local 01-reading-cards directory."
+            "Only centralized-links is allowed. Reading cards live in "
+            "corpus/reading-cards/cards; project directories only keep pointers, "
+            "summary tables, and tracking reports."
         ),
     )
     parser.add_argument(
@@ -197,14 +209,11 @@ def project_manifest_text(
             ]
         )
     topic_block = "\n".join(topic_lines)
-    if reading_cards_mode == CENTRALIZED_READING_CARDS:
-        reading_card_output = f"""  reading_cards_mode: "centralized_links"
+    if reading_cards_mode != CENTRALIZED_READING_CARDS:
+        raise ValueError("只允许集中读书卡模式。")
+    reading_card_output = f"""  reading_cards_mode: "centralized_links"
   centralized_reading_cards_dir: "{centralized_reading_cards_dir}"
   reading_card_project_links: []
-"""
-    else:
-        reading_card_output = """  reading_cards_mode: "project_local"
-  reading_cards_dir: "01-reading-cards/"
 """
 
     return f"""
@@ -232,12 +241,18 @@ sources:
 
 outputs:
 {reading_card_output.rstrip()}
-  annotations_dir: "annotations/"
-  literature_matrix_dir: "02-literature-matrix/"
-  prisma_dir: "02-literature-matrix/prisma/"
-  manuscript_dir: "03-manuscript/"
-  reviewer_response_dir: "04-reviewer-response/"
-  code_workspace_dir: "05-ai-code-workspace/"
+  entry_dir: "01-课题入口/"
+  evidence_dir: "02-证据材料/"
+  literature_matrix_dir: "03-文献矩阵/"
+  reading_plan_dir: "03-文献矩阵/02-阅读计划/"
+  reading_summary_dir: "03-文献矩阵/04-阅读总表/"
+  decisions_dir: "04-决策记录/"
+  manuscript_dir: "05-论文稿件/"
+  reports_dir: "06-报告材料/"
+  reviewer_response_dir: "07-审稿回复/"
+  writing_dir: "08-写作材料/"
+  computation_workspace_dir: "09-计算工作区/"
+  annotations_dir: "10-批注/"
 
 status:
   current_stage: "initialized"
@@ -253,22 +268,6 @@ safety:
 """
 
 
-def reading_cards_readme_text() -> str:
-    return """
-# Reading Cards
-
-本目录保存课题读书卡。
-
-新读书卡统一使用 ResearchOS 全局模板：
-
-`00_ResearchOS/templates/paper-reading-card.md`
-
-治理规则见：
-
-`00_ResearchOS/RUNBOOKS/reading-card-governance.md`
-"""
-
-
 def annotation_inbox_text() -> str:
     return """
 # Human Annotation Inbox
@@ -278,7 +277,7 @@ def annotation_inbox_text() -> str:
 使用原则：
 
 - 优先把本课题的批注写在这里；跨项目或暂时不知道归属时才写 ResearchOS 全局 `.researchos/human-annotation-inbox/inbox.md`。
-- `target_document` 尽量写相对课题根目录的路径，例如 `01-reading-cards/xxx.md`、`02-literature-matrix/xxx.md`、`03-manuscript/xxx.md`。
+- `target_document` 尽量写相对课题根目录的路径，例如 `03-文献矩阵/04-阅读总表/xxx.md`、`05-论文稿件/xxx.md`、`07-审稿回复/xxx.md`。
 - 不确定的事实、数据、文献结论直接写“待核查”。
 
 ## 待处理条目
@@ -291,7 +290,7 @@ def annotation_review_log_text() -> str:
     return """
 # Human Annotation Review Log
 
-本文件由 agent 在处理本课题 `annotations/inbox.md` 后追加记录。保留既有记录，便于回溯处理过程。
+本文件由 agent 在处理本课题 `10-批注/inbox.md` 后追加记录。保留既有记录，便于回溯处理过程。
 """
 
 
@@ -309,16 +308,14 @@ def scaffold_files(
             reading_cards_mode,
             centralized_reading_cards_dir,
         ),
-        root / "annotations" / "inbox.md": annotation_inbox_text(),
-        root / "annotations" / "review-log.md": annotation_review_log_text(),
-        root / "02-literature-matrix" / "LM-001_search-map.md": "# Search Map\n\n待填写。\n",
-        root / "02-literature-matrix" / "LM-002_reading-plan.md": "# Reading Plan\n\n待填写。\n",
-        root / "02-literature-matrix" / "LM-006_gap-analysis-and-technical-route.md": "# Gap Analysis And Technical Route\n\n待填写。\n",
-        root / "02-literature-matrix" / "LM-007_team-tracking.md": "# Team Tracking\n\n待填写。\n",
-        root / "05-ai-code-workspace" / "README.md": "# AI Code Workspace\n\n用于保存本课题可复现分析脚本、配置、图表和日志；不要保存 API key、Zotero 数据库或 PDF 文件。长文本请优先复用 `.research/fulltext_cache/`。\n",
+        root / "10-批注" / "inbox.md": annotation_inbox_text(),
+        root / "10-批注" / "review-log.md": annotation_review_log_text(),
+        root / "03-文献矩阵" / "01-检索路线与候选文献" / "LM-001_search-map.md": "# 检索路线\n\n待填写。\n",
+        root / "03-文献矩阵" / "02-阅读计划" / "LM-002_reading-plan.md": "# 阅读计划\n\n待填写。\n",
+        root / "03-文献矩阵" / "06-矩阵缺口与技术路线" / "LM-006_gap-analysis-and-technical-route.md": "# 矩阵缺口与技术路线\n\n待填写。\n",
+        root / "03-文献矩阵" / "07-团队追踪" / "LM-007_team-tracking.md": "# 团队追踪\n\n待填写。\n",
+        root / "09-计算工作区" / "README.md": "# 计算工作区\n\n用于保存本课题可复现分析脚本、配置、图表和日志；不要保存 API key、Zotero 数据库或 PDF 文件。长文本请优先复用 `.research/fulltext_cache/`。\n",
     }
-    if reading_cards_mode == PROJECT_LOCAL_READING_CARDS:
-        files[root / "01-reading-cards" / "README.md"] = reading_cards_readme_text()
 
     planned_or_created: list[Path] = []
     for path, text in files.items():
@@ -333,11 +330,13 @@ def scaffold_files(
 def audit_workspace(root: Path, registry_reading_cards: str | None) -> int:
     issues: list[str] = []
     manifest = root / ".research" / "project_manifest.yml"
-    local_cards = root / "01-reading-cards"
-
     if not root.exists() or not root.is_dir():
         print(f"ERROR: 课题根目录不存在或不是目录：{root}")
         return 2
+
+    for dirname in FORBIDDEN_OLD_DIRS:
+        if (root / dirname).exists():
+            issues.append(f"发现旧英文目录，必须迁移或删除空目录：{dirname}")
 
     if not manifest.exists():
         issues.append("缺少 .research/project_manifest.yml，无法确认读书卡落点。")
@@ -353,25 +352,21 @@ def audit_workspace(root: Path, registry_reading_cards: str | None) -> int:
         or "reading_cards_mode: centralized_links" in manifest_text
         or "centralized_reading_cards_dir:" in manifest_text
     )
-    manifest_declares_local = (
-        'reading_cards: "01-reading-cards/"' in manifest_text
-        or "reading_cards: 01-reading-cards/" in manifest_text
-        or 'reading_cards_dir: "01-reading-cards/"' in manifest_text
-        or "reading_cards_dir: 01-reading-cards/" in manifest_text
+    manifest_declares_old_path = any(marker in manifest_text for marker in FORBIDDEN_OLD_DIRS) or bool(
+        re.search(r"(?m)^\s*reading_cards_dir\s*:", manifest_text)
     )
 
-    if registry_uses_centralized and manifest_declares_local and not manifest_uses_centralized:
-        issues.append("项目登记使用集中读书卡，但 manifest 仍声明本地 01-reading-cards。")
-    if manifest_declares_local and not manifest_uses_centralized and not local_cards.is_dir():
-        issues.append("manifest 声明本地 01-reading-cards，但课题目录中不存在该目录。")
-    if manifest_uses_centralized and local_cards.exists() and not local_cards.is_dir():
-        issues.append("集中读书卡模式下，01-reading-cards 路径存在但不是目录。")
+    if manifest_declares_old_path:
+        issues.append("manifest 仍包含旧英文目录或本地读书卡路径。")
+    if registry_reading_cards and not registry_uses_centralized:
+        issues.append("项目登记的 reading_cards 不是集中读书卡模式。")
+    if manifest.exists() and not manifest_uses_centralized:
+        issues.append('manifest 未声明 reading_cards_mode: "centralized_links"。')
 
     print("ResearchOS 项目工作区审计")
     print(f"root: {root}")
     print(f"manifest: {manifest if manifest.exists() else '(missing)'}")
     print(f"registry_reading_cards: {registry_reading_cards if registry_reading_cards else '(未提供)'}")
-    print(f"local_01_reading_cards: {'exists' if local_cards.is_dir() else 'missing'}")
     print(
         "reading_cards_mode: "
         + (
@@ -387,7 +382,7 @@ def audit_workspace(root: Path, registry_reading_cards: str | None) -> int:
             print(f"  - {issue}")
         return 4
 
-    print("\nOK: 项目登记、manifest 与读书卡目录规则一致。")
+    print("\nOK: 项目登记、manifest 与中文目录规则一致。")
     return 0
 
 
@@ -486,16 +481,14 @@ def main() -> int:
             print(f"  {prefix}{path}")
 
     print("\n建议用途：")
-    print("  annotations           人工阅读批注收件箱、处理记录和已处理条目")
-    if args.reading_cards_mode == CENTRALIZED_READING_CARDS:
-        print("  集中读书卡          集中主卡和项目指针；本地不要求 01-reading-cards")
-    else:
-        print("  01-reading-cards      单篇文献读书卡和 PDF 抽取文本")
-    print("  02-literature-matrix  文献综述矩阵、gap 分析、选题建议")
-    print("  02-literature-matrix/prisma  PRISMA 检索、筛选、阅读状态和 Zotero tag mirror plan")
-    print("  03-manuscript         论文大纲、方法审查、图表叙事、润色稿")
-    print("  04-reviewer-response  审稿意见拆解、回复信、返修清单")
-    print("  05-ai-code-workspace   本课题脚本、配置、图表和可复现分析")
+    print("  01-课题入口           入口、索引、项目说明和指针页")
+    print("  02-证据材料           来源记录、证据地图和材料索引")
+    print("  03-文献矩阵           阅读计划、阅读总表、团队追踪和缺口分析")
+    print("  05-论文稿件           论文大纲、方法审查、图表叙事、润色稿")
+    print("  07-审稿回复           审稿意见拆解、回复信、返修清单")
+    print("  09-计算工作区         本课题脚本、配置、图表和可复现分析")
+    print("  10-批注               人工阅读批注收件箱、处理记录和已处理条目")
+    print("  集中读书卡            主卡位于 corpus/reading-cards/cards/，项目目录不生成本地读书卡目录")
     print("\n课题方向：")
     if topic_directions:
         for direction in topic_directions:

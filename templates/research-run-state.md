@@ -14,7 +14,7 @@
     experiment_matrix.yml
     data_dictionary.yml
     open_questions.md
-  02-literature-matrix/
+  03-文献矩阵/
     prisma/
       prisma-records.csv
       prisma-search-log.csv
@@ -32,7 +32,7 @@
 - `research_focus`：研究背景、研究问题、假设和关联 gap。
 - `sources`：读书卡、综述矩阵、Zotero 条目 key、数据和稿件位置。
 - `outputs`：课题输出目录。
-- PRISMA 综述项目可在 `outputs` 或 `sources` 中记录 `02-literature-matrix/prisma/prisma-records.csv`、`prisma-search-log.csv` 和 `zotero-tag-mirror-plan.json`。
+- PRISMA 综述项目可在 `outputs` 或 `sources` 中记录 `03-文献矩阵/09-治理记录/prisma-records.csv`、`prisma-search-log.csv` 和 `zotero-tag-mirror-plan.json`。
 - `status`：当前阶段、完成步骤、待审批事项、阻塞原因和下一步。
 - `safety`：确认不保存 API key、Zotero 数据库或 PDF 缓存。
 

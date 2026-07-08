@@ -1,7 +1,7 @@
 """Build a compact evidence packet from project fulltext cache.
 
 Use this before asking an agent to read long materials. The tool only reads
-`.research/fulltext_cache` text files and writes a packet under `.internal` by
+`.research/fulltext_cache` text files and writes a packet under `.research` by
 default. It does not call Zotero and does not read PDFs.
 """
 
@@ -19,6 +19,11 @@ from researchos_card_metadata import parse_metadata, raw_item_key
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", required=True)
+    parser.add_argument(
+        "--researchos-root",
+        default=str(Path(__file__).resolve().parent.parent),
+        help="ResearchOS root. Used to locate corpus/reading-cards/cards when --cards-root is omitted.",
+    )
     parser.add_argument("--cards-root")
     parser.add_argument("--fulltext-cache-root")
     parser.add_argument("--item-key", action="append", help="Limit to one or more Zotero item keys.")
@@ -29,22 +34,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def default_cards_root(project_root: Path) -> Path:
-    priority = project_root / "01-reading-cards" / "priority-cards"
-    return priority if priority.exists() else project_root / "01-reading-cards"
+def default_cards_root(researchos_root: Path) -> Path:
+    return researchos_root / "corpus" / "reading-cards" / "cards"
 
 
 def default_cache_roots(project_root: Path, cards_root: Path | None) -> list[Path]:
     base = project_root / ".research" / "fulltext_cache"
-    roots: list[Path] = []
-    if cards_root is not None:
-        roots.append(base / cards_root.name)
-    roots.extend([base / "priority-cards", base / "reading-cards", base / "materials", base])
-    output: list[Path] = []
-    for root in roots:
-        if root not in output:
-            output.append(root)
-    return output
+    return [base]
 
 
 def find_cache_file(cache_roots: list[Path], item_key: str) -> Path | None:
@@ -169,7 +165,8 @@ def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path]) -> s
 def main() -> int:
     args = build_parser().parse_args()
     project_root = Path(args.project_root).resolve()
-    cards_root = Path(args.cards_root).resolve() if args.cards_root else default_cards_root(project_root)
+    researchos_root = Path(args.researchos_root).resolve()
+    cards_root = Path(args.cards_root).resolve() if args.cards_root else default_cards_root(researchos_root)
     cache_roots = [Path(args.fulltext_cache_root).resolve()] if args.fulltext_cache_root else default_cache_roots(project_root, cards_root)
     item_keys = {key.upper() for key in args.item_key} if args.item_key else None
     if cards_root.exists():
@@ -178,7 +175,7 @@ def main() -> int:
         seed_records = direct_key_records(item_keys)
     else:
         seed_records = []
-    output = Path(args.output).resolve() if args.output else project_root / "02-literature-matrix" / ".internal" / "fulltext-cache-packet.md"
+    output = Path(args.output).resolve() if args.output else project_root / ".research" / "fulltext-cache-packet.md"
     jsonl_output = Path(args.jsonl_output).resolve() if args.jsonl_output else output.with_suffix(".jsonl")
 
     records = build_records(seed_records, cache_roots, args.max_pages, args.max_chars_per_item)

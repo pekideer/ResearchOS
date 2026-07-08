@@ -65,8 +65,8 @@ kit 可包含以下通用资产：
 - 用户主目录 `.researchos/` 中的任何真实配置、memory 或 registry。
 - `00_ResearchOS/.researchos/active_project.yml` 和 `project_registry.yml`。
 - 任何具体课题目录，例如带 `.research/project_manifest.yml` 的研究项目目录。
-- `.research/`、`.paper/`、`01-reading-cards/`、`02-literature-matrix/`、`03-manuscript/`、`04-reviewer-response/`、`05-ai-code-workspace/` 的真实课题产物。
-- `.research/fulltext_cache/`、`.research/material_text/`、`02-literature-matrix/.internal/*packet*` 等全文缓存、证据包和中间材料。
+- `.research/`、`.paper/`、`01-课题入口/`、`03-文献矩阵/`、`05-论文稿件/`、`07-审稿回复/`、`09-计算工作区/` 的真实课题产物。
+- `.research/fulltext_cache/`、`.research/material_text/`、`03-文献矩阵/.internal/*packet*` 等全文缓存、证据包和中间材料。
 - Zotero PDF、Zotero storage、`zotero.sqlite`、Zotero 导出的全库 JSON、真实 item 全量缓存。
 - 真实 API key、token、cookie、账号、邮箱、机构内部地址。
 - 未公开论文全文、基金申请书、审稿意见、周汇报、导师意见、团队成员隐私信息。
@@ -81,7 +81,7 @@ kit 可包含以下通用资产：
 - Zotero 痕迹：`zotero.sqlite`、`storage`、`api.zotero.org/users/`、`items/`
 - 密钥痕迹：`API_KEY`、`TOKEN`、`SECRET`、`Authorization`、`Bearer`
 - 课题痕迹：真实课题名、团队成员姓名、未公开项目名、基金正文、审稿材料。
-- 真实产物目录：`.research/`、`.paper/`、`priority-cards/`、`reading-summary-table.html`
+- 真实产物目录：`.research/`、`.paper/`、`03-文献矩阵/04-阅读总表/`、`reading-summary-table.html`
 - 点子知识库痕迹：`IDEA-`、`idea-registry.csv`、点子目录路径或具体点子正文
 
 发现命中后，必须逐项判断是通用示例还是私有内容。私有内容应剔除或替换为占位符，不得仅靠压缩包说明提醒接收者忽略。
@@ -89,7 +89,7 @@ kit 可包含以下通用资产：
 ## 6. 工具筛选规则
 
 - `tools/` 只保留不绑定具体课题、不包含个人路径、不直接写入外部系统的通用工具。
-- 具体课题辅助脚本应放在课题目录 `05-ai-code-workspace/` 或 `local-cache/project-specific/`，不得进入 kit。
+- 具体课题辅助脚本应放在课题目录 `09-计算工作区/` 或 `local-cache/project-specific/`，不得进入 kit。
 - 能执行 Zotero 写入、批量移动、删除、重命名或外部发布的脚本不得进入 starter 模板。
 - 如需在 personal kit 中保留高风险工具，必须同时保留对应 `TOOL_CONTRACTS/03-zotero-web-api-write.md`、试运行规则、审批规则和回滚说明。
 

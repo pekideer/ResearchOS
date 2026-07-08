@@ -1,7 +1,7 @@
 """Extract heuristic first-author affiliation candidates for reading cards.
 
-This script is heuristic. It checks project fulltext cache first, then the
-internal affiliation cache, then Zotero/PDF only as fallback. It never writes to
+This script is heuristic. It checks project fulltext cache first, then an
+explicit affiliation cache when provided, then Zotero/PDF only as fallback. It never writes to
 Zotero, never reads zotero.sqlite, and never changes PDFs. Semantic extraction
 during reading-card generation is the authoritative source.
 """
@@ -29,19 +29,24 @@ AUTHORITATIVE_AFFILIATION_SOURCES = ("semantic extraction", "manual", "人工确
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", required=True)
+    parser.add_argument(
+        "--researchos-root",
+        default=str(Path(__file__).resolve().parent.parent),
+        help="ResearchOS root. Used to locate corpus/reading-cards/cards and corpus/indexes.",
+    )
     parser.add_argument("--cards-root")
     parser.add_argument("--api-base", default=API_BASE)
     parser.add_argument("--user-id", default=USER_ID)
     parser.add_argument(
         "--fulltext-cache-root",
-        help="Defaults to <project-root>/.research/fulltext_cache/<cards-root-name>, then priority-cards, then fulltext_cache.",
+        help="Defaults to <project-root>/.research/fulltext_cache.",
     )
     parser.add_argument("--skip-fulltext-cache", action="store_true", help="Do not read project fulltext cache before Zotero/PDF fallback.")
     parser.add_argument("--max-cache-pages", type=int, default=2, help="Number of marked fulltext-cache pages to inspect.")
     parser.add_argument("--refresh-cache", action="store_true", help="Re-read Zotero/PDF even when cache exists.")
     parser.add_argument(
         "--cache-dir",
-        help="Defaults to <project-root>/02-literature-matrix/.internal/affiliation-cache.",
+        help="Optional explicit cache directory. No project-local affiliation cache is used by default.",
     )
     parser.add_argument("--dry-run", action="store_true")
     return parser
@@ -134,12 +139,7 @@ def extract_first_pages(pdf_path: Path, pages: int = 2) -> str:
 
 def default_fulltext_cache_roots(project_root: Path, cards_root: Path) -> list[Path]:
     base = project_root / ".research" / "fulltext_cache"
-    roots = [base / cards_root.name, base / "priority-cards", base]
-    output: list[Path] = []
-    for root in roots:
-        if root not in output:
-            output.append(root)
-    return output
+    return [base]
 
 
 def fulltext_cache_roots(args: argparse.Namespace, project_root: Path, cards_root: Path) -> list[Path]:
@@ -311,8 +311,9 @@ def has_authoritative_affiliation(metadata: dict[str, str]) -> bool:
 def main() -> int:
     args = build_parser().parse_args()
     project_root = Path(args.project_root).resolve()
-    cards_root = Path(args.cards_root).resolve() if args.cards_root else project_root / "01-reading-cards"
-    cache_dir = Path(args.cache_dir).resolve() if args.cache_dir else project_root / "02-literature-matrix" / ".internal" / "affiliation-cache"
+    researchos_root = Path(args.researchos_root).resolve()
+    cards_root = Path(args.cards_root).resolve() if args.cards_root else researchos_root / "corpus" / "reading-cards" / "cards"
+    cache_dir = Path(args.cache_dir).resolve() if args.cache_dir else None
     text_cache_roots = fulltext_cache_roots(args, project_root, cards_root)
     rows: list[dict[str, str]] = []
     changed = 0
@@ -342,7 +343,7 @@ def main() -> int:
                 if not attachment_key:
                     status = "no_pdf"
                 else:
-                    cached = None if args.refresh_cache else load_cached_affiliation(cache_dir, attachment_key)
+                    cached = None if (args.refresh_cache or cache_dir is None) else load_cached_affiliation(cache_dir, attachment_key)
                     if cached is not None:
                         cache_hits += 1
                         affiliation = str(cached.get("affiliation", "") or "")
@@ -358,7 +359,7 @@ def main() -> int:
                             affiliation = candidate_affiliation(first_pages)
                             status = "ok" if affiliation else "no_match"
                             source = f"PDF {attachment_key}, pages 1-2, heuristic"
-                            if not args.dry_run:
+                            if not args.dry_run and cache_dir is not None:
                                 save_cached_affiliation(cache_dir, attachment_key, item_key, affiliation, status, source, first_pages)
         except (HTTPError, URLError, OSError, RuntimeError, Exception) as exc:  # noqa: BLE001
             status = "error"
@@ -391,7 +392,7 @@ def main() -> int:
                     card.write_text(updated, encoding="utf-8")
         rows.append({"card": str(card), "item_key": item_key, "status": status, "affiliation": affiliation, "source": source, "error": error})
 
-    report = project_root / "02-literature-matrix" / ".internal" / "first-author-affiliation-report.csv"
+    report = researchos_root / "corpus" / "indexes" / "first-author-affiliation-sync-report.csv"
     if not args.dry_run:
         report.parent.mkdir(parents=True, exist_ok=True)
         import csv

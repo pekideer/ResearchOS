@@ -512,8 +512,6 @@ def main() -> int:
     project_root = Path(args.project_root).resolve() if args.project_root else None
     if args.cards_root:
         cards_root = Path(args.cards_root).resolve()
-    elif project_root:
-        cards_root = project_root / "01-reading-cards"
     else:
         cards_root = researchos_root / "corpus" / "reading-cards" / "cards"
     journal_rankings_db = Path(args.journal_rankings_db).resolve() if args.journal_rankings_db else researchos_root / CORPUS_ZOTERO_LIBRARY_DB
@@ -529,15 +527,16 @@ def main() -> int:
     api_enabled = bool(endpoint and secret_key and not args.no_api)
 
     cards = find_cards(cards_root)
+    ranking_table_path = researchos_root / "corpus" / "reading-cards" / "indexes" / "easyscholar-journal-ranking-table.csv"
+    cache_json = researchos_root / "corpus" / "reading-cards" / "indexes" / "easyscholar-journal-ranking-cache.json"
     if project_root:
-        internal = project_root / "02-literature-matrix" / ".internal"
-        ranking_table_path = internal / "easyscholar-journal-ranking-table.csv"
-        report_csv = Path(args.report_csv).resolve() if args.report_csv else internal / "easyscholar-journal-ranking-report.csv"
-        cache_json = internal / "easyscholar-journal-ranking-cache.json"
+        report_csv = (
+            Path(args.report_csv).resolve()
+            if args.report_csv
+            else project_root / "03-文献矩阵" / "05-读书卡审计与证据" / "easyscholar-journal-ranking-report.csv"
+        )
     else:
-        ranking_table_path = researchos_root / "corpus" / "reading-cards" / "indexes" / "easyscholar-journal-ranking-table.csv"
         report_csv = Path(args.report_csv).resolve() if args.report_csv else None
-        cache_json = None
     ranking_table = load_sqlite_ranking_table(journal_rankings_db)
     for normalized, row in load_ranking_table(ranking_table_path).items():
         ranking_table.setdefault(normalized, row)

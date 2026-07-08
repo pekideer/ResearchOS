@@ -1,4 +1,4 @@
-﻿# ResearchOS 质量检查标准
+# ResearchOS 质量检查标准
 
 本文档用于科研任务验收。执行文献阅读、综述矩阵、选题、方法审查、论文写作、Zotero 治理或审稿回复时，应按任务风险选择对应检查标准。
 
@@ -177,7 +177,7 @@
 
 ### 适用场景
 
-- 处理项目/idea 本地 `annotations/inbox.md` 或全局 `.researchos/human-annotation-inbox/inbox.md` 中的人工批注、阅读想法、文档修改意见和待核查问题。
+- 处理项目/idea 本地 `10-批注/inbox.md` 或全局 `.researchos/human-annotation-inbox/inbox.md` 中的人工批注、阅读想法、文档修改意见和待核查问题。
 
 ### 检查项
 

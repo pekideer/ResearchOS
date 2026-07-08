@@ -46,8 +46,8 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
 
 ## 输出
 
-- 人工报告写入具体项目工作区，优先路径为 `02-literature-matrix/project-collection-plan.md`。
-- 机器试运行文件写入具体项目工作区的 `.internal/zotero-collection-overlay/`，不得写入 ResearchOS 通用机器目录。
+- 人工报告写入具体项目工作区，优先路径为 `03-文献矩阵/08-项目文献集覆盖层/01-计划与条目分配/project-collection-plan.md`。
+- 机器试运行文件写入具体项目工作区的 `03-文献矩阵/08-项目文献集覆盖层/.internal/`，不得写入 ResearchOS 通用机器目录。
 - `project-collection-hierarchy.json`：拟创建文献集层级。
 - `project-collection-item-assignments.csv`：条目 key、引用标签、Zotero 链接、目标项目文献集、用途、理由、证据来源。
 - `project-collection-write-plan-dry-run.json`：仅供审批的 Zotero Web API 写入计划。

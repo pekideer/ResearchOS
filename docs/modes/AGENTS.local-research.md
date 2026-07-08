@@ -1,4 +1,4 @@
-﻿# ResearchOS Local Research Agent Rules
+# ResearchOS Local Research Agent Rules
 
 本文档用于本机长期科研工作流。它补充根目录 `AGENTS.md`，目标是让 agent 在多个会话之间恢复课题上下文、避免误把通用 ResearchOS 框架当成具体课题，并持续围绕当前研究问题推进。
 
@@ -25,14 +25,14 @@
    - 若无机器配置，则默认把 `00_ResearchOS` 的父目录作为 `projects_root`。
    - 未归属入口默认为 `00_ResearchOS` 父目录下的兄弟目录 `0.Inbox/`。
    - 示例格式见 `configs/project_registry.example.yml` 和 `configs/active_project.example.yml`。
-5. 若登记文件不存在或不充分，在 ResearchOS 父目录下扫描一级子目录中的 `.research/project_manifest.yml`，并结合最近修改时间、课题名、`reading_plan.md`、`priority-cards/`、`project_overview_and_plan.md` 判断候选课题。
+5. 若登记文件不存在或不充分，在 ResearchOS 父目录下扫描一级子目录中的 `.research/project_manifest.yml`，并结合最近修改时间、课题名、`03-文献矩阵/02-阅读计划/`、`project_overview_and_plan.md` 判断候选课题。
 6. 找到候选课题后，必须读取以下文件中存在的部分：
    - `.research/project_manifest.yml`
    - `.research/project_overview_and_plan.md`
    - `.research/material_index.md`
-   - `02-literature-matrix/reading_plan.md`
-   - `02-literature-matrix/reading-summary-table.md`
-   - `02-literature-matrix/gap-analysis-and-technical-route.md`
+   - `03-文献矩阵/reading_plan.md`
+   - `03-文献矩阵/reading-summary-table.md`
+   - `03-文献矩阵/gap-analysis-and-technical-route.md`
    - 最近的论文计划、周汇报、审稿回复或 `.paper/` memory。
 7. 只有在无法唯一定位课题或候选课题存在冲突时，才向用户提问；提问应具体到候选路径或缺失文件。
 
@@ -57,8 +57,8 @@
 
 - `project_root` 是具体课题目录，不是 `00_ResearchOS` 通用框架目录。
 - 已读取 `.research/project_manifest.yml` 或明确说明其不存在。
-- 如果任务涉及文献，已先确认读书卡落点模式：本地模式检查 `01-reading-cards/`、`01-reading-cards/priority-cards/`；集中主卡模式检查 manifest 或项目登记中的集中主卡位置、项目指针和 `.research/fulltext_cache/`；随后检查 `02-literature-matrix/reading_plan.md` 和阅读总表。
-- 如果任务涉及论文，已检查 `03-manuscript/`、`.paper/`、项目进展文件或用户指定草稿。
+- 如果任务涉及文献，已先确认读书卡落点模式：默认检查 `corpus/reading-cards/cards/`、manifest 或项目登记中的集中主卡位置、项目指针和 `.research/fulltext_cache/`；随后检查 `03-文献矩阵/02-阅读计划/` 和阅读总表。
+- 如果任务涉及论文，已检查 `05-论文稿件/`、`.paper/`、项目进展文件或用户指定草稿。
 - 输出优先写入具体课题目录，不写入 `00_ResearchOS/.researchos/outputs/`；维护 ResearchOS 框架本身的人读说明写入 `docs/`，共享事实源写入 `corpus/`，执行证据写入 `.researchos/outputs/archive/`。
 - 尚未明确课题归属的人工材料写入 `0.Inbox/`，而不是 `00_ResearchOS/.researchos/outputs/`；明确归属后再迁移到具体课题目录。
 

@@ -72,7 +72,7 @@ ResearchOS 的能力按六个科研助理场景域理解；具体细目以“统
 | 单篇论文精读 | `paper-deep-reading` | 论文文本、题录信息、页码范围 | 读书卡、可引用观点、局限性和需要核查内容 |
 | 设计检索路线 | `literature-search-map` | 研究主题、对象、关键词 | 中英文关键词、检索式、数据库路线和引用追踪策略 |
 | 撰写深度研究情报报告 | `research-intelligence-report` | 课题方向、技术细节、库内证据、可选外部数据库导出 | 人工阅读研究报告、证据矩阵、库内覆盖和需补足材料清单 |
-| 处理人工批注收件箱 | `human-annotation-inbox` | 项目/idea 本地 `annotations/inbox.md`、全局 inbox、目标文档路径或锚点 | 批注映射、检查判断、建议更新、review log 和 processed 归档 |
+| 处理人工批注收件箱 | `human-annotation-inbox` | 项目/idea 本地 `10-批注/inbox.md`、全局 inbox、目标文档路径或锚点 | 批注映射、检查判断、建议更新、review log 和 processed 归档 |
 | 碎片想法到研究潜力评估 | `idea-to-research-potential` | 用户点子、可选课题目录 | 项目工作区或 `0.Inbox/02-unassigned-ideas/` 中的点子卡、来源记录和研究简报 |
 | 多篇文献综述矩阵 | `literature-matrix` | 多篇读书卡、文献摘要或已有矩阵 | append-only 文献矩阵、真实研究缺口、伪研究缺口、选题建议 |
 | 研究缺口到选题立项 | `gap-to-topic` | 候选研究缺口、综述矩阵、读书卡、数据条件 | `topic_dossier.md`、`gaps.yml`、是否仍有研究空间、是否有明确贡献、是否具备完成条件 |
@@ -104,7 +104,7 @@ ResearchOS 的能力按六个科研助理场景域理解；具体细目以“统
 
 `.research/` manifest 建议使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。
 
-PRISMA 综述状态建议使用课题目录 `02-literature-matrix/prisma/`，并从 `templates/prisma-records.csv`、`templates/prisma-search-log.csv` 和 `templates/prisma-zotero-tag-map.yml` 初始化。主状态保存在 `prisma-records.csv` 和读书卡文末元数据；Zotero 只镜像 `rs:*` 标签。
+PRISMA 综述状态建议使用课题目录 `03-文献矩阵/prisma/`，并从 `templates/prisma-records.csv`、`templates/prisma-search-log.csv` 和 `templates/prisma-zotero-tag-map.yml` 初始化。主状态保存在 `prisma-records.csv` 和读书卡文末元数据；Zotero 只镜像 `rs:*` 标签。
 
 ## 自然语言入口
 

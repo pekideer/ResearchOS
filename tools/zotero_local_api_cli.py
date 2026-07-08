@@ -142,7 +142,10 @@ def default_output_path(pdf_path: Path) -> Path:
 
 
 def cache_output_path(project_root: Path, item_key: str, cache_subdir: str) -> Path:
-    return project_root / ".research" / "fulltext_cache" / cache_subdir / f"{item_key.upper()}.txt"
+    base = project_root / ".research" / "fulltext_cache"
+    if cache_subdir in {"", "."}:
+        return base / f"{item_key.upper()}.txt"
+    return base / cache_subdir / f"{item_key.upper()}.txt"
 
 
 def extract_text(pdf_path: Path, max_pages: int | None) -> tuple[str, int, int]:
@@ -369,7 +372,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract_parser.add_argument("--output")
     extract_parser.add_argument("--project-root")
     extract_parser.add_argument("--item-key")
-    extract_parser.add_argument("--cache-subdir", default="reading-cards")
+    extract_parser.add_argument("--cache-subdir", default=".")
     extract_parser.add_argument("--refresh-cache", action="store_true")
     extract_parser.add_argument("--overwrite", action="store_true")
     extract_parser.set_defaults(func=command_extract_pdf)

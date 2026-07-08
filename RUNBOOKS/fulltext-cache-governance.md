@@ -12,17 +12,15 @@
 <project-root>/.research/fulltext_cache/
 ```
 
-常见子目录：
+规定位置：
 
-- `.research/fulltext_cache/priority-cards/ITEMKEY.txt`
-- `.research/fulltext_cache/reading-cards/ITEMKEY.txt`
-- `.research/fulltext_cache/materials/<relative-path-derived-name>.txt`
-- `.research/fulltext_cache/zotero-library/ITEMKEY.txt`
+- `.research/fulltext_cache/ITEMKEY.txt`
+- `.research/fulltext_cache/<material-derived-name>.txt`
 
 ## 2. 读取顺序
 
 1. 已知 Zotero 条目 key 时，先用 `tools/build_zotero_library_context_packet.py` 从 SQLite 父文档和 规范化文本 构建上下文。
-2. 如果任务绑定具体课题且已有 `.research/fulltext_cache/<cards-root-name>/ITEMKEY.txt`，可复用项目局部 缓存，但应优先确认其来源能回溯到父文档。
+2. 如果任务绑定具体课题且已有 `.research/fulltext_cache/ITEMKEY.txt`，可复用项目局部缓存，但应优先确认其来源能回溯到父文档。
 3. 如果任务是多篇读书卡、综述矩阵、论断审计、方法审查或文本精读，优先用父文档上下文包或 `tools/build_fulltext_cache_packet.py` 从 缓存 生成紧凑证据包。
 4. 如果只需要作者/单位题录区，优先读取父文档 规范化文本 或 缓存 的 第 1-2 页，必要时 第 3 页。
 5. 父文档或 全文缓存 存在时，不得为同一任务重新读取 Zotero PDF 或重新抽取 PDF 文本。
@@ -54,7 +52,7 @@ python tools\build_affiliation_semantic_packet.py --project-root "课题目录"
 PDF 抽取并写入 缓存：
 
 ```powershell
-python tools\zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEMKEY --cache-subdir priority-cards
+python tools\zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEMKEY --cache-subdir .
 ```
 
 项目材料抽取并写入 缓存：

@@ -1,4 +1,4 @@
-﻿# Naming Governance
+# Naming Governance
 
 本手册集中管理 ResearchOS 中不同对象的命名规则。目标是避免读书卡、点子、课题目录、科研助理产出文档、Zotero 项目文献集、机器留存和过程记录各自形成分散规则，导致文件混乱、索引断裂和后续脚本难以定位。
 
@@ -92,13 +92,17 @@ ResearchOS 自身治理产物进入 `docs/governance/`。
 
 ## 3A. 科研助理产生的人读文档
 
-科研助理为具体项目产生的人读文档必须进入具体项目工作区。命名采用“编号-用途-可读主题”的形式：
+科研助理为具体项目产生的人读文档必须进入具体项目工作区。项目工作区中面向人工浏览的编号目录采用“编号-中文用途”的形式；不得把英文 slug 作为人读目录主名。英文 slug 只用于 ResearchOS 通用层、脚本名、机器字段、配置字段或外部系统约定。
 
 ```text
-01-reading-cards/RC-###_短题名.md
-02-literature-matrix/LM-###_用途说明.md
-03-manuscript/MS-###_稿件部分.md
-04-reviewer-response/RR-###_回复主题.md
+01-课题入口/
+02-证据材料/
+03-文献矩阵/
+04-决策记录/
+05-论文稿件/
+06-报告材料/
+07-审稿回复/
+08-写作材料/
 ```
 
 系统级报告进入 `docs/reports/<主题>/`，使用小写英文短横线命名；具体项目报告不得长期放在 ResearchOS 根目录。
@@ -110,13 +114,19 @@ ResearchOS 自身治理产物进入 `docs/governance/`。
 ```text
 课题目录/
   .research/
-  annotations/
-  01-reading-cards/
-  02-literature-matrix/
+  01-课题入口/
+  02-证据材料/
+  03-文献矩阵/
     prisma/
-  03-manuscript/
-  04-reviewer-response/
+  04-决策记录/
+  05-论文稿件/
+  06-报告材料/
+  07-审稿回复/
+  08-写作材料/
+  10-批注/
 ```
+
+若某类材料不存在，可以不建立对应目录；但已建立的面向人工浏览目录应保持编号连续、用途中文可读。同一层级不得出现重复编号，例如同时存在 `02-证据材料/` 和 `02-文献矩阵/`。
 
 课题内编号规则：
 
@@ -128,7 +138,7 @@ ResearchOS 自身治理产物进入 `docs/governance/`。
 机器中间产物优先放：
 
 ```text
-02-literature-matrix/.internal/
+03-文献矩阵/.internal/
 .research/fulltext_cache/
 ```
 
@@ -196,7 +206,7 @@ ANNO-YYYYMMDD-###
 处理归档：
 
 ```text
-annotations/processed/YYYY-MM-processed.md
+10-批注/processed/YYYY-MM-processed.md
 ```
 
 执行日志和审计记录进入对应项目的 `.internal/`、ResearchOS `.researchos/outputs/archive/` 或 `.researchos/outputs/machine/`；需要人读时在 `docs/` 或项目工作区建立索引。
