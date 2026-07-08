@@ -43,8 +43,8 @@ kit 可包含以下通用资产：
 - `configs/*.example.*`
 - 经过审查的通用 `tools/`
 - `.env.example`
-- `requirements.txt`
-- `requirements-ocr.txt`
+- `tools/requirements/base.txt`
+- `tools/requirements/ocr.txt`
 
 ## 4. 默认必须剔除内容
 

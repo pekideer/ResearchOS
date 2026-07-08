@@ -149,7 +149,7 @@ def extract_text(pdf_path: Path, max_pages: int | None) -> tuple[str, int, int]:
     try:
         from pypdf import PdfReader
     except ImportError as exc:
-        raise RuntimeError("缺少依赖 pypdf。请先安装 requirements.txt。") from exc
+        raise RuntimeError("缺少依赖 pypdf。请先安装 tools/requirements/base.txt。") from exc
 
     reader = PdfReader(str(pdf_path))
     total_pages = len(reader.pages)

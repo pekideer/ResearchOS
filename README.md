@@ -85,7 +85,7 @@ Local API 只读读取条目和附件信息主要用于 `tools/zotero_library_in
 
 ## 初始化步骤
 
-普通用户优先按 `QUICKSTART.md` 使用自然语言初始化。只有需要 OCR、Zotero 父文档维护或本地批量语料准备时，才需要运行下面的环境准备命令。
+普通用户优先按 `QUICKSTART.md` 使用自然语言初始化。只有需要 OCR、Zotero 父文档维护或本地批量语料准备时，才需要运行下面的环境准备命令；工具依赖清单位于 `tools/requirements/`。
 
 ```powershell
 cd "$env:USERPROFILE\ResearchOS"
@@ -162,6 +162,7 @@ Zotero 父文档、规范化全文和主要人读报告使用 `corpus\` 与 `doc
 ## 目录说明
 
 - `.agents/skills/`：Codex skills，定义科研任务的触发场景、输入、流程、输出和质量规则。
+- `tools/requirements/`：本地工具依赖清单，其中 `base.txt` 用于 Zotero/PDF 基础工具，`ocr.txt` 用于可选 OCR 流程。
 - `tools/zotero_local_api_cli.py`：Zotero Local API 只读排障和 PDF 文本抽取合并入口。
 - `tools/zotero_ai_governance.py`：Zotero 文献库治理矩阵、聚类和报告主入口；方向聚合、文献集计划和标签计划由内部实现包承接。
 - `tools/create_project_workspace.py`：根据用户指定课题目录或课题名创建编号化输出目录。

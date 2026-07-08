@@ -132,8 +132,8 @@ def ensure_python_ocr_packages(install: bool, dry_run: bool) -> None:
         return
     print("python_ocr_packages_missing: " + ", ".join(missing))
     if not install:
-        raise SystemExit("ERROR: Python OCR packages are missing. Re-run without --no-install or install requirements-ocr.txt manually.")
-    requirements = RESEARCHOS_ROOT / "requirements-ocr.txt"
+        raise SystemExit("ERROR: Python OCR packages are missing. Re-run without --no-install or install tools/requirements/ocr.txt manually.")
+    requirements = RESEARCHOS_ROOT / "tools" / "requirements" / "ocr.txt"
     command = [sys.executable, "-m", "pip", "install", "-r", str(requirements)]
     if dry_run:
         print("DRY-RUN: " + " ".join(command))

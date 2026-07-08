@@ -59,7 +59,7 @@ research-project-manifest.yml
 
 - `POLICIES/*.md` 可保留全大写下划线文件名，例如 `API_KEY_POLICY.md`、`ZOTERO_WRITE_POLICY.md`，因为它们是被多处规则和流程引用的策略入口。
 - `docs/modes/AGENTS.*.md` 可保留 `AGENTS.<mode>.md`，因为它们是 Codex 模式规则覆盖层，不是普通说明文档。
-- 根级分发、评测、运行模板和依赖文件可保留既有约定名，例如 `DISTRIBUTION.md`、`EVALS.md`、`RUN_STATE_TEMPLATE.md`、`requirements.txt`、`requirements-ocr.txt`、`.env.example` 和 `.gitignore`。
+- 根级分发、评测和运行模板可保留既有约定名，例如 `DISTRIBUTION.md`、`EVALS.md`、`RUN_STATE_TEMPLATE.md`、`.env.example` 和 `.gitignore`。工具依赖清单优先放在 `tools/requirements/`，例如 `base.txt` 和 `ocr.txt`。
 - 各目录内部的 `README.md` 可作为目录索引文件保留。
 
 工具脚本使用小写英文下划线命名：

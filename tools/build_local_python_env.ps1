@@ -19,8 +19,8 @@ $venvResolvedParent = [System.IO.Path]::GetFullPath((Split-Path -Parent $venvFul
 if ($venvResolvedParent.StartsWith($workspaceRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
     throw "Refusing to create a Python environment inside the sync workspace: $venvFullPath"
 }
-$requirements = Join-Path $projectRoot "requirements.txt"
-$ocrRequirements = Join-Path $projectRoot "requirements-ocr.txt"
+$requirements = Join-Path $projectRoot "tools\requirements\base.txt"
+$ocrRequirements = Join-Path $projectRoot "tools\requirements\ocr.txt"
 
 if (-not $Python) {
     $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
