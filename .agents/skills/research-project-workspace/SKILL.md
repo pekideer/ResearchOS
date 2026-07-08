@@ -24,14 +24,14 @@ description: 根据用户指定的研究课题目录，创建带编号前缀的 
    - `annotations/`
    - `annotations/processed/`
    - `annotations/.internal/`
-   - `01-reading-cards/`
    - `02-literature-matrix/`
    - `02-literature-matrix/prisma/`
    - `03-manuscript/`
    - `04-reviewer-response/`
+   - 默认创建 `01-reading-cards/`；若明确采用集中主卡模式，则不要求本地 `01-reading-cards/`，而是在 manifest 中声明 `reading_cards_mode: "centralized_links"`。
 6. 创建 `annotations/inbox.md` 和 `annotations/review-log.md`，用于本课题人工阅读批注；已处理条目归档到 `annotations/processed/`。
 7. 如用户需要长任务恢复或跨会话交接，建议在课题目录下维护 `.research/` manifest；模板见 `templates/research-project-manifest.yml` 等。
-8. 读书卡统一使用 `00_ResearchOS/templates/paper-reading-card.md`，集中读书卡入口为 `00_ResearchOS/corpus/reading-cards/`；课题目录按项目需要保存读书卡或集中主卡指针。
+8. 读书卡统一使用 `00_ResearchOS/templates/paper-reading-card.md`。读书卡落点必须二选一并写入 manifest：本地模式使用 `01-reading-cards/`；集中主卡模式使用 `00_ResearchOS/corpus/reading-cards/` 与项目指针，不得同时声明集中库又把缺失的 `01-reading-cards/` 当作有效落点。
 9. 不移动、不复制、不删除现有文件。
 10. 输出已创建和已存在的目录清单。
 
@@ -65,7 +65,8 @@ description: 根据用户指定的研究课题目录，创建带编号前缀的 
 ## 完成条件
 
 - 输出课题根目录、路径来源、已创建目录和已存在目录。
-- `annotations/`、`01-reading-cards/`、`02-literature-matrix/`、`02-literature-matrix/prisma/`、`03-manuscript/`、`04-reviewer-response/` 已存在或 试运行 已列出。
+- `annotations/`、`02-literature-matrix/`、`02-literature-matrix/prisma/`、`03-manuscript/`、`04-reviewer-response/` 已存在或 试运行 已列出。
+- 读书卡落点已通过二选一检查：本地模式下 `01-reading-cards/` 已存在或 试运行 已列出；集中主卡模式下 manifest 已声明 `reading_cards_mode: "centralized_links"` 和集中主卡位置。
 - `annotations/inbox.md` 和 `annotations/review-log.md` 已存在或 试运行 已列出。
 - 如用户要求 manifest，已说明 `.research/` 推荐文件和模板来源。
 - 未覆盖、移动、删除任何既有文件。
@@ -87,4 +88,16 @@ python tools\create_project_workspace.py --project-name "示例课题名称"
 
 ```powershell
 python tools\create_project_workspace.py --project-name "示例课题名称" --dry-run
+```
+
+如果课题采用集中主卡和项目指针：
+
+```powershell
+python tools\create_project_workspace.py --project-name "示例课题名称" --reading-cards-mode centralized-links
+```
+
+只读审计现有课题读书卡落点：
+
+```powershell
+python tools\create_project_workspace.py --root "课题目录" --audit
 ```

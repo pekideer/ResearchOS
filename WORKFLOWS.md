@@ -212,7 +212,7 @@
 4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过 `tools/zotero_library_index.py sync` / `ocr-needed` / `normalize-text-cache` 更新父文档。
 5. 课题 `.research/fulltext_cache/` 可作为项目局部缓存，但应从父文档派生或能回溯到父文档。
 7. 使用 `tools/build_affiliation_semantic_packet.py` 或同等缓存片段准备首页题录区证据，再用 `paper-deep-reading` 生成读书卡；读书卡写法按 `RUNBOOKS/reading-card-governance.md` 执行。
-8. 保存到课题目录下的 `01-reading-cards/`；无课题目录时先要求确认项目路径。临时 PDF 文本抽取进入项目 `.research/fulltext_cache/` 或 `corpus/fulltext/`。
+8. 保存读书卡前先确认课题读书卡落点：本地模式保存到课题目录 `01-reading-cards/`；集中主卡模式保存到 `corpus/reading-cards/cards/` 并在课题目录保留项目指针或阅读总表链接。无课题目录时先要求确认项目路径。临时 PDF 文本抽取进入项目 `.research/fulltext_cache/` 或 `corpus/fulltext/`。
 9. 如需维护项目级阅读总表，运行 `tools/sync_reading_summary_table.py` 同步 `LM-004_reading-summary-table.html`。
 
 命令入口：
@@ -251,7 +251,7 @@
 
 1. 读书卡文末 `## 7. 元数据（折叠）` 尽量填写 `zotero_item_key`、`generated_at`、`read_status`、`importance`、`planned_use`、`topic_relevance`、`tags`、`journal_abbrev`、`publication_tags`、`rating_5`、`evidence_strength`、`one_paragraph_review`、`prisma_record_id`、`prisma_stage` 和 `gap_ids`。
 2. 读书卡正文保留 `## 一段话综述`，用一段话压缩“背景 + 目的 + 方法 + 结论 + 意义”。
-3. 运行同步脚本，读取 `01-reading-cards/` 下所有 Markdown 读书卡。
+3. 运行同步脚本，按课题 manifest 或项目登记确认读书卡来源；本地模式读取 `01-reading-cards/` 下所有 Markdown 读书卡，集中主卡模式读取集中主卡及项目链接，不把缺失的 `01-reading-cards/` 当作有效输入。
 4. 脚本生成或更新人工活动总表 `02-literature-matrix/LM-004_reading-summary-table.html`，并按课题方向生成 `02-literature-matrix/reading-summary-tables/LM-004_reading-summary-table-<code>.html`；方向优先来自 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv`，若未配置则从读书卡 `tags` 中的 `T数字_方向名` 自动发现；同时生成 Markdown 备用表，并在 `02-literature-matrix/.internal/` 生成 CSV 镜像和 `reading-summary-reminders.csv`。
 5. 如已有总表，脚本按 Zotero 条目 key、读书卡路径或题目匹配既有行；读书卡中明确填写的字段可更新总表，读书卡缺失字段不覆盖既有人工填写内容。
 6. 这张表不替代 `literature-review-matrix.csv`：它偏阅读管理和写作素材汇总；完整综述矩阵仍负责研究对象、方法、指标、solved problem、real 研究缺口 和 pseudo 研究缺口。
@@ -649,7 +649,7 @@
 ```text
 课题目录/
   .research/
-  01-reading-cards/
+  01-reading-cards/  # 本地读书卡模式；集中主卡模式可不建
   02-literature-matrix/
     prisma/
   03-manuscript/
@@ -661,7 +661,7 @@
 ```text
 <projects_root>\示例课题名称\
   .research/
-  01-reading-cards/
+  01-reading-cards/  # 本地读书卡模式；集中主卡模式可不建
   02-literature-matrix/
     prisma/
   03-manuscript/
@@ -676,7 +676,7 @@
 - 本机配置优先读取 `%USERPROFILE%\.researchos\machine_config.json`。
 - 如果没有配置，则默认使用 `00_ResearchOS` 的父目录作为 `projects_root`。
 - 仍然支持 `--root` 传入完整路径，适合一次性特殊目录。
-- `.research/` manifest 可使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。
+- `.research/` manifest 可使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。manifest 必须声明读书卡落点模式：`project_local` 对应 `01-reading-cards/`，`centralized_links` 对应集中主卡和项目指针。
 
 使用的质量检查：
 
@@ -693,3 +693,4 @@
 
 - 不覆盖、不移动、不删除既有文件。
 - 目录创建结果可复查。
+- 读书卡落点与项目登记、manifest 和实际目录一致。

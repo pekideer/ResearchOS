@@ -57,7 +57,7 @@
 
 - `project_root` 是具体课题目录，不是 `00_ResearchOS` 通用框架目录。
 - 已读取 `.research/project_manifest.yml` 或明确说明其不存在。
-- 如果任务涉及文献，已检查 `01-reading-cards/`、`01-reading-cards/priority-cards/`、`02-literature-matrix/reading_plan.md` 和阅读总表。
+- 如果任务涉及文献，已先确认读书卡落点模式：本地模式检查 `01-reading-cards/`、`01-reading-cards/priority-cards/`；集中主卡模式检查 manifest 或项目登记中的集中主卡位置、项目指针和 `.research/fulltext_cache/`；随后检查 `02-literature-matrix/reading_plan.md` 和阅读总表。
 - 如果任务涉及论文，已检查 `03-manuscript/`、`.paper/`、项目进展文件或用户指定草稿。
 - 输出优先写入具体课题目录，不写入 `00_ResearchOS/.researchos/outputs/`；维护 ResearchOS 框架本身的人读说明写入 `docs/`，共享事实源写入 `corpus/`，执行证据写入 `.researchos/outputs/archive/`。
 - 尚未明确课题归属的人工材料写入 `0.Inbox/`，而不是 `00_ResearchOS/.researchos/outputs/`；明确归属后再迁移到具体课题目录。

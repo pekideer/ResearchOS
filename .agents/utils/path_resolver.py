@@ -55,7 +55,7 @@ def load_machine_config(researchos_root: Path) -> tuple[dict[str, Any], Path | N
     for path in config_candidates(researchos_root):
         if not path.exists():
             continue
-        with path.open("r", encoding="utf-8") as handle:
+        with path.open("r", encoding="utf-8-sig") as handle:
             data = json.load(handle)
         if not isinstance(data, dict):
             raise ValueError(f"machine config 必须是 JSON object：{path}")
@@ -78,16 +78,16 @@ def resolve_project_root(
     start: Path | None = None,
 ) -> tuple[Path, str, Path, Path | None]:
     researchos_root = find_researchos_root(start)
-    config, config_path = load_machine_config(researchos_root)
 
     if explicit_root and project_name:
         raise ValueError("请只传入 --root 或 --project-name 其中一个。")
 
     if explicit_root:
-        return Path(explicit_root).expanduser(), "--root", researchos_root, config_path
+        return Path(explicit_root).expanduser(), "--root", researchos_root, None
 
     if not project_name:
         raise ValueError("必须传入 --root 或 --project-name。")
 
+    config, config_path = load_machine_config(researchos_root)
     projects_root, source = get_projects_root(researchos_root, config)
     return projects_root / project_name, source, researchos_root, config_path

@@ -13,7 +13,7 @@
     review-log.md
     processed/
     .internal/
-  01-reading-cards/
+  01-reading-cards/  # 本地读书卡模式；集中主卡模式可不建
   02-literature-matrix/
     prisma/
     .internal/
@@ -28,10 +28,10 @@
 
 | 能力 | 基础文件或目录 | 是否默认创建 | 作用 |
 |---|---|---:|---|
-| 项目工作区初始化 | `annotations/`、`01-reading-cards/`、`02-literature-matrix/`、`03-manuscript/`、`04-reviewer-response/` | 是 | 固定科研成果落点，避免材料混放 |
+| 项目工作区初始化 | `annotations/`、`02-literature-matrix/`、`03-manuscript/`、`04-reviewer-response/`，以及本地模式下的 `01-reading-cards/` | 是 | 固定科研成果落点，避免材料混放 |
 | 项目上下文恢复 | `.research/project_manifest.yml`、`.research/run_state.json` | 可选 | 记录项目方向、当前状态、开放问题和跨会话恢复信息 |
 | 人工批注收件箱 | `annotations/inbox.md`、`annotations/review-log.md`、`annotations/processed/` | 是 | 保存用户阅读意见、疑问和修改建议，处理后可追溯 |
-| 单篇论文精读 | `01-reading-cards/*.md` | 按需 | 保存读书卡、事实/推断/建议、来源和 Zotero 链接 |
+| 单篇论文精读 | `01-reading-cards/*.md` 或 `corpus/reading-cards/cards/` 集中主卡加项目指针 | 按需 | 保存读书卡、事实/推断/建议、来源和 Zotero 链接 |
 | 阅读总表 | `02-literature-matrix/LM-004_reading-summary-table.html`、`.internal/*.csv` | 按需 | 跨文献浏览、评分、PRISMA 状态和写作素材管理 |
 | 综述矩阵 | `02-literature-matrix/literature-review-matrix.csv` | 按需 | 比较研究对象、方法、指标、结论和缺口 |
 | PRISMA 筛选 | `02-literature-matrix/prisma/prisma-records.csv`、`prisma-search-log.csv` | 按需 | 保存检索、筛选、纳入/排除和阅读状态 |

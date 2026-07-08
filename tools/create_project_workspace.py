@@ -13,13 +13,17 @@ from pathlib import Path
 from typing import Any
 
 
-STANDARD_DIRS = [
+PROJECT_LOCAL_READING_CARDS = "project-local"
+CENTRALIZED_READING_CARDS = "centralized-links"
+LOCAL_READING_CARDS_DIRS = [
+    "01-reading-cards",
+    "01-reading-cards/priority-cards",
+]
+BASE_STANDARD_DIRS = [
     ".research",
     "annotations",
     "annotations/processed",
     "annotations/.internal",
-    "01-reading-cards",
-    "01-reading-cards/priority-cards",
     "02-literature-matrix",
     "02-literature-matrix/.internal",
     "02-literature-matrix/prisma",
@@ -37,6 +41,12 @@ STANDARD_DIRS = [
     "05-ai-code-workspace/tests",
     "05-ai-code-workspace/logs",
 ]
+
+
+def standard_dirs(reading_cards_mode: str) -> list[str]:
+    if reading_cards_mode == CENTRALIZED_READING_CARDS:
+        return BASE_STANDARD_DIRS
+    return [*BASE_STANDARD_DIRS[:4], *LOCAL_READING_CARDS_DIRS, *BASE_STANDARD_DIRS[4:]]
 
 
 def load_path_resolver() -> Any:
@@ -87,6 +97,33 @@ def build_parser() -> argparse.ArgumentParser:
             "--topic-direction T1=研究方向一. If CODE is omitted, T1/T2/... is assigned."
         ),
     )
+    parser.add_argument(
+        "--reading-cards-mode",
+        choices=[PROJECT_LOCAL_READING_CARDS, CENTRALIZED_READING_CARDS],
+        default=PROJECT_LOCAL_READING_CARDS,
+        help=(
+            "Where reading cards are represented. project-local creates "
+            "01-reading-cards; centralized-links uses corpus/reading-cards as "
+            "the main card store and does not require a local 01-reading-cards directory."
+        ),
+    )
+    parser.add_argument(
+        "--centralized-reading-cards-dir",
+        default="00_ResearchOS/corpus/reading-cards/cards/",
+        help="Human-readable pointer used in manifest when --reading-cards-mode centralized-links.",
+    )
+    parser.add_argument(
+        "--audit",
+        action="store_true",
+        help="Read-only audit of project workspace and reading-card path consistency.",
+    )
+    parser.add_argument(
+        "--registry-reading-cards",
+        help=(
+            "Optional reading_cards value from project registry, for example "
+            "centralized:00_ResearchOS/corpus/reading-cards/cards/."
+        ),
+    )
     return parser
 
 
@@ -133,7 +170,12 @@ def write_text_if_missing(path: Path, text: str) -> bool:
     return True
 
 
-def project_manifest_text(root: Path, directions: list[dict[str, str]]) -> str:
+def project_manifest_text(
+    root: Path,
+    directions: list[dict[str, str]],
+    reading_cards_mode: str,
+    centralized_reading_cards_dir: str,
+) -> str:
     topic_lines: list[str] = ["topic_directions:"]
     if directions:
         for direction in directions:
@@ -155,6 +197,16 @@ def project_manifest_text(root: Path, directions: list[dict[str, str]]) -> str:
             ]
         )
     topic_block = "\n".join(topic_lines)
+    if reading_cards_mode == CENTRALIZED_READING_CARDS:
+        reading_card_output = f"""  reading_cards_mode: "centralized_links"
+  centralized_reading_cards_dir: "{centralized_reading_cards_dir}"
+  reading_card_project_links: []
+"""
+    else:
+        reading_card_output = """  reading_cards_mode: "project_local"
+  reading_cards_dir: "01-reading-cards/"
+"""
+
     return f"""
 project:
   project_name: "{root.name}"
@@ -179,7 +231,7 @@ sources:
   manuscripts: []
 
 outputs:
-  reading_cards_dir: "01-reading-cards/"
+{reading_card_output.rstrip()}
   annotations_dir: "annotations/"
   literature_matrix_dir: "02-literature-matrix/"
   prisma_dir: "02-literature-matrix/prisma/"
@@ -243,18 +295,31 @@ def annotation_review_log_text() -> str:
 """
 
 
-def scaffold_files(root: Path, directions: list[dict[str, str]], dry_run: bool) -> list[Path]:
+def scaffold_files(
+    root: Path,
+    directions: list[dict[str, str]],
+    dry_run: bool,
+    reading_cards_mode: str,
+    centralized_reading_cards_dir: str,
+) -> list[Path]:
     files = {
-        root / ".research" / "project_manifest.yml": project_manifest_text(root, directions),
+        root / ".research" / "project_manifest.yml": project_manifest_text(
+            root,
+            directions,
+            reading_cards_mode,
+            centralized_reading_cards_dir,
+        ),
         root / "annotations" / "inbox.md": annotation_inbox_text(),
         root / "annotations" / "review-log.md": annotation_review_log_text(),
-        root / "01-reading-cards" / "README.md": reading_cards_readme_text(),
         root / "02-literature-matrix" / "LM-001_search-map.md": "# Search Map\n\n待填写。\n",
         root / "02-literature-matrix" / "LM-002_reading-plan.md": "# Reading Plan\n\n待填写。\n",
         root / "02-literature-matrix" / "LM-006_gap-analysis-and-technical-route.md": "# Gap Analysis And Technical Route\n\n待填写。\n",
         root / "02-literature-matrix" / "LM-007_team-tracking.md": "# Team Tracking\n\n待填写。\n",
         root / "05-ai-code-workspace" / "README.md": "# AI Code Workspace\n\n用于保存本课题可复现分析脚本、配置、图表和日志；不要保存 API key、Zotero 数据库或 PDF 文件。长文本请优先复用 `.research/fulltext_cache/`。\n",
     }
+    if reading_cards_mode == PROJECT_LOCAL_READING_CARDS:
+        files[root / "01-reading-cards" / "README.md"] = reading_cards_readme_text()
+
     planned_or_created: list[Path] = []
     for path, text in files.items():
         if path.exists():
@@ -265,8 +330,72 @@ def scaffold_files(root: Path, directions: list[dict[str, str]], dry_run: bool) 
     return planned_or_created
 
 
+def audit_workspace(root: Path, registry_reading_cards: str | None) -> int:
+    issues: list[str] = []
+    manifest = root / ".research" / "project_manifest.yml"
+    local_cards = root / "01-reading-cards"
+
+    if not root.exists() or not root.is_dir():
+        print(f"ERROR: 课题根目录不存在或不是目录：{root}")
+        return 2
+
+    if not manifest.exists():
+        issues.append("缺少 .research/project_manifest.yml，无法确认读书卡落点。")
+        manifest_text = ""
+    else:
+        manifest_text = manifest.read_text(encoding="utf-8")
+
+    registry_uses_centralized = bool(
+        registry_reading_cards and registry_reading_cards.strip().startswith("centralized:")
+    )
+    manifest_uses_centralized = (
+        'reading_cards_mode: "centralized_links"' in manifest_text
+        or "reading_cards_mode: centralized_links" in manifest_text
+        or "centralized_reading_cards_dir:" in manifest_text
+    )
+    manifest_declares_local = (
+        'reading_cards: "01-reading-cards/"' in manifest_text
+        or "reading_cards: 01-reading-cards/" in manifest_text
+        or 'reading_cards_dir: "01-reading-cards/"' in manifest_text
+        or "reading_cards_dir: 01-reading-cards/" in manifest_text
+    )
+
+    if registry_uses_centralized and manifest_declares_local and not manifest_uses_centralized:
+        issues.append("项目登记使用集中读书卡，但 manifest 仍声明本地 01-reading-cards。")
+    if manifest_declares_local and not manifest_uses_centralized and not local_cards.is_dir():
+        issues.append("manifest 声明本地 01-reading-cards，但课题目录中不存在该目录。")
+    if manifest_uses_centralized and local_cards.exists() and not local_cards.is_dir():
+        issues.append("集中读书卡模式下，01-reading-cards 路径存在但不是目录。")
+
+    print("ResearchOS 项目工作区审计")
+    print(f"root: {root}")
+    print(f"manifest: {manifest if manifest.exists() else '(missing)'}")
+    print(f"registry_reading_cards: {registry_reading_cards if registry_reading_cards else '(未提供)'}")
+    print(f"local_01_reading_cards: {'exists' if local_cards.is_dir() else 'missing'}")
+    print(
+        "reading_cards_mode: "
+        + (
+            "centralized-links"
+            if registry_uses_centralized or manifest_uses_centralized
+            else "project-local"
+        )
+    )
+
+    if issues:
+        print("\nissues:")
+        for issue in issues:
+            print(f"  - {issue}")
+        return 4
+
+    print("\nOK: 项目登记、manifest 与读书卡目录规则一致。")
+    return 0
+
+
 def main() -> int:
     args = build_parser().parse_args()
+    if args.audit and args.root:
+        return audit_workspace(Path(args.root).expanduser(), args.registry_reading_cards)
+
     path_resolver = load_path_resolver()
     topic_directions = parse_topic_directions(args.topic_direction)
 
@@ -281,6 +410,9 @@ def main() -> int:
         return 2
 
     root = root.expanduser()
+
+    if args.audit:
+        return audit_workspace(root, args.registry_reading_cards)
 
     if root.exists() and not root.is_dir():
         print(f"ERROR: 指定路径已存在，但不是目录：{root}")
@@ -302,7 +434,7 @@ def main() -> int:
     existing: list[Path] = []
     planned: list[Path] = []
 
-    for dirname in STANDARD_DIRS:
+    for dirname in standard_dirs(args.reading_cards_mode):
         target = root / dirname
         if target.exists():
             if target.is_dir():
@@ -318,7 +450,13 @@ def main() -> int:
             target.mkdir(parents=True, exist_ok=True)
             created.append(target)
 
-    scaffolded = scaffold_files(root, topic_directions, args.dry_run)
+    scaffolded = scaffold_files(
+        root,
+        topic_directions,
+        args.dry_run,
+        args.reading_cards_mode,
+        args.centralized_reading_cards_dir,
+    )
 
     print("\nResearchOS 课题输出目录")
     print(f"researchos_root: {researchos_root}")
@@ -349,7 +487,10 @@ def main() -> int:
 
     print("\n建议用途：")
     print("  annotations           人工阅读批注收件箱、处理记录和已处理条目")
-    print("  01-reading-cards      单篇文献读书卡和 PDF 抽取文本")
+    if args.reading_cards_mode == CENTRALIZED_READING_CARDS:
+        print("  集中读书卡          集中主卡和项目指针；本地不要求 01-reading-cards")
+    else:
+        print("  01-reading-cards      单篇文献读书卡和 PDF 抽取文本")
     print("  02-literature-matrix  文献综述矩阵、gap 分析、选题建议")
     print("  02-literature-matrix/prisma  PRISMA 检索、筛选、阅读状态和 Zotero tag mirror plan")
     print("  03-manuscript         论文大纲、方法审查、图表叙事、润色稿")

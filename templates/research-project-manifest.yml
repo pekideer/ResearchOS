@@ -33,7 +33,14 @@ sources:
 
 outputs:
   annotations_dir: "annotations/"
+  # 二选一：
+  # - project_local：读书卡保存在课题目录 01-reading-cards/
+  # - centralized_links：权威主卡保存在 00_ResearchOS/corpus/reading-cards/cards/，
+  #   课题目录只保存项目指针、综述矩阵和局部缓存。
+  reading_cards_mode: "project_local"
   reading_cards_dir: "01-reading-cards/"
+  centralized_reading_cards_dir: "00_ResearchOS/corpus/reading-cards/cards/"
+  reading_card_project_links: []
   literature_matrix_dir: "02-literature-matrix/"
   prisma_dir: "02-literature-matrix/prisma/"
   manuscript_dir: "03-manuscript/"
