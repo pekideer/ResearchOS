@@ -1,0 +1,26 @@
+gaps:
+  - gap_id: G001
+    statement: "?"
+    source:
+      literature_matrix_rows: []
+      reading_cards: []
+      zotero_item_links: []
+      user_materials: []
+    open_gate:
+      status: "unknown"
+      evidence: "?"
+      risk: "?"
+      action: "?"
+    contribution_gate:
+      status: "unknown"
+      evidence: "?"
+      risk: "?"
+      action: "?"
+    feasibility_gate:
+      status: "unknown"
+      evidence: "?"
+      risk: "?"
+      action: "?"
+    decision: "hold"
+    next_step: "?"
+    uncertainty: ["需要核查"]

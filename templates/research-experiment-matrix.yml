@@ -1,0 +1,12 @@
+experiments:
+  - experiment_id: EXP001
+    purpose: "?"
+    linked_research_question: "?"
+    linked_claim_ids: []
+    data_source: "?"
+    method_or_model: "?"
+    baseline_or_control: "?"
+    metrics: []
+    status: "planned"
+    key_risks: []
+    outputs: []

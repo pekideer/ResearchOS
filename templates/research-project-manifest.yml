@@ -1,0 +1,52 @@
+project:
+  project_name: "?"
+  short_name: "?"
+  stage: "?"
+  owner: "?"
+  last_updated: "YYYY-MM-DD"
+
+research_focus:
+  background: "?"
+  research_questions: []
+  hypotheses: []
+  gap_ids: []
+
+# 人为指定的课题方向。HTML 读书总表会按这里的方向生成
+# `02-literature-matrix/reading-summary-tables/LM-004_reading-summary-table-<code>.html`。
+# 读书卡 `tags` 中应使用完整 label，例如 `T1_方向名称`。
+topic_directions:
+  - code: T1
+    label: "T1_方向名称"
+    display: "方向名称"
+    relevance_default: "待判定"
+  - code: T2
+    label: "T2_另一个方向"
+    display: "另一个方向"
+    relevance_default: "待判定"
+
+sources:
+  literature_matrix: []
+  reading_cards: []
+  zotero_item_links: []
+  datasets: []
+  manuscripts: []
+
+outputs:
+  annotations_dir: "annotations/"
+  reading_cards_dir: "01-reading-cards/"
+  literature_matrix_dir: "02-literature-matrix/"
+  prisma_dir: "02-literature-matrix/prisma/"
+  manuscript_dir: "03-manuscript/"
+  reviewer_response_dir: "04-reviewer-response/"
+
+status:
+  current_stage: "?"
+  last_completed_step: "?"
+  pending_user_approval: []
+  blocked_reasons: []
+  next_actions: []
+
+safety:
+  api_keys_stored_here: false
+  zotero_write_allowed: false
+  notes: "不要在 .research/ 中保存 API key、Zotero 数据库或 PDF 文件；.research/fulltext_cache/ 可保存项目内部文本缓存，kit export 必须剔除。"

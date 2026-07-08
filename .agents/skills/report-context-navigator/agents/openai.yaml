@@ -1,0 +1,4 @@
+interface:
+  display_name: "汇报导航优化"
+  short_description: "在汇报末尾给出当前位置和下一步建议。"
+  default_prompt: "请优化本次汇报，在末尾说明当前位置、已推进到哪一步，以及下一步建议。"

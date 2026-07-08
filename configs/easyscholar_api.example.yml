@@ -1,0 +1,19 @@
+# EasyScholar provider 配置样例。
+# 仅将非密钥字段复制到 .researchos/providers/easyscholar.yml。
+# 不得把真实 API key 写入本文件。
+
+provider: easyscholar
+endpoint: "https://example.invalid/easyscholar/query"
+method: "GET"
+auth_header: "Authorization"
+auth_prefix: "Bearer"
+query_field_priority:
+  - venue
+  - publication_title
+  - journal
+  - publication
+  - journal_abbrev
+timeout_seconds: 20
+rate_limit_per_minute: 30
+cache_policy: "project-internal-cache"
+secret_env_file: "%USERPROFILE%\\.researchos\\secrets\\easyscholar.env"

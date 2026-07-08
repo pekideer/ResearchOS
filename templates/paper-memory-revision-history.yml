@@ -1,0 +1,9 @@
+revisions:
+  - revision_id: R001
+    date: "YYYY-MM-DD"
+    trigger: "?"
+    affected_sections: []
+    affected_claim_ids: []
+    affected_figure_ids: []
+    summary: "?"
+    pending_checks: []

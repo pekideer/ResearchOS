@@ -1,0 +1,59 @@
+.env
+.local/
+.researchos/
+*.log
+__pycache__/
+*.pyc
+.venv/
+venv/
+local-cache/*
+!local-cache/README.md
+local-cache/project-specific/
+
+# Private literature corpus and generated evidence stores.
+# The public repository should keep templates and instructions, not real Zotero
+# databases, normalized full text, reading cards, or project-specific indexes.
+corpus/zotero/**
+corpus/fulltext/**
+corpus/fulltext*/**
+corpus/reading-cards/**
+!corpus/
+!corpus/README.md
+!corpus/reading-cards/
+!corpus/reading-cards/README.md
+
+# System reports are generated from a local library or local projects.
+docs/reports/**
+!docs/reports/
+!docs/reports/README.md
+
+# 真实配置应放在本机目录或同步私有目录；configs/ 只保留可复用样例。
+configs/active_project.yml
+configs/project_registry.yml
+configs/machine_config.json
+configs/easyscholar_api.yml
+configs/zotero_governance_rules.json
+
+# Generated research outputs and Zotero exports are runtime artifacts, not core assistant assets.
+outputs/
+!outputs/
+outputs/*
+!outputs/README.md
+*.bak
+.DS_Store
+Thumbs.db
+
+# Local project workspaces must live outside this framework repository unless
+# they are intentionally created as public examples.
+.research/
+.paper/
+01-reading-cards/
+02-literature-matrix/
+03-manuscript/
+04-reviewer-response/
+05-ai-code-workspace/
+
+# Obsidian user/session state. Keep reusable vault defaults tracked, but not local window state or plugins.
+**/.obsidian/workspace*.json
+**/.obsidian/cache/
+**/.obsidian/plugins/

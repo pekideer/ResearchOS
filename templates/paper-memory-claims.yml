@@ -1,0 +1,14 @@
+claims:
+  - claim_id: C001
+    manuscript_location:
+      section: "?"
+      paragraph: "?"
+      sentence: "?"
+    claim_text: "?"
+    claim_type: "?"
+    evidence_ids: []
+    supported_by_figures: []
+    supported_by_tables: []
+    risk_level: "unknown"
+    status: "needs_evidence"
+    notes: "?"

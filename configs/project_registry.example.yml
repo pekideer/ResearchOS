@@ -1,0 +1,30 @@
+# 可复制到以下任一位置：
+# - 00_ResearchOS\.researchos\project_registry.yml，用于随工作区同步的课题指针。
+# - %USERPROFILE%\.researchos\project_registry.yml，用于本机专用的课题指针。
+# 不得把真实登记表放入 ResearchOS kit。
+
+storage_version: 1
+path_resolution:
+  default_root_key: "projects_root"
+  machine_config_candidates:
+    - "%USERPROFILE%\\.researchos\\machine_config.json"
+  fallback:
+    type: "researchos_parent"
+
+projects:
+  - project_id: "example-topic"
+    project_name: "示例课题"
+    root_key: "projects_root"
+    project_relative_path: "ExampleProject"
+    status: "active"
+    priority: 1
+    manifest: ".research/project_manifest.yml"
+    overview: ".research/project_overview_and_plan.md"
+    reading_plan: "02-literature-matrix/reading_plan.md"
+    reading_cards: "01-reading-cards/"
+    priority_cards: "01-reading-cards/priority-cards/"
+    literature_matrix: "02-literature-matrix/literature-review-matrix.append.csv"
+    manuscript_dir: "03-manuscript/"
+    paper_memory_dir: ".paper/"
+    last_focus: "用一句话说明当前最重要的论文或课题推进目标"
+    last_updated: "YYYY-MM-DD"

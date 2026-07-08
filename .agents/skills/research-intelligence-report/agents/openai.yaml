@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Intelligence Report"
+  short_description: "Reports from Zotero plus external candidate lists."
+  default_prompt: "围绕指定课题方向，结合本地文献库和外部数据库撰写深度研究报告；若发现外部候选文献，列出题录、DOI、建议 文献集和标签。"

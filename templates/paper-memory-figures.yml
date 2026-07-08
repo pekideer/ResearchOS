@@ -1,0 +1,18 @@
+figures:
+  - figure_id: F001
+    label: "Figure 1"
+    title_or_caption: "?"
+    answers_question: "?"
+    main_observation: "?"
+    supports_claim_ids: []
+    evidence_ids: []
+    cannot_support: []
+    needs_verification: ["?"]
+
+tables:
+  - table_id: T001
+    label: "Table 1"
+    title_or_caption: "?"
+    supports_claim_ids: []
+    evidence_ids: []
+    needs_verification: ["?"]

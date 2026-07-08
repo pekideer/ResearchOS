@@ -1,0 +1,17 @@
+# 可复制到以下任一位置：
+# - 00_ResearchOS\.researchos\active_project.yml，用于随工作区同步的当前课题指针。
+# - %USERPROFILE%\.researchos\active_project.yml，用于本机专用的当前课题指针。
+# kit 导出时不得包含真实 active_project.yml。
+
+storage_version: 1
+active_project_id: "example-topic"
+root_key: "projects_root"
+project_relative_path: "ExampleProject"
+focus:
+  current_stage: "例如：文献综述、研究问题凝练或论文方法框架"
+  current_question: "例如：当前证据是否足以支撑这个研究问题继续推进"
+  next_actions:
+    - "读取 .research/project_overview_and_plan.md"
+    - "检查 01-reading-cards/priority-cards/"
+    - "同步 02-literature-matrix/reading-summary-table.html"
+updated_at: "YYYY-MM-DDTHH:MM:SS+08:00"

@@ -1,0 +1,191 @@
+"""Build first-author affiliation semantic-review packets from fulltext cache.
+
+This tool does not call Zotero, does not read PDFs, and does not write reading
+cards. It prepares compact page-1/page-2 evidence for an agent or human to
+semantically extract authors and first-author affiliation.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+from researchos_card_metadata import known, parse_metadata, raw_item_key
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--project-root", required=True)
+    parser.add_argument("--cards-root")
+    parser.add_argument("--fulltext-cache-root")
+    parser.add_argument("--max-pages", type=int, default=3)
+    parser.add_argument("--max-chars-per-card", type=int, default=4500)
+    parser.add_argument("--output")
+    parser.add_argument("--jsonl-output")
+    return parser
+
+
+def default_cards_root(project_root: Path) -> Path:
+    priority = project_root / "01-reading-cards" / "priority-cards"
+    return priority if priority.exists() else project_root / "01-reading-cards"
+
+
+def default_cache_roots(project_root: Path, cards_root: Path) -> list[Path]:
+    base = project_root / ".research" / "fulltext_cache"
+    roots = [base / cards_root.name, base / "priority-cards", base]
+    output: list[Path] = []
+    for root in roots:
+        if root not in output:
+            output.append(root)
+    return output
+
+
+def find_cache_file(cache_roots: list[Path], item_key: str) -> Path | None:
+    if not item_key:
+        return None
+    for root in cache_roots:
+        candidate = root / f"{item_key}.txt"
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def extract_marked_pages(text: str, max_pages: int) -> str:
+    marker = re.compile(r"(?m)^===== Page (\d+) =====\s*$")
+    matches = list(marker.finditer(text))
+    if not matches:
+        return text
+    chunks: list[str] = []
+    for index, match in enumerate(matches):
+        page = int(match.group(1))
+        if page > max_pages:
+            continue
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        chunks.append(text[match.start() : end].strip())
+    return "\n\n".join(chunks) if chunks else text[:0]
+
+
+def compact_text(text: str, max_chars: int) -> str:
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"\n{4,}", "\n\n\n", text)
+    return text[:max_chars].rstrip()
+
+
+def find_cards(cards_root: Path) -> list[Path]:
+    return sorted(
+        path
+        for path in cards_root.rglob("*.md")
+        if path.is_file() and not path.name.startswith("_") and path.name.lower() != "readme.md"
+    )
+
+
+def build_record(card: Path, cache_roots: list[Path], max_pages: int, max_chars: int) -> dict[str, Any]:
+    text = card.read_text(encoding="utf-8-sig")
+    metadata = parse_metadata(text)
+    item_key = raw_item_key(metadata.get("item_key"))
+    cache_file = find_cache_file(cache_roots, item_key)
+    front_text = ""
+    cache_status = "missing"
+    if cache_file:
+        raw = cache_file.read_text(encoding="utf-8-sig", errors="replace")
+        front_text = compact_text(extract_marked_pages(raw, max_pages), max_chars)
+        cache_status = "ok" if front_text else "empty"
+    return {
+        "card": str(card),
+        "manual_ref_id": metadata.get("manual_ref_id", ""),
+        "item_key": item_key,
+        "title": metadata.get("title", ""),
+        "authors_current": metadata.get("authors", ""),
+        "first_author_affiliation_current": metadata.get("first_author_affiliation", ""),
+        "first_author_affiliation_status_current": metadata.get("first_author_affiliation_status", ""),
+        "cache_status": cache_status,
+        "cache_path": str(cache_file) if cache_file else "",
+        "text_scope": f"fulltext_cache pages 1-{max_pages}",
+        "front_text": front_text,
+    }
+
+
+def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path]) -> str:
+    lines = [
+        "# First-Author Affiliation Semantic Packet",
+        "",
+        "Purpose: use only the cached first pages below to semantically extract authors and first-author affiliation.",
+        "",
+        "Rules:",
+        "- Output `first_author_affiliation` as `一级单位, 国家`.",
+        "- Preserve supporting evidence in `first_author_affiliation_raw`.",
+        "- Use `ok`, `needs_check`, or `not_found` for status.",
+        "- Do not infer missing country or institution from general knowledge.",
+        "- Do not read Zotero or PDFs before checking this packet/cache.",
+        "",
+        "Cache roots checked:",
+        *[f"- `{root}`" for root in cache_roots],
+        "",
+    ]
+    for record in records:
+        ref = record.get("manual_ref_id") or "?"
+        key = record.get("item_key") or "?"
+        lines.extend(
+            [
+                f"## {ref} / {key}",
+                "",
+                f"- Title: {record.get('title') or '?'}",
+                f"- Current authors: {record.get('authors_current') or '?'}",
+                f"- Current affiliation: {record.get('first_author_affiliation_current') or '?'}",
+                f"- Current status: {record.get('first_author_affiliation_status_current') or '?'}",
+                f"- Cache status: {record.get('cache_status')}",
+                f"- Cache path: `{record.get('cache_path') or '?'}`",
+                "",
+                "```text",
+                record.get("front_text") or "[NO CACHED FRONT TEXT]",
+                "```",
+                "",
+                "Expected extraction:",
+                "",
+                "```yaml",
+                'authors: "..."',
+                'first_author_affiliation: "一级单位, 国家"',
+                'first_author_affiliation_raw: "..."',
+                'first_author_affiliation_source: "fulltext_cache pages 1-2 semantic extraction"',
+                'first_author_affiliation_status: "ok|needs_check|not_found"',
+                "```",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    project_root = Path(args.project_root).resolve()
+    cards_root = Path(args.cards_root).resolve() if args.cards_root else default_cards_root(project_root)
+    cache_roots = [Path(args.fulltext_cache_root).resolve()] if args.fulltext_cache_root else default_cache_roots(project_root, cards_root)
+    output = (
+        Path(args.output).resolve()
+        if args.output
+        else project_root / "02-literature-matrix" / ".internal" / "first-author-affiliation-semantic-packet.md"
+    )
+    jsonl_output = Path(args.jsonl_output).resolve() if args.jsonl_output else output.with_suffix(".jsonl")
+
+    records = [build_record(card, cache_roots, args.max_pages, args.max_chars_per_card) for card in find_cards(cards_root)]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(markdown_packet(records, cache_roots), encoding="utf-8")
+    jsonl_output.write_text(
+        "\n".join(json.dumps(record, ensure_ascii=False) for record in records) + "\n",
+        encoding="utf-8",
+    )
+
+    print("ResearchOS affiliation semantic packet")
+    print(f"cards_seen: {len(records)}")
+    print(f"cache_ok: {sum(1 for record in records if record['cache_status'] == 'ok')}")
+    print(f"cache_missing: {sum(1 for record in records if record['cache_status'] == 'missing')}")
+    print(f"output: {output}")
+    print(f"jsonl_output: {jsonl_output}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

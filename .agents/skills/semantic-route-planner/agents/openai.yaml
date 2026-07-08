@@ -1,0 +1,4 @@
+interface:
+  display_name: "语义路由规划"
+  short_description: "把口语化请求定位到 ResearchOS 能力路线。"
+  default_prompt: "请判断我的自然语言请求应该走哪个 ResearchOS 能力和工作流，并给出执行路线。"

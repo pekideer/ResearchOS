@@ -1,0 +1,4 @@
+interface:
+  display_name: "Idea to Research Potential"
+  short_description: "Capture ideas and external reading candidates."
+  default_prompt: "记录这个点子，判断研究潜力；若外部检索发现候选文献，生成候选阅读清单和建议文献集/标签。"

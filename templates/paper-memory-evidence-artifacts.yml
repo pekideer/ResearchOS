@@ -1,0 +1,8 @@
+evidence_artifacts:
+  - evidence_id: E001
+    evidence_type: "?"
+    source_location: "?"
+    summary: "?"
+    supports_claim_ids: []
+    limitations: "?"
+    verification_status: "unknown"

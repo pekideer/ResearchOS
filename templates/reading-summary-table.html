@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading Summary Table</title>
+<style>
+:root { --border: #d9dee7; --header: #f2f5f9; --text: #17202a; --muted: #5f6b7a; }
+body { margin: 0; padding: 24px; font: 15px/1.55 -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; color: var(--text); background: #fff; }
+h1 { margin: 0 0 8px; font-size: 32px; line-height: 1.2; }
+.meta { margin: 0 0 16px; color: var(--muted); }
+.topic-nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 18px; padding: 12px; border: 1px solid #c8d3e3; border-radius: 8px; background: #f8fafc; }
+.topic-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #c8d3e3; border-radius: 6px; background: #fff; color: var(--text); text-decoration: none; font-weight: 700; box-shadow: 0 1px 2px rgba(16,24,40,.05); }
+.topic-pill:hover { border-color: #0b63ce; color: #0b63ce; text-decoration: none; }
+.topic-pill.current { border-color: #0b63ce; background: #eef6ff; color: #0b63ce; }
+.topic-code { display: inline-flex; min-width: 34px; height: 24px; align-items: center; justify-content: center; border-radius: 4px; background: #17202a; color: #fff; font-size: 13px; line-height: 1; }
+.table-scrollbar { width: 100%; height: 16px; overflow-x: auto; overflow-y: hidden; border: 1px solid var(--border); border-bottom: 0; border-radius: 8px 8px 0 0; background: #fff; position: sticky; top: 0; z-index: 6; }
+.table-scrollbar.hidden { display: none; }
+.table-scrollbar-inner { height: 1px; }
+.table-shell { width: 100%; overflow: auto; border: 1px solid var(--border); border-radius: 8px; max-height: calc(100vh - 206px); background: #fff; }
+.table-scrollbar:not(.hidden) + .table-shell { border-top-left-radius: 0; border-top-right-radius: 0; }
+table { border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 2320px; width: 2320px; }
+th, td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 8px 10px; vertical-align: top; background: #fff; overflow-wrap: anywhere; }
+th { position: sticky; top: 0; z-index: 3; background: var(--header); text-align: left; font-weight: 700; user-select: none; }
+td.compact, th.compact { text-align: center; vertical-align: middle; white-space: nowrap; }
+th:nth-child(6), th:nth-child(7), th:nth-child(8) { white-space: nowrap; text-align: center; }
+th.sortable { cursor: pointer; padding-right: 18px; }
+th.sortable::after { content: '↕'; position: absolute; right: 8px; color: #8b96a6; font-size: 11px; }
+th.sort-asc::after { content: '↑'; color: #0b63ce; }
+th.sort-desc::after { content: '↓'; color: #0b63ce; }
+.sticky-col { position: sticky; left: 0; z-index: 2; box-shadow: 1px 0 0 var(--border); }
+th.sticky-col { z-index: 4; }
+.resize-handle { position: absolute; top: 0; right: -3px; width: 8px; height: 100%; cursor: col-resize; z-index: 5; }
+.resize-handle:hover, .resize-handle.active { background: rgba(11,99,206,.18); }
+.table-shell::-webkit-scrollbar, .table-scrollbar::-webkit-scrollbar { width: 14px; height: 14px; }
+</style>
+</head>
+<body>
+<h1>Reading Summary Table</h1>
+<nav class="topic-nav" aria-label="课题方向导航">
+<a class="topic-pill current" href="LM-004_reading-summary-table.html"><span class="topic-code">全部</span>全部课题方向</a>
+<a class="topic-pill" href="reading-summary-tables/LM-004_reading-summary-table-T1.html"><span class="topic-code">T1</span>方向名称</a>
+<a class="topic-pill" href="reading-summary-tables/LM-004_reading-summary-table-T2.html"><span class="topic-code">T2</span>另一个方向</a>
+</nav>
+<p class="meta">此文件由 <code>tools/sync_reading_summary_table.py</code> 生成。评分和 PRISMA 字段从读书卡或可选 PRISMA CSV 同步；点击 Zotero 条目或 Zotero PDF 需要本机已安装 Zotero，并注册 <code>zotero://</code> 协议。</p>
+<div class="table-scrollbar hidden" aria-hidden="true"><div class="table-scrollbar-inner"></div></div>
+<div class="table-shell">
+<table>
+<colgroup>
+<col style="width: 76px;">
+<col style="width: 50px;">
+<col style="width: 300px;">
+<col style="width: 160px;">
+<col style="width: 56px;">
+<col style="width: 86px;">
+<col style="width: 72px;">
+<col style="width: 64px;">
+<col style="width: 600px;">
+<col style="width: 320px;">
+<col style="width: 88px;">
+<col style="width: 68px;">
+<col style="width: 84px;">
+<col style="width: 84px;">
+<col style="width: 260px;">
+</colgroup>
+<thead>
+<tr>
+<th class="sticky-col">编号</th>
+<th>序</th>
+<th>题目</th>
+<th>作者</th>
+<th>年</th>
+<th>读书卡</th>
+<th>条目</th>
+<th>PDF</th>
+<th>一段话综述</th>
+<th>相关性</th>
+<th>期刊</th>
+<th>评分</th>
+<th>PRISMA</th>
+<th>状态</th>
+<th>Tags</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+<script>
+(() => {
+  const table = document.querySelector('table');
+  const tableShell = document.querySelector('.table-shell');
+  const topScrollbar = document.querySelector('.table-scrollbar');
+  const topScrollbarInner = document.querySelector('.table-scrollbar-inner');
+  const cols = Array.from(document.querySelectorAll('col'));
+  const headers = Array.from(document.querySelectorAll('th'));
+  const tbody = document.querySelector('tbody');
+  const collator = new Intl.Collator('zh-Hans-CN', { numeric: true, sensitivity: 'base' });
+  const sortState = { index: -1, direction: 1 };
+  const key = 'ResearchOS:reading-summary-table:col-widths:' + location.pathname;
+  const readWidths = () => cols.map(col => parseInt(col.style.width, 10) || Math.round(col.getBoundingClientRect().width));
+  const updateTopScrollbar = () => {
+    if (!tableShell || !topScrollbar || !topScrollbarInner) return;
+    const tableWidth = Math.ceil(table.getBoundingClientRect().width || table.scrollWidth);
+    topScrollbarInner.style.width = tableWidth + 'px';
+    const hasOverflow = tableShell.scrollWidth > tableShell.clientWidth + 1;
+    topScrollbar.classList.toggle('hidden', !hasOverflow);
+    if (hasOverflow) topScrollbar.scrollLeft = tableShell.scrollLeft;
+  };
+  const applyWidths = widths => {
+    let total = 0;
+    widths.forEach((width, index) => {
+      if (!cols[index]) return;
+      const next = Math.max(42, Math.round(Number(width) || 42));
+      cols[index].style.width = next + 'px';
+      total += next;
+    });
+    table.style.width = total + 'px';
+    table.style.minWidth = total + 'px';
+    updateTopScrollbar();
+  };
+  let syncingScroll = false;
+  const syncScroll = (source, target) => {
+    if (!source || !target || syncingScroll) return;
+    syncingScroll = true;
+    target.scrollLeft = source.scrollLeft;
+    requestAnimationFrame(() => { syncingScroll = false; });
+  };
+  tableShell?.addEventListener('scroll', () => syncScroll(tableShell, topScrollbar));
+  topScrollbar?.addEventListener('scroll', () => syncScroll(topScrollbar, tableShell));
+  window.addEventListener('resize', updateTopScrollbar);
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || 'null');
+    if (Array.isArray(saved) && saved.length === cols.length) applyWidths(saved);
+  } catch (_error) {}
+  updateTopScrollbar();
+  headers.forEach((header, index) => {
+    const handle = document.createElement('span');
+    header.classList.add('sortable');
+    header.title = (header.title ? header.title + '；' : '') + '点击排序；拖动右边界调整列宽；双击边界重置列宽记忆';
+    handle.className = 'resize-handle';
+    handle.title = '拖动调整列宽，浏览器会记住本表设置';
+    header.appendChild(handle);
+    handle.addEventListener('mousedown', event => {
+      event.preventDefault();
+      handle.classList.add('active');
+      const startX = event.clientX;
+      const startWidths = readWidths();
+      const onMove = moveEvent => {
+        const widths = startWidths.slice();
+        widths[index] = Math.max(42, startWidths[index] + moveEvent.clientX - startX);
+        applyWidths(widths);
+      };
+      const onUp = () => {
+        handle.classList.remove('active');
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        try { localStorage.setItem(key, JSON.stringify(readWidths())); } catch (_error) {}
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+    handle.addEventListener('dblclick', event => {
+      event.preventDefault();
+      try { localStorage.removeItem(key); } catch (_error) {}
+      location.reload();
+    });
+    header.addEventListener('click', event => {
+      if (event.target.closest('.resize-handle')) return;
+      sortState.direction = sortState.index === index ? -sortState.direction : 1;
+      sortState.index = index;
+      headers.forEach(item => item.classList.remove('sort-asc', 'sort-desc'));
+      header.classList.add(sortState.direction === 1 ? 'sort-asc' : 'sort-desc');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((left, right) => {
+        const a = left.children[index]?.textContent.trim() || '';
+        const b = right.children[index]?.textContent.trim() || '';
+        const na = Number(a.replace(/[^0-9.\-]/g, ''));
+        const nb = Number(b.replace(/[^0-9.\-]/g, ''));
+        const bothNumeric = a !== '' && b !== '' && Number.isFinite(na) && Number.isFinite(nb);
+        const result = bothNumeric ? na - nb : collator.compare(a, b);
+        return result * sortState.direction;
+      });
+      rows.forEach(row => tbody.appendChild(row));
+    });
+  });
+  document.querySelectorAll('a.open-local').forEach(link => {
+    link.addEventListener('click', async event => {
+      event.preventDefault();
+      try {
+        const response = await fetch(link.href);
+        if (!response.ok) throw new Error(await response.text());
+      } catch (error) {
+        alert('未能调用本机 opener。请先运行 opener helper。');
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

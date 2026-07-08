@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Collection Overlay"
+  short_description: "Fixed 00 project root with topic Zotero 文献集 plans."
+  default_prompt: "在 00.科研项目 下为当前课题创建项目用 Zotero 文献集，并生成 试运行写入计划。"

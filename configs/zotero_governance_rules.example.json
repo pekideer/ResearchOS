@@ -1,0 +1,54 @@
+{
+  "research_directions": [
+    {
+      "name": "MPC and HVAC",
+      "keywords": ["model predictive control", "MPC", "HVAC", "building control"]
+    },
+    {
+      "name": "Spectrally Selective Materials",
+      "keywords": ["spectrally selective", "selective material", "radiative cooling", "solar absorptance", "thermal emittance"]
+    }
+  ],
+  "research_methods": [
+    {
+      "name": "Review",
+      "keywords": ["review", "state of the art", "survey"]
+    },
+    {
+      "name": "Experiment",
+      "keywords": ["experiment", "measurement", "prototype", "test rig"]
+    },
+    {
+      "name": "Simulation",
+      "keywords": ["simulation", "numerical", "finite element", "CFD", "EnergyPlus"]
+    },
+    {
+      "name": "Optimization",
+      "keywords": ["optimization", "optimal", "multi-objective", "genetic algorithm", "model predictive control"]
+    }
+  ],
+  "research_objects": [
+    {
+      "name": "HVAC System",
+      "keywords": ["HVAC", "heating ventilation and air-conditioning", "air conditioning"]
+    },
+    {
+      "name": "Building Envelope",
+      "keywords": ["building envelope", "facade", "roof", "wall", "window"]
+    },
+    {
+      "name": "Spectrally Selective Coating",
+      "keywords": ["coating", "film", "selective surface", "spectrally selective"]
+    }
+  ],
+  "journal_levels": {
+    "Building and Environment": "USER_DEFINED_Q1",
+    "Energy and Buildings": "USER_DEFINED_Q1",
+    "Applied Energy": "USER_DEFINED_Q1"
+  },
+  "tag_aliases": {
+    "mpc": "MPC",
+    "model predictive control": "MPC",
+    "hvac": "HVAC"
+  }
+}

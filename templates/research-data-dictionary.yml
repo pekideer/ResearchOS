@@ -1,0 +1,13 @@
+datasets:
+  - dataset_id: D001
+    name: "?"
+    source: "?"
+    access_status: "unknown"
+    variables:
+      - name: "?"
+        role: "?"
+        unit: "?"
+        definition: "?"
+        missingness: "?"
+    restrictions: []
+    notes: "?"
