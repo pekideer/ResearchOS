@@ -51,6 +51,20 @@ def find_cache_file(cache_roots: list[Path], item_key: str) -> Path | None:
     return None
 
 
+def portable_path(path: Path | None, project_root: Path, researchos_root: Path) -> str:
+    if not path:
+        return ""
+    resolved = path.resolve()
+    try:
+        return "{PROJECT_ROOT}/" + str(resolved.relative_to(project_root.resolve())).replace("\\", "/")
+    except ValueError:
+        pass
+    try:
+        return "{RESEARCHOS_ROOT}/" + str(resolved.relative_to(researchos_root.resolve())).replace("\\", "/")
+    except ValueError:
+        return "{LOCAL_PATH}/" + path.name
+
+
 def extract_marked_pages(text: str, max_pages: int | None) -> str:
     if not max_pages:
         return text
@@ -107,6 +121,8 @@ def direct_key_records(item_keys: set[str]) -> list[dict[str, str]]:
 def build_records(
     seed_records: list[dict[str, str]],
     cache_roots: list[Path],
+    project_root: Path,
+    researchos_root: Path,
     max_pages: int | None,
     max_chars: int,
 ) -> list[dict[str, Any]]:
@@ -123,8 +139,9 @@ def build_records(
         records.append(
             {
                 **seed,
+                "card": portable_path(Path(seed["card"]), project_root, researchos_root) if seed.get("card") else "",
                 "cache_status": cache_status,
-                "cache_path": str(cache_file) if cache_file else "",
+                "cache_path": portable_path(cache_file, project_root, researchos_root),
                 "text_scope": f"fulltext_cache pages 1-{max_pages}" if max_pages else "fulltext_cache full text truncated",
                 "packet_text": packet_text,
             }
@@ -132,14 +149,14 @@ def build_records(
     return records
 
 
-def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path]) -> str:
+def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path], project_root: Path, researchos_root: Path) -> str:
     lines = [
         "# Fulltext Cache Packet",
         "",
         "Purpose: use cached text as the source for long-reading tasks. Do not read Zotero/PDF before checking this packet/cache.",
         "",
         "Cache roots checked:",
-        *[f"- `{root}`" for root in cache_roots],
+        *[f"- `{portable_path(root, project_root, researchos_root)}`" for root in cache_roots],
         "",
     ]
     for record in records:
@@ -178,9 +195,9 @@ def main() -> int:
     output = Path(args.output).resolve() if args.output else project_root / ".research" / "fulltext-cache-packet.md"
     jsonl_output = Path(args.jsonl_output).resolve() if args.jsonl_output else output.with_suffix(".jsonl")
 
-    records = build_records(seed_records, cache_roots, args.max_pages, args.max_chars_per_item)
+    records = build_records(seed_records, cache_roots, project_root, researchos_root, args.max_pages, args.max_chars_per_item)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(markdown_packet(records, cache_roots), encoding="utf-8")
+    output.write_text(markdown_packet(records, cache_roots, project_root, researchos_root), encoding="utf-8")
     jsonl_output.write_text(
         "\n".join(json.dumps(record, ensure_ascii=False) for record in records) + ("\n" if records else ""),
         encoding="utf-8",

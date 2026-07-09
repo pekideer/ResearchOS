@@ -59,6 +59,13 @@ def safe_cache_name(rel: Path) -> str:
     return stem or "material"
 
 
+def portable_child_path(path: Path, root: Path) -> str:
+    try:
+        return str(path.relative_to(root)).replace("\\", "/")
+    except ValueError:
+        return "{LOCAL_PATH}/" + path.name
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-root", required=True)
@@ -110,13 +117,13 @@ def main() -> None:
         out_path.write_text(text, encoding="utf-8")
         records.append(
             {
-                "path": str(path),
-                "relative_path": str(rel),
+                "path": str(rel).replace("\\", "/"),
+                "relative_path": str(rel).replace("\\", "/"),
                 "source_type": source_type,
                 "bytes": path.stat().st_size,
                 "page_count": page_count,
                 "chars_extracted": len(text),
-                "text_output": str(out_path),
+                "text_output": portable_child_path(out_path, output_dir),
             }
         )
 

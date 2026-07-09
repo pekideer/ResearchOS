@@ -52,6 +52,20 @@ def find_cache_file(cache_roots: list[Path], item_key: str) -> Path | None:
     return None
 
 
+def portable_path(path: Path | None, project_root: Path, researchos_root: Path) -> str:
+    if not path:
+        return ""
+    resolved = path.resolve()
+    try:
+        return "{PROJECT_ROOT}/" + str(resolved.relative_to(project_root.resolve())).replace("\\", "/")
+    except ValueError:
+        pass
+    try:
+        return "{RESEARCHOS_ROOT}/" + str(resolved.relative_to(researchos_root.resolve())).replace("\\", "/")
+    except ValueError:
+        return "{LOCAL_PATH}/" + path.name
+
+
 def extract_marked_pages(text: str, max_pages: int) -> str:
     marker = re.compile(r"(?m)^===== Page (\d+) =====\s*$")
     matches = list(marker.finditer(text))
@@ -81,7 +95,14 @@ def find_cards(cards_root: Path) -> list[Path]:
     )
 
 
-def build_record(card: Path, cache_roots: list[Path], max_pages: int, max_chars: int) -> dict[str, Any]:
+def build_record(
+    card: Path,
+    cache_roots: list[Path],
+    project_root: Path,
+    researchos_root: Path,
+    max_pages: int,
+    max_chars: int,
+) -> dict[str, Any]:
     text = card.read_text(encoding="utf-8-sig")
     metadata = parse_metadata(text)
     item_key = raw_item_key(metadata.get("item_key"))
@@ -93,7 +114,7 @@ def build_record(card: Path, cache_roots: list[Path], max_pages: int, max_chars:
         front_text = compact_text(extract_marked_pages(raw, max_pages), max_chars)
         cache_status = "ok" if front_text else "empty"
     return {
-        "card": str(card),
+        "card": portable_path(card, project_root, researchos_root),
         "manual_ref_id": metadata.get("manual_ref_id", ""),
         "item_key": item_key,
         "title": metadata.get("title", ""),
@@ -101,13 +122,13 @@ def build_record(card: Path, cache_roots: list[Path], max_pages: int, max_chars:
         "first_author_affiliation_current": metadata.get("first_author_affiliation", ""),
         "first_author_affiliation_status_current": metadata.get("first_author_affiliation_status", ""),
         "cache_status": cache_status,
-        "cache_path": str(cache_file) if cache_file else "",
+        "cache_path": portable_path(cache_file, project_root, researchos_root),
         "text_scope": f"fulltext_cache pages 1-{max_pages}",
         "front_text": front_text,
     }
 
 
-def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path]) -> str:
+def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path], project_root: Path, researchos_root: Path) -> str:
     lines = [
         "# First-Author Affiliation Semantic Packet",
         "",
@@ -121,7 +142,7 @@ def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path]) -> s
         "- Do not read Zotero or PDFs before checking this packet/cache.",
         "",
         "Cache roots checked:",
-        *[f"- `{root}`" for root in cache_roots],
+        *[f"- `{portable_path(root, project_root, researchos_root)}`" for root in cache_roots],
         "",
     ]
     for record in records:
@@ -170,9 +191,12 @@ def main() -> int:
     )
     jsonl_output = Path(args.jsonl_output).resolve() if args.jsonl_output else output.with_suffix(".jsonl")
 
-    records = [build_record(card, cache_roots, args.max_pages, args.max_chars_per_card) for card in find_cards(cards_root)]
+    records = [
+        build_record(card, cache_roots, project_root, researchos_root, args.max_pages, args.max_chars_per_card)
+        for card in find_cards(cards_root)
+    ]
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(markdown_packet(records, cache_roots), encoding="utf-8")
+    output.write_text(markdown_packet(records, cache_roots, project_root, researchos_root), encoding="utf-8")
     jsonl_output.write_text(
         "\n".join(json.dumps(record, ensure_ascii=False) for record in records) + "\n",
         encoding="utf-8",

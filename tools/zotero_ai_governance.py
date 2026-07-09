@@ -239,6 +239,16 @@ def connect_readonly(db_path: Path) -> sqlite3.Connection:
     return connection
 
 
+def portable_researchos_path(path: Path | str | None) -> str:
+    if not path:
+        return ""
+    resolved = Path(path).resolve()
+    try:
+        return "{RESEARCHOS_ROOT}/" + str(resolved.relative_to(RESEARCHOS_ROOT.resolve())).replace("\\", "/")
+    except ValueError:
+        return "{LOCAL_PATH}/" + resolved.name
+
+
 def resolve_normalized_text_path(raw_path: str, normalized_root: Path, item_key: str, attachment_key: str) -> Path | None:
     candidates: list[Path] = []
     if raw_path:
@@ -291,7 +301,7 @@ def load_first_page_text(
         text = path.read_text(encoding="utf-8-sig", errors="replace")
         first_page = extract_first_page_text(text, max_chars)
         if first_page:
-            return first_page, str(path)
+            return first_page, portable_researchos_path(path)
     return "", ""
 
 
@@ -353,7 +363,7 @@ def command_prepare_corpus(args: argparse.Namespace) -> int:
             args.max_first_page_chars,
         )
         resolved_normalized_paths = [
-            str(path)
+            portable_researchos_path(path)
             for link in ok_text_links
             for path in [
                 resolve_normalized_text_path(

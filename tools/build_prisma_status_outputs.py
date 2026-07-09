@@ -167,6 +167,16 @@ def resolve_card_path(raw_path: str, root: Path) -> Path | None:
     return root / candidate
 
 
+def portable_path(path: Path, base: Path) -> str:
+    resolved = path.resolve()
+    for token, root in (("{OUTPUT_DIR}", base.resolve()), ("{CWD}", Path.cwd().resolve())):
+        try:
+            return token + "/" + str(resolved.relative_to(root)).replace("\\", "/")
+        except ValueError:
+            continue
+    return "{LOCAL_PATH}/" + resolved.name
+
+
 def validate_columns(fieldnames: list[str] | None) -> None:
     if not fieldnames:
         raise ValueError("prisma-records.csv 没有表头。")
@@ -375,10 +385,11 @@ def main() -> int:
             )
 
     generated_at = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    source_records = portable_path(records_path, output_dir)
     tag_plan = {
         "plan_type": "zotero_tag_mirror",
         "generated_at": generated_at,
-        "source_records": str(records_path),
+        "source_records": source_records,
         "write_policy": "dry-run only; execute writes via POLICIES/ZOTERO_WRITE_POLICY.md",
         "authoritative_state": [
             "prisma-records.csv",
@@ -395,7 +406,7 @@ def main() -> int:
 
     counts = flow_counts(rows)
     counts["generated_at"] = generated_at
-    counts["source_records"] = str(records_path)
+    counts["source_records"] = source_records
 
     reminders_path = output_dir / "prisma-reminders.csv"
     counts_path = output_dir / "prisma-flow-counts.json"

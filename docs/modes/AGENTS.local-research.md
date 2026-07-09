@@ -60,6 +60,7 @@
 - 如果任务涉及文献，已先确认读书卡落点模式：默认检查 `corpus/reading-cards/cards/`、manifest 或项目登记中的集中主卡位置、项目指针和 `.research/fulltext_cache/`；随后检查 `03-文献矩阵/02-阅读计划/` 和阅读总表。
 - 如果任务涉及论文，已检查 `05-论文稿件/`、`.paper/`、项目进展文件或用户指定草稿。
 - 输出优先写入具体课题目录，不写入 `00_ResearchOS/.researchos/outputs/`；维护 ResearchOS 框架本身的人读说明写入 `docs/`，共享事实源写入 `corpus/`，执行证据写入 `.researchos/outputs/archive/`。
+- 写入同步盘、项目成果、人读报告、阅读矩阵、读书卡索引、项目交接文档时，路径必须使用项目相对路径、`{PROJECT_ROOT}/...`、`{RESEARCHOS_ROOT}/...` 或登记文件中的 `root_key + project_relative_path`。除机器内部运行配置外，禁止把本机绝对路径作为唯一定位方式写入这些文件。
 - 尚未明确课题归属的人工材料写入 `0.Inbox/`，而不是 `00_ResearchOS/.researchos/outputs/`；明确归属后再迁移到具体课题目录。
 
 ## 不失焦规则

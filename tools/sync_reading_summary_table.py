@@ -440,14 +440,30 @@ def refresh_zotero_links(row: dict[str, str]) -> None:
     )
 
 
-def relpath(path: Path, root: Path) -> str:
+def portable_path(path: Path, project_root: Path | None = None, researchos_root: Path | None = None) -> str:
+    resolved = path.resolve()
+    if project_root:
+        try:
+            return str(resolved.relative_to(project_root.resolve())).replace("\\", "/")
+        except ValueError:
+            pass
+    if researchos_root:
+        try:
+            return "{RESEARCHOS_ROOT}/" + str(resolved.relative_to(researchos_root.resolve())).replace("\\", "/")
+        except ValueError:
+            pass
     try:
-        return str(path.relative_to(root)).replace("\\", "/")
+        return str(resolved.relative_to(Path.cwd().resolve())).replace("\\", "/")
     except ValueError:
-        return str(path)
+        return "{LOCAL_PATH}/" + path.name
 
 
-def parse_card(path: Path, project_root: Path | None, topic_directions: list[dict[str, str]]) -> dict[str, str]:
+def parse_card(
+    path: Path,
+    project_root: Path | None,
+    topic_directions: list[dict[str, str]],
+    researchos_root: Path | None = None,
+) -> dict[str, str]:
     frontmatter, body = read_frontmatter(path)
     sections = extract_sections(body)
 
@@ -488,7 +504,6 @@ def parse_card(path: Path, project_root: Path | None, topic_directions: list[dic
         topic_relevance = infer_topic_relevance(tags, topic_directions)
     topic_relevance = normalize_relevance_degree(topic_relevance, tags, topic_directions)
 
-    base = project_root or path.parent
     row = {
         "人工参阅编号": first_known(frontmatter.get("manual_ref_id"), frontmatter.get("reading_ref_id")),
         "Zotero Item Key": item_key,
@@ -518,7 +533,7 @@ def parse_card(path: Path, project_root: Path | None, topic_directions: list[dic
         "PRISMA Stage": first_known(frontmatter.get("prisma_stage")),
         "筛选决策": first_known(frontmatter.get("screening_decision")),
         "排除原因": first_known(frontmatter.get("exclude_reason")),
-        "读书卡路径": relpath(path, base),
+        "读书卡路径": portable_path(path, project_root, researchos_root),
         "文本来源页码": source_text,
         "证据强度": first_known(frontmatter.get("evidence_strength")),
         "关联Gap": "; ".join(split_values(gap_ids)),
@@ -584,26 +599,51 @@ def display_width(value: Any) -> int:
     return width
 
 
-def markdown_card_link(card_path: str, project_root: Path | None, markdown_path: Path) -> str:
+def resolve_portable_path(card_path: str, project_root: Path | None, researchos_root: Path | None = None) -> Path | None:
     if not card_path:
-        return ""
-    if project_root:
-        target = project_root / card_path
-        return Path(os.path.relpath(target, markdown_path.parent)).as_posix()
-    return card_path
+        return None
+    if card_path.startswith("{RESEARCHOS_ROOT}/"):
+        if not researchos_root:
+            return None
+        return researchos_root / card_path.removeprefix("{RESEARCHOS_ROOT}/")
+    if card_path.startswith("{PROJECT_ROOT}/"):
+        if not project_root:
+            return None
+        return project_root / card_path.removeprefix("{PROJECT_ROOT}/")
+    if re.match(r"^[A-Za-z]:[\\/]", card_path) or card_path.startswith("file:///"):
+        return None
+    return (project_root / card_path) if project_root else Path(card_path)
 
 
-def html_card_link(card_path: str, project_root: Path | None) -> str:
-    if not card_path or not project_root:
+def markdown_card_link(
+    card_path: str,
+    project_root: Path | None,
+    markdown_path: Path,
+    researchos_root: Path | None = None,
+) -> str:
+    target = resolve_portable_path(card_path, project_root, researchos_root)
+    if not target:
         return ""
-    return (project_root / card_path).resolve().as_uri()
+    return Path(os.path.relpath(target, markdown_path.parent)).as_posix()
+
+
+def html_card_link(card_path: str, project_root: Path | None, html_path: Path, researchos_root: Path | None = None) -> str:
+    target = resolve_portable_path(card_path, project_root, researchos_root)
+    if not target:
+        return ""
+    return Path(os.path.relpath(target, html_path.parent)).as_posix()
 
 
 def topic_base_stem(path: Path) -> str:
     return re.sub(r"-(?:T\d+|UNCLASSIFIED)$", "", path.stem)
 
 
-def write_markdown(path: Path, rows: list[dict[str, str]], project_root: Path | None = None) -> None:
+def write_markdown(
+    path: Path,
+    rows: list[dict[str, str]],
+    project_root: Path | None = None,
+    researchos_root: Path | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "人工参阅编号",
@@ -633,7 +673,7 @@ def write_markdown(path: Path, rows: list[dict[str, str]], project_root: Path | 
     ]
     for row in rows:
         card_path = row.get("读书卡路径", "")
-        card_link = markdown_card_link(card_path, project_root, path)
+        card_link = markdown_card_link(card_path, project_root, path, researchos_root)
         markdown_row = {
             "人工参阅编号": row.get("人工参阅编号", ""),
             "序号": row.get("序号", ""),
@@ -711,6 +751,7 @@ def write_html(
     path: Path,
     rows: list[dict[str, str]],
     project_root: Path | None = None,
+    researchos_root: Path | None = None,
     topic_direction: str = "全部课题方向",
     topic_directions: list[dict[str, str]] | None = None,
 ) -> None:
@@ -809,7 +850,7 @@ def write_html(
     parts.extend(["</tr>", "</thead>", "<tbody>"])
     for row in rows:
         card_path = row.get("读书卡路径", "")
-        card_link = html_card_link(card_path, project_root)
+        card_link = html_card_link(card_path, project_root, path, researchos_root)
         values = {
             "人工参阅编号": row.get("人工参阅编号", ""),
             "序号": row.get("序号", ""),
@@ -953,6 +994,7 @@ def write_topic_html_tables(
     html_output: Path,
     rows: list[dict[str, str]],
     project_root: Path | None,
+    researchos_root: Path | None,
     topic_directions: list[dict[str, str]],
 ) -> list[Path]:
     written: list[Path] = []
@@ -963,7 +1005,7 @@ def write_topic_html_tables(
             if direction in topic_directions_for_row(row, topic_directions)
         ]
         path = topic_table_path(html_output, direction["code"])
-        write_html(path, topic_rows, project_root, direction["label"], topic_directions)
+        write_html(path, topic_rows, project_root, researchos_root, direction["label"], topic_directions)
         written.append(path)
     unclassified_rows = [
         row
@@ -973,7 +1015,7 @@ def write_topic_html_tables(
     ]
     if unclassified_rows:
         path = topic_table_path(html_output, "UNCLASSIFIED")
-        write_html(path, unclassified_rows, project_root, "未分类", topic_directions)
+        write_html(path, unclassified_rows, project_root, researchos_root, "未分类", topic_directions)
         written.append(path)
     return written
 
@@ -1172,6 +1214,7 @@ def resolve_paths(args: argparse.Namespace) -> tuple[Path | None, Path, Path, Pa
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+    researchos_root = Path(args.researchos_root).resolve()
     project_root, cards_root, output, markdown_output, html_output, reminder_path = resolve_paths(args)
     if not cards_root.exists() or not cards_root.is_dir():
         raise ValueError(f"读书卡目录不存在：{cards_root}")
@@ -1181,20 +1224,20 @@ def main() -> int:
     topic_config = Path(args.topic_config).resolve() if args.topic_config else None
     topic_directions = load_topic_directions(project_root, topic_config)
     card_paths = find_cards(cards_root)
-    card_rows = [parse_card(path, project_root, topic_directions) for path in card_paths]
+    card_rows = [parse_card(path, project_root, topic_directions, researchos_root) for path in card_paths]
     if not topic_directions:
         topic_directions = infer_topic_directions_from_rows(card_rows)
-        card_rows = [parse_card(path, project_root, topic_directions) for path in card_paths]
+        card_rows = [parse_card(path, project_root, topic_directions, researchos_root) for path in card_paths]
     for row in card_rows:
         merge_prisma(row, prisma_rows)
 
     existing_rows = read_csv(output)
     merged_rows = merge_rows(existing_rows, card_rows)
     write_csv(output, merged_rows, FIELDS)
-    write_html(html_output, merged_rows, project_root, "全部课题方向", topic_directions)
-    topic_outputs = write_topic_html_tables(html_output, merged_rows, project_root, topic_directions)
+    write_html(html_output, merged_rows, project_root, researchos_root, "全部课题方向", topic_directions)
+    topic_outputs = write_topic_html_tables(html_output, merged_rows, project_root, researchos_root, topic_directions)
     stale_topic_outputs = cleanup_stale_topic_tables(html_output, topic_outputs)
-    write_markdown(markdown_output, merged_rows, project_root)
+    write_markdown(markdown_output, merged_rows, project_root, researchos_root)
 
     reminders = build_reminders(merged_rows)
     write_csv(reminder_path, reminders, REMINDER_FIELDS)

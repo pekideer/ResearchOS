@@ -89,6 +89,16 @@ def compact_text(text: str, max_chars: int) -> str:
     return text[:max_chars].rstrip()
 
 
+def portable_path(path: Path | str | None) -> str:
+    if not path:
+        return ""
+    resolved = Path(path).resolve()
+    try:
+        return "{RESEARCHOS_ROOT}/" + str(resolved.relative_to(RESEARCHOS_ROOT.resolve())).replace("\\", "/")
+    except ValueError:
+        return "{LOCAL_PATH}/" + resolved.name
+
+
 def resolve_text_path(raw_path: str, normalized_root: Path, item_key: str, attachment_key: str) -> Path | None:
     candidates: list[Path] = []
     if raw_path:
@@ -198,7 +208,11 @@ def build_records(args: argparse.Namespace) -> list[dict[str, Any]]:
                     "date_added": row["date_added"] or "",
                     "date_modified": row["date_modified"] or "",
                     "normalized_text_statuses": "; ".join(f"{link.attachment_key}:{link.status}" for link in text_links),
-                    "normalized_text_paths": "; ".join(str(link.resolved_path or link.cache_path) for link in text_links if link.resolved_path or link.cache_path),
+                    "normalized_text_paths": "; ".join(
+                        portable_path(link.resolved_path or link.cache_path)
+                        for link in text_links
+                        if link.resolved_path or link.cache_path
+                    ),
                     "has_normalized_text": bool(best_link),
                     "text_scope": f"normalized library text truncated to {args.max_chars_per_item} chars" if packet_text else "",
                     "packet_text": packet_text,
@@ -213,8 +227,8 @@ def markdown_packet(records: list[dict[str, Any]], args: argparse.Namespace) -> 
         "",
         "Source of truth: ResearchOS Zotero SQLite mirror plus normalized PDF text cache.",
         "",
-        f"- SQLite: `{args.db}`",
-        f"- Normalized text root: `{args.normalized_root}`",
+        f"- SQLite: `{portable_path(args.db)}`",
+        f"- Normalized text root: `{portable_path(args.normalized_root)}`",
         f"- Include text: `{bool(args.include_text)}`",
         "",
     ]

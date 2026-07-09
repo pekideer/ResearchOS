@@ -318,7 +318,8 @@
 - 是否以 `docs/governance/` 作为 ResearchOS 治理人工入口。
 - 是否以 `docs/governance/researchos-governance-restructure/current-governance-status.md` 作为当前治理状态的单一入口。
 - 是否复核 `PROJECT_STATE.md`、根级权威文档、`RUNBOOKS/` 和 `TOOL_CONTRACTS/` 中会影响当前功能入口的规则。
-- 项目登记是否使用 `root_key + project_relative_path`，长期同步文件中不写本机绝对项目路径。
+- 项目登记是否使用 `root_key + project_relative_path`，长期同步文件中严格不写本机绝对项目路径。
+- 同步盘、人读报告、矩阵、读书卡索引、项目交接和项目成果文件中的路径是否全部采用项目相对路径、`{PROJECT_ROOT}/...`、`{RESEARCHOS_ROOT}/...` 或 `root_key + project_relative_path`；除机器内部运行配置外，出现 `C:\`、`D:\`、`E:\`、`file:///`、`OneDrive -` 等本机绝对路径即为不通过。
 - 读书卡治理是否以 `corpus/reading-cards/cards/` 为集中主库，避免再生成迁移备份目录。
 - Zotero 项目文献集覆盖层是否停留在试运行计划，未写入 Zotero。
 - `.researchos/outputs/machine/` 是否只保留机器运行产物、试运行计划和执行记录；`.researchos/outputs/archive/` 是否只保留外部写入审计证据。
