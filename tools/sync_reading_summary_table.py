@@ -582,13 +582,21 @@ def html_escape(value: Any) -> str:
 def html_link(label: str, url: str) -> str:
     if not is_known(url):
         return ""
+    if url.startswith("zotero://"):
+        return (
+            f'<a href="{html_escape(url)}" '
+            f'onclick="researchosOpenZotero(event, this); return false;">{html_escape(label)}</a>'
+        )
     return f'<a href="{html_escape(url)}">{html_escape(label)}</a>'
 
 
 def local_open_anchor(label: str, url: str) -> str:
     if not is_known(url):
         return ""
-    return f'<a href="{html_escape(url)}" title="打开读书卡">{html_escape(label)}</a>'
+    return (
+        f'<a href="{html_escape(url)}" title="打开读书卡" '
+        f'onclick="researchosOpenCard(event, this); return false;">{html_escape(label)}</a>'
+    )
 
 
 def display_width(value: Any) -> int:
@@ -836,7 +844,7 @@ def write_html(
         "<body>",
         f"<h1>{html_escape(project_title)}</h1>",
         *topic_nav_html(path, topic_direction, topic_directions or []),
-        f'<p class="meta">课题方向：<strong>{html_escape(topic_direction)}</strong>。人工操作表，生成时间：{html_escape(generated)}。评分和 PRISMA 字段从读书卡或可选 PRISMA CSV 同步；点击 Zotero 条目或 Zotero PDF 需要本机已安装 Zotero，并注册 <code>zotero://</code> 协议。</p>',
+        f'<p class="meta">课题方向：<strong>{html_escape(topic_direction)}</strong>。人工操作表，生成时间：{html_escape(generated)}。评分和 PRISMA 字段从读书卡或可选 PRISMA CSV 同步；点击 Zotero 条目或 Zotero PDF 需要本机已安装 Zotero，并注册 <code>zotero://</code> 协议。若需用默认程序打开读书卡，请通过 ResearchOS 本机 HTML 打开器或项目启动脚本打开本页。</p>',
         '<div class="table-scrollbar hidden" aria-hidden="true"><div class="table-scrollbar-inner"></div></div>',
         '<div class="table-shell">',
         "<table>",
@@ -885,6 +893,26 @@ def write_html(
             "</div>",
             "<script>",
             "(() => {",
+            "  window.researchosOpenZotero = async (event, anchor) => {",
+            "    event.preventDefault();",
+            "    const href = anchor.getAttribute('href') || '';",
+            "    try {",
+            "      const response = await fetch('/__researchos_open/zotero?uri=' + encodeURIComponent(href), { method: 'POST' });",
+            "      if (response.ok) return false;",
+            "    } catch (_error) {}",
+            "    window.location.href = href;",
+            "    return false;",
+            "  };",
+            "  window.researchosOpenCard = async (event, anchor) => {",
+            "    event.preventDefault();",
+            "    const href = anchor.getAttribute('href') || '';",
+            "    try {",
+            "      const response = await fetch('/__researchos_open/card?path=' + encodeURIComponent(href), { method: 'POST' });",
+            "      if (response.ok) return false;",
+            "    } catch (_error) {}",
+            "    window.location.href = href;",
+            "    return false;",
+            "  };",
             "  const table = document.querySelector('table');",
             "  const tableShell = document.querySelector('.table-shell');",
             "  const topScrollbar = document.querySelector('.table-scrollbar');",
