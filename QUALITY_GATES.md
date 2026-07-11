@@ -99,7 +99,7 @@
 - 文献题录、DOI、作者、期刊、会议、年份是否来自用户材料、Zotero 或可核查来源。
 - PDF 文本是否说明来源和页数范围。
 - 使用 Zotero 条目、PDF 或大段全文前，是否先检查并优先使用 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 和 `corpus/fulltext/zotero-library-normalized/`。
-- 父文档缺失或过期时，是否说明原因；若只需更新 文献集 树、项目归属和少量元数据，优先使用 `tools/zotero_fast_collection_sync.py`；若需补齐附件状态、规范化文本或 OCR 状态，再通过 `tools/zotero_library_index.py` 更新 SQLite 与文本缓存。项目级 `.research/fulltext_cache/` 应从父文档派生或作为局部缓存复用。
+- 父文档缺失或过期时，是否说明原因；若只需更新 文献集 树、项目归属和少量元数据，优先使用 `tools/zotero/zotero_fast_collection_sync.py`；若需补齐附件状态、规范化文本或 OCR 状态，再通过 `tools/zotero/zotero_library_index.py` 更新 SQLite 与文本缓存。项目级 `.research/fulltext_cache/` 应从父文档派生或作为局部缓存复用。
 - 检索日志是否说明数据库、检索式、筛选条件、检索日期和导出数量。
 - 是否避免编造文献、DOI、作者、期刊、会议、数据、图表、引用或审稿意见。
 
@@ -253,6 +253,28 @@
 - 补读项目入口、索引或过程记录。
 - 降低结论强度，标注“基于当前材料的推断”。
 
+## 上下文恢复与运行记录检查
+
+适用能力编号：`C02`、`C12`
+
+### 检查项
+
+- 是否只执行 `docs/modes/AGENTS.local-research.md` 的唯一恢复链。
+- `active_project.yml`、`project_manifest.yml`、`run_state.json`、`run-log.jsonl` 是否各守其责。
+- 是否先读轻量恢复包，再按任务读取材料，避免无差别加载全文。
+- 冲突是否按用户本轮说明、当前项目文件、manifest、当前快照、历史记录的顺序处理。
+- 运行日志是否只记录必要元数据和项目相对路径。
+- 简单问答和无状态变化的只读查看是否没有制造日志噪声。
+
+### 通过标准
+
+- 项目定位唯一、恢复摘要可解释；需要留痕的任务有最新快照和一条可回溯记录，且不含完整对话、正文、密钥、Zotero 数据库/PDF 路径或本机绝对项目路径。
+
+### 失败时处理
+
+- 停止加载更多材料，先消解项目候选或状态冲突。
+- 删除日志中的非必要敏感内容；纠错使用追加记录，不改写既有历史。
+
 ## 汇报导航检查
 
 适用能力编号：`C02`
@@ -373,7 +395,7 @@
 
 - 是否优先读取 ResearchOS 同步盘 SQLite 父文档，而不是直接访问 Zotero Local API。
 - 是否优先读取 SQLite 中 `text_normalized_cache_path` 指向的 规范化 PDF 文本，而不是重新定位或抽取 PDF。
-- 当父文档缺失、过期或路径失效时，是否通过 `tools/zotero_library_index.py sync/watch/normalize-text-cache` 修复父文档。
+- 当父文档缺失、过期或路径失效时，是否通过 `tools/zotero/zotero_library_index.py sync/watch/normalize-text-cache` 修复父文档。
 - 是否未读取或修改 `zotero.sqlite`。
 - 是否未复制、移动、删除、重命名 Zotero PDF。
 - Local API 不可用时是否给出排查步骤。

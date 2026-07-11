@@ -18,7 +18,7 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
 
 ## 工作流
 
-1. 先用 `zotero-library-governance` 或 `tools/build_zotero_library_context_packet.py` 只读筛选候选条目，依据 文献集、标签、题名、摘要和 规范化文本。
+1. 先用 `zotero-library-governance` 或 `tools/zotero/build_zotero_library_context_packet.py` 只读筛选候选条目，依据 文献集、标签、题名、摘要和 规范化文本。
 2. 使用固定一级目录承载所有项目覆盖层。默认名称为 `00.科研项目`；除非用户明确要求修改，否则长期保持该一级目录名称。
 3. 在固定一级目录下，为具体课题创建项目目录。命名格式：`NN-<项目性质中文缩写>-<项目简称>`，例如 `01-纵向-光谱选择性材料位置效应`。`NN` 为两位序号；项目性质中文缩写可用：
    - `纵向`：纵向项目或依托纵向课题。

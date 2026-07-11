@@ -1,4 +1,4 @@
-﻿# Zotero 只读策略
+# Zotero 只读策略
 
 ResearchOS 默认通过同步盘共享事实源执行只读文献任务。父文档包括 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 和 `corpus/fulltext/zotero-library-normalized/`；旧 `.researchos/outputs/machine/` 路径仅作为代码适配前的兼容副本。Zotero Local API 只读流程主要用于维护父文档、搜索条目、读取元信息、定位 PDF 和抽取 PDF 文本。
 
@@ -10,7 +10,7 @@ ResearchOS 默认通过同步盘共享事实源执行只读文献任务。父文
 - 定位 PDF 附件路径。
 - 抽取 PDF 文本。
 - 读取 ResearchOS 同步盘 SQLite 父文档和 规范化 PDF 文本。
-- 通过 `tools/zotero_library_index.py` 更新 SQLite 与文本缓存。
+- 通过 `tools/zotero/zotero_library_index.py` 更新 SQLite 与文本缓存。
 - 输出 条目 key、PDF 附件 key、题录信息、路径存在性和文本抽取结果。
 
 ## 禁止行为

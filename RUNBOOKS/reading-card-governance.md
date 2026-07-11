@@ -93,7 +93,7 @@ HTML 中显示 Zotero 条目 key 时必须使用：
 - `first_author_affiliation_source`：写明 `PDF 第 1 页 作者区 语义抽取` 或对应页码。
 - `first_author_affiliation_status`：`ok`、`needs_check` 或 `not_found`。
 
-不得把本地启发式抽取结果直接当作最终单位。`tools/build_affiliation_semantic_packet.py` 用于从父文档派生文本或 全文缓存 生成供 AI/人工语义判断的首页证据包。`tools/sync_first_author_affiliations.py` 用于卡片排查、缓存复用或人工核查线索；它默认应优先读取父文档派生文本或 `.research/fulltext_cache/...`，再读取 `03-文献矩阵/.internal/affiliation-cache/`，只有这些缓存缺失时才只读解析 Zotero/PDF 前 1-2 页文本。
+不得把本地启发式抽取结果直接当作最终单位。`tools/reading_cards/build_affiliation_semantic_packet.py` 用于从父文档派生文本或 全文缓存 生成供 AI/人工语义判断的首页证据包。`tools/reading_cards/sync_first_author_affiliations.py` 用于卡片排查、缓存复用或人工核查线索；它默认应优先读取父文档派生文本或 `.research/fulltext_cache/...`，再读取 `03-文献矩阵/.internal/affiliation-cache/`，只有这些缓存缺失时才只读解析 Zotero/PDF 前 1-2 页文本。
 
 ## 3. 期刊等级来源
 
@@ -144,10 +144,10 @@ ResearchOS 读书卡长期采用“集中主卡 + 项目引用”的规则：
 - 现有读书卡：优先通过人工/LLM 审查判断是否并入集中主卡，不自动批量覆盖。
 - 表格和元数据：只使用下列活跃同步工具处理必要的批量字段。
 
-`tools/sync_zotero_metadata_to_cards.py` 只同步 Zotero 标准题录/PDF 元数据，不负责期刊等级。默认使用：
+`tools/reading_cards/sync_zotero_metadata_to_cards.py` 只同步 Zotero 标准题录/PDF 元数据，不负责期刊等级。默认使用：
 
 ```powershell
-python tools\sync_zotero_metadata_to_cards.py --project-root "课题目录" --metadata-layout tail
+python tools\reading_cards\sync_zotero_metadata_to_cards.py --project-root "课题目录" --metadata-layout tail
 ```
 
 行为：
@@ -156,10 +156,10 @@ python tools\sync_zotero_metadata_to_cards.py --project-root "课题目录" --me
 - 题录、期刊等级、单位、PRISMA 和同步字段写入文末 `## 7. 元数据（折叠）`。
 - `item_key` / `zotero_item_key` 写入为 `[KEY](zotero://select/library/items/KEY)`。
 
-`tools/sync_journal_rankings.py` 负责期刊等级，默认使用 ResearchOS 父文档 SQLite 中的 `journal_rankings` 词典表：
+`tools/reading_cards/sync_journal_rankings.py` 负责期刊等级，默认使用 ResearchOS 父文档 SQLite 中的 `journal_rankings` 词典表：
 
 ```powershell
-python tools\sync_journal_rankings.py --cards-root "corpus\reading-cards\cards" --no-api
+python tools\reading_cards\sync_journal_rankings.py --cards-root "corpus\reading-cards\cards" --no-api
 ```
 
 行为：
@@ -172,12 +172,12 @@ python tools\sync_journal_rankings.py --cards-root "corpus\reading-cards\cards" 
 - 更新可见的“期刊等级”行、`publication_tags`、`journal_ranking_source`，未匹配或错误时保留 `journal_ranking_status`。
 - 将白名单字段摘要写入 SQLite 词典表；项目级 CSV 只作为可选报告，不作为权威词典。
 
-`tools/sync_reading_summary_table.py` 读取文末 `## 7. 元数据（折叠）` 中的 YAML fenced block，并读取集中主卡的简短 YAML 头部。正文题录与期刊等级以文末元数据为准。
+`tools/reading_cards/sync_reading_summary_table.py` 读取文末 `## 7. 元数据（折叠）` 中的 YAML fenced block，并读取集中主卡的简短 YAML 头部。正文题录与期刊等级以文末元数据为准。
 
-`tools/build_affiliation_semantic_packet.py` 是单位语义识别前的首选证据准备工具。默认使用：
+`tools/reading_cards/build_affiliation_semantic_packet.py` 是单位语义识别前的首选证据准备工具。默认使用：
 
 ```powershell
-python tools\build_affiliation_semantic_packet.py --project-root "课题目录"
+python tools\reading_cards\build_affiliation_semantic_packet.py --project-root "课题目录"
 ```
 
 行为：
@@ -189,7 +189,7 @@ python tools\build_affiliation_semantic_packet.py --project-root "课题目录"
 - 项目 `03-文献矩阵/` 只保留项目视角的团队追踪、矩阵和 gap 判断，不长期保存通用机构缓存或大段语义证据包。
 - 后续 AI/人工语义判断必须基于临时证据包、父文档 规范化文本 或同一 全文缓存 片段。
 
-`tools/sync_first_author_affiliations.py` 用于卡片核查和生成候选线索；若其结果与 PDF 首页语义识别冲突，以语义识别结果为准，并把冲突写入需要核查项。
+`tools/reading_cards/sync_first_author_affiliations.py` 用于卡片核查和生成候选线索；若其结果与 PDF 首页语义识别冲突，以语义识别结果为准，并把冲突写入需要核查项。
 
 ## 5. 质量门禁
 

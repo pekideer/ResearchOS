@@ -25,6 +25,9 @@
     processed/
     .internal/
   .research/
+    project_manifest.yml
+    run_state.json
+    run-log.jsonl
 ```
 
 `.research/` 用于上下文恢复和机器索引，不是人读成果主入口。
@@ -34,7 +37,7 @@
 | 能力 | 基础文件或目录 | 是否默认创建 | 作用 |
 |---|---|---:|---|
 | 项目工作区初始化 | `01-课题入口/`、`02-证据材料/`、`03-文献矩阵/`、`05-论文稿件/`、`07-审稿回复/`、`10-批注/` | 是 | 固定科研成果落点，避免材料混放 |
-| 项目上下文恢复 | `.research/project_manifest.yml`、`.research/run_state.json` | 可选 | 记录项目方向、当前状态、开放问题和跨会话恢复信息 |
+| 项目上下文恢复 | `.research/project_manifest.yml`、`.research/run_state.json`、`.research/run-log.jsonl` | 是 | 分别保存稳定事实、当前快照和最小运行历史，支持跨会话恢复 |
 | 人工批注收件箱 | `10-批注/inbox.md`、`10-批注/review-log.md`、`10-批注/processed/` | 是 | 保存用户阅读意见、疑问和修改建议，处理后可追溯 |
 | 单篇论文精读 | `corpus/reading-cards/cards/` 集中主卡加项目指针 | 按需 | 保存读书卡、事实/推断/建议、来源和 Zotero 链接 |
 | 阅读总表 | `03-文献矩阵/LM-004_reading-summary-table.html`、`.internal/*.csv` | 按需 | 跨文献浏览、评分、PRISMA 状态和写作素材管理 |

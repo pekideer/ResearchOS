@@ -1,4 +1,4 @@
-﻿# Zotero 文献库治理与语义聚合契约
+# Zotero 文献库治理与语义聚合契约
 
 ## 1. 适用工具
 
@@ -8,7 +8,7 @@
   - `aggregate-directions`
   - `build-collection-plan`
   - `build-tag-plan`
-- 方向聚合、文献集计划和标签计划只通过主入口子命令调用，内部实现位于 `tools/_zotero_governance/`。
+- 方向聚合、文献集计划和标签计划只通过主入口子命令调用，内部实现位于 `tools/zotero/governance/`。
 - `zotero_new_item_monitor.py`
 
 ## 2. 工具目的

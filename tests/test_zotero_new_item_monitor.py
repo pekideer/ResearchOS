@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
-from tools import zotero_new_item_monitor as monitor
+from tools.zotero import zotero_new_item_monitor as monitor
 
 
 def zotero_item(

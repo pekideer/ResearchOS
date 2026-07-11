@@ -122,7 +122,7 @@ def run_probe(project: Path) -> dict[str, str]:
     outputs: dict[str, str] = {}
     outputs["fulltext_packet"] = run_command(
         [
-            "tools/build_fulltext_cache_packet.py",
+            "tools/reading_cards/build_fulltext_cache_packet.py",
             "--project-root",
             str(project),
             "--max-pages",
@@ -133,7 +133,7 @@ def run_probe(project: Path) -> dict[str, str]:
     )
     outputs["affiliation_packet"] = run_command(
         [
-            "tools/build_affiliation_semantic_packet.py",
+            "tools/reading_cards/build_affiliation_semantic_packet.py",
             "--project-root",
             str(project),
             "--max-pages",
@@ -142,10 +142,10 @@ def run_probe(project: Path) -> dict[str, str]:
             str(internal / "probe-affiliation-packet.md"),
         ]
     )
-    outputs["summary_table"] = run_command(["tools/sync_reading_summary_table.py", "--project-root", str(project)])
+    outputs["summary_table"] = run_command(["tools/reading_cards/sync_reading_summary_table.py", "--project-root", str(project)])
     outputs["journal_rankings"] = run_command(
         [
-            "tools/sync_journal_rankings.py",
+            "tools/reading_cards/sync_journal_rankings.py",
             "--project-root",
             str(project),
             "--provider-config",
@@ -154,7 +154,7 @@ def run_probe(project: Path) -> dict[str, str]:
         ]
     )
     outputs["first_author"] = run_command(
-        ["tools/sync_first_author_affiliations.py", "--project-root", str(project), "--dry-run"]
+        ["tools/reading_cards/sync_first_author_affiliations.py", "--project-root", str(project), "--dry-run"]
     )
     return outputs
 

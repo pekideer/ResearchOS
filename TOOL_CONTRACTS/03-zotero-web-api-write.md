@@ -2,17 +2,17 @@
 
 ## 1. 适用工具
 
-- `tools/high_risk/execute_project_collection_overlay_write.py`
-- `tools/high_risk/execute_zotero_additive_write_plan.py`
-- `tools/high_risk/execute_zotero_deleted_collection_cleanup.py`
-- `tools/high_risk/zotero_web_api.py`
-- `tools/high_risk/README.md`
+- `tools/zotero/write/execute_project_collection_overlay_write.py`
+- `tools/zotero/write/execute_zotero_additive_write_plan.py`
+- `tools/zotero/write/execute_zotero_deleted_collection_cleanup.py`
+- `tools/zotero/write/zotero_web_api.py`
+- `tools/zotero/write/README.md`
 
 ## 2. 工具目的
 
 本专题只用于用户明确批准后的 Zotero Web API 写入。写入范围包括标签、文献集、项目覆盖层等高风险操作。
 
-这些工具统一放在 `tools/high_risk/`，不得作为普通科研助理能力自动触发。高风险目录只保留追加式、保留式或窄范围清理工具；全量重建标签、全量重建文献集或清理旧 collection 树的旧链路不再作为 ResearchOS 工具入口。
+这些工具统一放在 `tools/zotero/write/`，不得作为普通科研助理能力自动触发。该目录名称描述 Zotero 写入功能，不改变其高风险属性。目录只保留追加式、保留式或窄范围清理工具；全量重建标签、全量重建文献集或清理旧 collection 树的旧链路不再作为 ResearchOS 工具入口。
 
 ## 3. 强制前置条件
 
@@ -59,3 +59,8 @@
 - 金丝雀测试通过。
 - 分批执行并有失败停止条件。
 - 输出包含回滚计划和实际写入摘要。
+- ResearchOS 通用写入计划保留在 `.researchos/outputs/machine/`；preflight、
+  写入前后快照、执行审计和回滚材料进入
+  `.researchos/outputs/archive/A-001-library-governance/`。
+- 项目 collection overlay 的运行目录必须由调用方显式提供，不得使用隐式的
+  ResearchOS 通用机器目录。

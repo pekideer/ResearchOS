@@ -85,5 +85,5 @@
 ```powershell
 rg -n "检查代码问题|检查功能闭环|代码审计与功能闭环审计|工具契约和实现是否一致" AGENTS.md TRIGGERS.md CAPABILITIES.md WORKFLOWS.md QUALITY_GATES.md
 rg -n "docs/governance/24|docs/governance/25|H-006|M-006|A-006|outputs[/\\]machine[/\\]M-001|outputs[/\\]machine[/\\]M-003" README.md PROJECT_STATE.md QUALITY_GATES.md RUNBOOKS TOOL_CONTRACTS.md TOOL_CONTRACTS WORKFLOWS.md TRIGGERS.md docs
-python -B -m py_compile tools\researchos_outputs.py tools\zotero_ai_governance.py
+python -B -m py_compile tools\researchos_outputs.py tools\zotero\zotero_ai_governance.py
 ```

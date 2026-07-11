@@ -35,7 +35,7 @@ description: 根据用户指定的研究课题目录，创建带编号前缀的 
    - `10-批注/`
    - `10-批注/processed/`
 6. 创建 `10-批注/inbox.md` 和 `10-批注/review-log.md`，用于本课题人工阅读批注；已处理条目归档到 `10-批注/processed/`。
-7. 如用户需要长任务恢复或跨会话交接，建议在课题目录下维护 `.research/` manifest；模板见 `templates/research-project-manifest.yml` 等。
+7. 默认创建 `.research/project_manifest.yml`、`.research/run_state.json` 和空的 `.research/run-log.jsonl`，形成可恢复项目；不覆盖已有状态文件。
 8. 读书卡统一使用 `00_ResearchOS/templates/paper-reading-card.md`。默认采用集中主卡模式：主卡写入 `00_ResearchOS/corpus/reading-cards/cards/`，项目目录只保留阅读总表、团队追踪、项目指针和必要审计；若用户明确要求本地读书卡，必须在 manifest 中单独声明中文本地落点，不得再创建旧英文读书卡目录作为默认目录。
 9. 不移动、不复制、不删除现有文件。
 10. 输出已创建和已存在的目录清单。
@@ -48,7 +48,7 @@ description: 根据用户指定的研究课题目录，创建带编号前缀的 
 - 已存在的目录。
 - 后续建议保存的文件类型。
 - 本课题人工批注入口：`10-批注/inbox.md`。
-- 可选 `.research/` manifest 文件建议。
+- `.research/` manifest、当前快照和最小运行日志入口。
 
 ## 质量规则
 
@@ -73,36 +73,36 @@ description: 根据用户指定的研究课题目录，创建带编号前缀的 
 - `01-课题入口/`、`02-证据材料/`、`03-文献矩阵/`、`05-论文稿件/`、`07-审稿回复/`、`10-批注/` 已存在或 试运行 已列出。
 - 读书卡落点已通过检查：默认集中主卡模式下 manifest 已声明集中主卡位置；若用户明确要求本地模式，manifest 已声明具体本地中文目录。
 - `10-批注/inbox.md` 和 `10-批注/review-log.md` 已存在或 试运行 已列出。
-- 如用户要求 manifest，已说明 `.research/` 推荐文件和模板来源。
+- `.research/project_manifest.yml`、`.research/run_state.json` 和 `.research/run-log.jsonl` 已存在或试运行已列出。
 - 未覆盖、移动、删除任何既有文件。
 - 如路径权限不足或目录不存在，已给出明确原因和下一步。
 
 ## 用法
 
 ```powershell
-python tools\create_project_workspace.py --root "$env:USERPROFILE\ResearchProjects\示例课题名称"
+python tools\project\create_project_workspace.py --root "$env:USERPROFILE\ResearchProjects\示例课题名称"
 ```
 
 跨设备推荐：
 
 ```powershell
-python tools\create_project_workspace.py --project-name "示例课题名称"
+python tools\project\create_project_workspace.py --project-name "示例课题名称"
 ```
 
 如果只想预览：
 
 ```powershell
-python tools\create_project_workspace.py --project-name "示例课题名称" --dry-run
+python tools\project\create_project_workspace.py --project-name "示例课题名称" --dry-run
 ```
 
 如果课题采用集中主卡和项目指针：
 
 ```powershell
-python tools\create_project_workspace.py --project-name "示例课题名称" --reading-cards-mode centralized-links
+python tools\project\create_project_workspace.py --project-name "示例课题名称" --reading-cards-mode centralized-links
 ```
 
 只读审计现有课题读书卡落点：
 
 ```powershell
-python tools\create_project_workspace.py --root "课题目录" --audit
+python tools\project\create_project_workspace.py --root "课题目录" --audit
 ```

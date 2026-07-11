@@ -1,4 +1,4 @@
-﻿# Library Governance Dry Run Runbook
+# Library Governance Dry Run Runbook
 
 本操作手册用于 Zotero 文献库治理试运行。默认只读，只生成矩阵、报告和 plan。默认事实源是 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 与 `corpus/fulltext/zotero-library-normalized/`；`.researchos/outputs/machine/` 保存可再生成的机器留存。
 
@@ -13,7 +13,7 @@
 ### 1. 父文档上下文盘点
 
 ```powershell
-python tools\build_zotero_library_context_packet.py --query "KEYWORD" --limit 20
+python tools\zotero\build_zotero_library_context_packet.py --query "KEYWORD" --limit 20
 ```
 
 输出：
@@ -25,7 +25,7 @@ python tools\build_zotero_library_context_packet.py --query "KEYWORD" --limit 20
 ### 2. Library matrix
 
 ```powershell
-python tools\zotero_ai_governance.py prepare-corpus
+python tools\zotero\zotero_ai_governance.py prepare-corpus
 ```
 
 输出：
@@ -36,7 +36,7 @@ python tools\zotero_ai_governance.py prepare-corpus
 ### 3. Topic clusters
 
 ```powershell
-python tools\zotero_ai_governance.py prepare-corpus
+python tools\zotero\zotero_ai_governance.py prepare-corpus
 ```
 
 输出：
@@ -48,10 +48,10 @@ python tools\zotero_ai_governance.py prepare-corpus
 ### 4. Governance semantic plans
 
 ```powershell
-python tools\zotero_ai_governance.py build-plan
-python tools\zotero_ai_governance.py aggregate-directions
-python tools\zotero_ai_governance.py build-collection-plan
-python tools\zotero_ai_governance.py build-tag-plan
+python tools\zotero\zotero_ai_governance.py build-plan
+python tools\zotero\zotero_ai_governance.py aggregate-directions
+python tools\zotero\zotero_ai_governance.py build-collection-plan
+python tools\zotero\zotero_ai_governance.py build-tag-plan
 ```
 
 输出：
@@ -67,8 +67,8 @@ python tools\zotero_ai_governance.py build-tag-plan
 只有父文档缺失、过期或需要排障时，才显式允许 Local API 维护工具读取 Zotero：
 
 ```powershell
-python tools\zotero_library_index.py sync
-python tools\zotero_fast_collection_sync.py --include-items
+python tools\zotero\zotero_library_index.py sync
+python tools\zotero\zotero_fast_collection_sync.py --include-items
 ```
 
 ## 人工审批

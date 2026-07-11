@@ -1,4 +1,4 @@
 interface:
-  display_name: "Idea to Research Potential"
-  short_description: "Capture ideas and external reading candidates."
-  default_prompt: "记录这个点子，判断研究潜力；若外部检索发现候选文献，生成候选阅读清单和建议文献集/标签。"
+  display_name: "点子捕获与初筛"
+  short_description: "把碎片想法沉淀为可追踪点子资产并完成初筛。"
+  default_prompt: "使用 $idea-to-research-potential 记录这个点子，建立点子卡和来源记录，并给出初步潜力判断。"

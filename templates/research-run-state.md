@@ -11,6 +11,7 @@
   .research/
     project_manifest.yml
     run_state.json
+    run-log.jsonl
     experiment_matrix.yml
     data_dictionary.yml
     open_questions.md
@@ -44,16 +45,27 @@
 
 ```json
 {
-  "project_name": "",
+  "schema_version": 1,
+  "project_id": "",
+  "updated_at": "",
   "current_stage": "",
+  "current_goal": "",
   "last_completed_step": "",
-  "source_items": [],
-  "outputs": [],
+  "active_source_refs": [],
+  "recent_outputs": [],
   "pending_user_approval": [],
   "blocked_reasons": [],
   "next_actions": []
 }
 ```
+
+## `run-log.jsonl`
+
+用途：只追加复杂任务的最小运行元数据。每行使用 `templates/research-run-record.json` 的字段；不得保存完整对话、正文、密钥、本机绝对项目路径或未发表全文。
+
+- 长任务、文件变更、新研究判断、审批状态变化或跨会话交接时追加。
+- 简单问答和没有状态变化的只读查看不记录。
+- 纠错时追加新记录并填写 `corrects_run_id`，不改写旧记录。
 
 ## `experiment_matrix.yml`
 
@@ -77,4 +89,4 @@
 
 - `.research/` 是状态索引，不替代原始数据、论文全文或 Zotero。
 - 条目 key、文件路径、矩阵路径可以记录；真实 API key 和敏感缓存不得记录。
-- 每次长任务结束时，建议更新 `last_completed_step`、`outputs` 和 `next_actions`。
+- 每次需要留痕的任务结束时，更新 `run_state.json`，并向 `run-log.jsonl` 追加一条最小记录。

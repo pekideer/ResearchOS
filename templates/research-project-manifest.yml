@@ -41,6 +41,8 @@ outputs:
   reading_summary_dir: "03-文献矩阵/04-阅读总表/"
   manuscript_dir: "05-论文稿件/"
   reviewer_response_dir: "07-审稿回复/"
+  run_state: ".research/run_state.json"
+  run_log: ".research/run-log.jsonl"
 
 status:
   current_stage: "?"

@@ -27,39 +27,39 @@
 
 | 工具 | 契约文件 |
 |---|---|
-| `zotero_local_api_cli.py` | `01-zotero-parent-documents.md` |
-| `build_fulltext_cache_packet.py` | `01-zotero-parent-documents.md` |
-| `build_zotero_library_context_packet.py` | `01-zotero-parent-documents.md` |
-| `zotero_local_api.py` | `01-zotero-parent-documents.md` |
-| `ensure_ocr_needed.py` | `01-zotero-parent-documents.md` |
-| `zotero_fast_collection_sync.py` | `01-zotero-parent-documents.md` |
-| `zotero_library_index.py` | `01-zotero-parent-documents.md` |
-| `start_zotero_library_watcher.ps1` | `01-zotero-parent-documents.md` |
-| `zotero_ai_governance.py` | `02-zotero-library-governance.md` |
-| `zotero_new_item_monitor.py` | `02-zotero-library-governance.md` |
-| `tools/high_risk/zotero_web_api.py` | `03-zotero-web-api-write.md` |
-| `tools/high_risk/execute_project_collection_overlay_write.py` | `03-zotero-web-api-write.md` |
-| `tools/high_risk/execute_zotero_additive_write_plan.py` | `03-zotero-web-api-write.md` |
-| `tools/high_risk/execute_zotero_deleted_collection_cleanup.py` | `03-zotero-web-api-write.md` |
-| `tools/high_risk/README.md` | `03-zotero-web-api-write.md` |
-| `configure_easyscholar_api.ps1` | `04-reading-cards-prisma.md` |
-| `sync_journal_rankings.py` | `04-reading-cards-prisma.md` |
-| `sync_first_author_affiliations.py` | `04-reading-cards-prisma.md` |
-| `build_affiliation_semantic_packet.py` | `04-reading-cards-prisma.md` |
-| `build_prisma_status_outputs.py` | `04-reading-cards-prisma.md` |
-| `sync_reading_summary_table.py` | `04-reading-cards-prisma.md` |
-| `journal_ranking_format.py` | `04-reading-cards-prisma.md` |
-| `sync_zotero_metadata_to_cards.py` | `04-reading-cards-prisma.md` |
-| `researchos_card_metadata.py` | `04-reading-cards-prisma.md` |
-| `extract_project_materials.py` | `05-project-workspace.md` |
-| `create_project_workspace.py` | `05-project-workspace.md` |
-| `researchos_outputs.py` | `06-researchos-governance.md` |
-| `build_local_python_env.ps1` | `07-runtime-ocr-local-env.md` |
+| `tools/zotero/zotero_local_api_cli.py` | `01-zotero-parent-documents.md` |
+| `tools/reading_cards/build_fulltext_cache_packet.py` | `01-zotero-parent-documents.md` |
+| `tools/zotero/build_zotero_library_context_packet.py` | `01-zotero-parent-documents.md` |
+| `tools/zotero/zotero_local_api.py` | `01-zotero-parent-documents.md` |
+| `tools/runtime/ensure_ocr_needed.py` | `01-zotero-parent-documents.md` |
+| `tools/zotero/zotero_fast_collection_sync.py` | `01-zotero-parent-documents.md` |
+| `tools/zotero/zotero_library_index.py` | `01-zotero-parent-documents.md` |
+| `tools/zotero/start_zotero_library_watcher.ps1` | `01-zotero-parent-documents.md` |
+| `tools/zotero/zotero_ai_governance.py` | `02-zotero-library-governance.md` |
+| `tools/zotero/zotero_new_item_monitor.py` | `02-zotero-library-governance.md` |
+| `tools/zotero/write/zotero_web_api.py` | `03-zotero-web-api-write.md` |
+| `tools/zotero/write/execute_project_collection_overlay_write.py` | `03-zotero-web-api-write.md` |
+| `tools/zotero/write/execute_zotero_additive_write_plan.py` | `03-zotero-web-api-write.md` |
+| `tools/zotero/write/execute_zotero_deleted_collection_cleanup.py` | `03-zotero-web-api-write.md` |
+| `tools/zotero/write/README.md` | `03-zotero-web-api-write.md` |
+| `tools/reading_cards/configure_easyscholar_api.ps1` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/sync_journal_rankings.py` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/sync_first_author_affiliations.py` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/build_affiliation_semantic_packet.py` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/build_prisma_status_outputs.py` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/sync_reading_summary_table.py` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/sync_zotero_metadata_to_cards.py` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/card_common.py` | `04-reading-cards-prisma.md` |
+| `tools/project/extract_project_materials.py` | `05-project-workspace.md` |
+| `tools/project/create_project_workspace.py` | `05-project-workspace.md` |
+| `tools/researchos_outputs.py` | `06-researchos-governance.md` |
+| `tools/runtime/build_local_python_env.ps1` | `07-runtime-ocr-local-env.md` |
+| `tools/runtime/serve_portable_html.py` | `07-runtime-ocr-local-env.md` |
 
 ## 4. 当前治理要求
 
-- `tools/high_risk/` 中的工具只能通过审批流程触发。
+- `tools/zotero/write/` 中的工具只能通过审批流程触发，并继续按高风险工具管理。
 - `zotero_ai_governance.py` 是 Zotero 文献库治理的主入口；方向聚合、标签计划和文献集计划由该入口调用内部模块。
-- 自动审计如需启用，应以当前 `docs/`、`corpus/`、`tools/high_risk/` 和活跃工具清单为基准。
+- 自动审计如需启用，应以当前 `docs/`、`corpus/`、`tools/zotero/write/` 和活跃工具清单为基准。
 - 新工具先判断是否真的需要代码；已批准的新工具必须登记到本索引和对应专题文件。
 - 工具契约变更后，应同步检查 `WORKFLOWS.md`、`TRIGGERS.md`、`QUALITY_GATES.md` 和相关 `RUNBOOKS/`。

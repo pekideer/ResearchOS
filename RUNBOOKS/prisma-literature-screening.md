@@ -68,7 +68,7 @@ review;intro
 
 ## Zotero 标签镜像 规则
 
-`tools/build_prisma_status_outputs.py` 会生成以下 tag：
+`tools/reading_cards/build_prisma_status_outputs.py` 会生成以下 tag：
 
 - `rs:read/todo`
 - `rs:read/skimmed`
@@ -145,7 +145,7 @@ source_text_range: "pp. 1-8"
 ### 5. 生成提醒、计数和 mirror plan
 
 ```powershell
-python tools\build_prisma_status_outputs.py --records "课题目录\03-文献矩阵\prisma\prisma-records.csv"
+python tools\reading_cards\build_prisma_status_outputs.py --records "课题目录\03-文献矩阵\prisma\prisma-records.csv"
 ```
 
 输出：

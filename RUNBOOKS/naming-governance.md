@@ -69,6 +69,19 @@ zotero_ai_governance.py
 sync_reading_summary_table.py
 ```
 
+工具按主题目录组织，不把同一功能域的 Python 文件散放在 `tools/` 顶层：
+
+```text
+tools/zotero/          Zotero 只读、父文档、治理、监控和受控写入
+tools/reading_cards/   读书卡、PRISMA、题录、期刊等级和证据包
+tools/project/         项目工作区和项目材料
+tools/runtime/         本机环境、OCR 和本地服务
+```
+
+跨脚本重复的纯函数、客户端或格式化逻辑应进入同主题目录内的共享模块；入口脚本
+只保留参数解析、任务编排和本任务特有的校验。共享模块不得反向调用高风险执行入口。
+只有确实跨越多个主题的基础路径常量等模块可以保留在 `tools/` 顶层。
+
 低层运行留存目录可使用：
 
 ```text

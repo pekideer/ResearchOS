@@ -14,7 +14,7 @@
 在 ResearchOS 根目录运行：
 
 ```powershell
-.\tools\configure_easyscholar_api.ps1
+.\tools\reading_cards\configure_easyscholar_api.ps1
 ```
 
 脚本只会交互式询问：

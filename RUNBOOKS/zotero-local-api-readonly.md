@@ -17,7 +17,7 @@
 ### 0. 先检查父文档
 
 ```powershell
-python tools\build_zotero_library_context_packet.py --item-key ITEM_KEY --include-text
+python tools\zotero\build_zotero_library_context_packet.py --item-key ITEM_KEY --include-text
 ```
 
 若父文档命中，直接使用父文档和规范化文本。
@@ -25,7 +25,7 @@ python tools\build_zotero_library_context_packet.py --item-key ITEM_KEY --includ
 ### 1. Ping
 
 ```powershell
-python tools\zotero_local_api_cli.py ping --allow-local-api
+python tools\zotero\zotero_local_api_cli.py ping --allow-local-api
 ```
 
 完成标准：输出 Zotero Local API 可访问，或给出明确错误原因。
@@ -33,7 +33,7 @@ python tools\zotero_local_api_cli.py ping --allow-local-api
 ### 2. Search
 
 ```powershell
-python tools\zotero_local_api_cli.py search --allow-local-api --query "KEYWORD" --limit 10
+python tools\zotero\zotero_local_api_cli.py search --allow-local-api --query "KEYWORD" --limit 10
 ```
 
 完成标准：候选结果包含 title、条目 key、作者、年份、DOI 或 URL。
@@ -41,7 +41,7 @@ python tools\zotero_local_api_cli.py search --allow-local-api --query "KEYWORD" 
 ### 3. Get item
 
 ```powershell
-python tools\zotero_local_api_cli.py get-item --allow-local-api --key ITEM_KEY
+python tools\zotero\zotero_local_api_cli.py get-item --allow-local-api --key ITEM_KEY
 ```
 
 完成标准：输出母条目元信息和 子条目。
@@ -49,7 +49,7 @@ python tools\zotero_local_api_cli.py get-item --allow-local-api --key ITEM_KEY
 ### 4. Get PDF
 
 ```powershell
-python tools\zotero_local_api_cli.py get-pdf --allow-local-api --key ITEM_KEY
+python tools\zotero\zotero_local_api_cli.py get-pdf --allow-local-api --key ITEM_KEY
 ```
 
 完成标准：输出 PDF 附件 key、PDF 路径和存在性检查。
@@ -59,10 +59,10 @@ python tools\zotero_local_api_cli.py get-pdf --allow-local-api --key ITEM_KEY
 先检查父文档和课题 `.research/fulltext_cache/`。若父文档或 缓存 已存在，直接使用；只有缺失时才抽取 PDF 文本并写回父文档或 缓存。
 
 ```powershell
-python tools\zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEM_KEY --cache-subdir reading-cards --max-pages 5
+python tools\zotero\zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEM_KEY --cache-subdir reading-cards --max-pages 5
 ```
 
-如果没有具体课题目录，应优先使用 `tools\zotero_library_index.py sync` / `normalize-text-cache` 维护父文档。当前共享读取入口为 `corpus/fulltext/`。完成标准：生成或复用文本缓存，并说明缓存路径和页数范围。扫描版 PDF 如无法抽取，应提示需要 OCR。
+如果没有具体课题目录，应优先使用 `tools\zotero\zotero_library_index.py sync` / `normalize-text-cache` 维护父文档。当前共享读取入口为 `corpus/fulltext/`。完成标准：生成或复用文本缓存，并说明缓存路径和页数范围。扫描版 PDF 如无法抽取，应提示需要 OCR。
 
 ### 6. 生成读书卡
 

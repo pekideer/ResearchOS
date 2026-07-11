@@ -14,6 +14,7 @@
 - 创建经过用户确认的 ResearchOS 输出目录。
 - 根据用户指定项目工作区生成或读取项目上下文材料。
 - 在项目 manifest 中声明读书卡落点：只允许 `centralized_links`，主卡使用 `00_ResearchOS/corpus/reading-cards/cards/`，项目目录只保存项目指针、阅读总表和追踪报告。
+- 创建或审计 `.research/project_manifest.yml`、`.research/run_state.json` 和 `.research/run-log.jsonl` 上下文恢复链；只写最小元数据，不保存完整对话或正文。
 - 只读审计项目登记、manifest 和实际目录是否一致。
 - 只读扫描项目材料并生成治理计划。
 - 在用户批准后按计划整理项目文档结构。
@@ -30,15 +31,7 @@
 
 ## 5. 项目上下文恢复
 
-处理“当前课题”“继续上次”“研究进展”“阅读卡”等任务时，应先读取 `docs/modes/AGENTS.local-research.md`，再结合：
-
-- 活跃项目配置。
-- 项目登记表。
-- 项目 manifest。
-- 项目总览。
-- 材料索引。
-- 阅读计划或读书卡索引。
-- 读书卡落点模式；检查 manifest 中的 `reading_cards_mode: "centralized_links"`、集中主卡位置和项目指针。
+处理“当前课题”“继续上次”“研究进展”“阅读卡”等任务时，只执行 `docs/modes/AGENTS.local-research.md` 定义的唯一恢复链。工具契约不另设优先级。
 
 ## 6. 验收标准
 
@@ -47,6 +40,7 @@
 - 项目材料变更有计划、清单和人工确认。
 - 点子、课题、项目三类对象边界清楚；点子不写入 ResearchOS 根目录。
 - 生成的人读文档自然、可继续推进。
+- 上下文恢复链四层职责清楚，运行日志只包含必要元数据。
 
 ## 7. 点子捕获入口
 

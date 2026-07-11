@@ -20,6 +20,8 @@
 - 工作区同步但不进入 kit 导出的指针类配置放在 `.researchos\`。
 - 不应在本目录放置 `active_project.yml`、`project_registry.yml`、`machine_config.json`、`easyscholar_api.yml` 或真实治理规则文件。
 
+首次使用不要求先创建机器配置。只有需要跨设备解析 `projects_root` 或使用本地工具时才配置；普通科研对话可以直接开始。
+
 ## 治理原则
 
 - 新增配置前先确认是否能复用现有样例或 `.researchos/` 配置。

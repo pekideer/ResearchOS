@@ -8,9 +8,9 @@
 - `build_affiliation_semantic_packet.py`
 - `build_prisma_status_outputs.py`
 - `sync_reading_summary_table.py`
-- `journal_ranking_format.py`
+- `card_common.py`
 - `sync_zotero_metadata_to_cards.py`
-- `researchos_card_metadata.py`
+- `card_common.py`
 
 ## 2. 工具目的
 

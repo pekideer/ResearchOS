@@ -1,79 +1,103 @@
-# ResearchOS Local Research Agent Rules
+# ResearchOS 本机持续科研模式
 
-本文档用于本机长期科研工作流。它补充根目录 `AGENTS.md`，目标是让 agent 在多个会话之间恢复课题上下文、避免误把通用 ResearchOS 框架当成具体课题，并持续围绕当前研究问题推进。
+本文件定义跨会话继续课题时的唯一上下文恢复链。其他 skill、工作流和工具只能引用本链，不得另设优先级。
 
-## 适用场景
+## 何时执行
 
-- 用户说“当前课题”“研究进展”“继续上次”“这 21 篇文献”“阅读卡”“论文进展”“周汇报”“项目记忆”等。
-- 用户在 `00_ResearchOS` 通用框架目录中发起任务，但真实材料位于同级或其他课题目录。
-- 用户提供或提到尚未明确课题归属的材料；这类材料应进入与 `00_ResearchOS` 平级的 `0.Inbox/`。
-- 用户要求从已有 `.research/`、读书卡、综述矩阵、论文草稿或进展文件恢复上下文。
+用户提到“当前课题”“继续上次”“研究进展”“阅读卡”“论文进展”“周汇报”“项目记忆”，或在 ResearchOS 框架目录中发起具体课题任务时执行。普通独立问答不执行。
 
-## 上下文恢复顺序
+## 四层状态职责
 
-执行具体科研任务前，按以下顺序恢复上下文：
+```text
+active_project.yml       只回答“当前是哪一个项目”
+project_manifest.yml     保存稳定项目事实和规范输出位置
+run_state.json           保存当前可恢复快照
+run-log.jsonl            只追加最小运行历史
+```
 
-1. 读取当前工作区根 `AGENTS.md`，确认通用安全规则、语言规则、skill 路由和 Zotero 规则。
-2. 若用户给出课题路径，优先使用该路径作为 `project_root`。
-3. 若用户未给出课题路径，先查找 OneDrive 同步的项目登记文件，再查找本机私有登记文件：
-   - `00_ResearchOS\.researchos\active_project.yml`
-   - `00_ResearchOS\.researchos\project_registry.yml`
-   - `%USERPROFILE%\.researchos\active_project.yml`
-   - `%USERPROFILE%\.researchos\project_registry.yml`
-4. 路径映射优先读取本机机器配置，再使用同步登记文件中的相对路径：
-   - `%USERPROFILE%\.researchos\machine_config.json`
-   - 若无机器配置，则默认把 `00_ResearchOS` 的父目录作为 `projects_root`。
-   - 未归属入口默认为 `00_ResearchOS` 父目录下的兄弟目录 `0.Inbox/`。
-   - 示例格式见 `configs/project_registry.example.yml` 和 `configs/active_project.example.yml`。
-5. 若登记文件不存在或不充分，在 ResearchOS 父目录下扫描一级子目录中的 `.research/project_manifest.yml`，并结合最近修改时间、课题名、`03-文献矩阵/02-阅读计划/`、`project_overview_and_plan.md` 判断候选课题。
-6. 找到候选课题后，必须读取以下文件中存在的部分：
-   - `.research/project_manifest.yml`
-   - `.research/project_overview_and_plan.md`
-   - `.research/material_index.md`
-   - `03-文献矩阵/reading_plan.md`
-   - `03-文献矩阵/reading-summary-table.md`
-   - `03-文献矩阵/gap-analysis-and-technical-route.md`
-   - 最近的论文计划、周汇报、审稿回复或 `.paper/` memory。
-7. 只有在无法唯一定位课题或候选课题存在冲突时，才向用户提问；提问应具体到候选路径或缺失文件。
+- 项目正文、论文全文、完整对话、API key、Zotero 数据库/PDF 路径不得写入上述状态文件。
+- `run-log.jsonl` 是审计线索，不是事实源；与项目当前文件冲突时，以当前项目文件为准。
 
-## Memory 文件规则
+## 唯一恢复链
 
-- 本机 memory 只能用于恢复工作上下文，不替代当前文件事实。
-- 优先读取轻量索引和摘要，不直接读取大量全文：
-  - `00_ResearchOS\.researchos\project_registry.yml`
-  - `00_ResearchOS\.researchos\active_project.yml`
-  - `%USERPROFILE%\.researchos\project_registry.yml`
-  - `%USERPROFILE%\.researchos\active_project.yml`
-  - 课题目录 `.research/project_manifest.yml`
-  - 课题目录 `.research/project_overview_and_plan.md`
-  - 课题目录 `.research/material_index.md`
-  - 课题目录 `.paper/` 下的 论断、图表、证据和修订记忆。
-- memory 中的信息如果与当前课题文件冲突，以当前课题文件为准，并说明冲突。
-- 不在 memory 中保存 API key、Zotero 数据库路径、Zotero storage 路径、PDF 缓存、未公开全文或可恢复敏感数据。
+### 1. 定位项目
 
-## Project Context Gate
+按以下顺序选择第一个可唯一定位的项目：
 
-处理文献精读、综述矩阵、gap、论文写作或方法审查前，必须确认：
+1. 用户本轮明确指定的项目路径。
+2. 当前工作目录或其上级中存在 `.research/project_manifest.yml` 的项目。
+3. `00_ResearchOS/.researchos/active_project.yml`。
+4. `%USERPROFILE%/.researchos/active_project.yml`。
+5. 项目登记：先 `00_ResearchOS/.researchos/project_registry.yml`，再 `%USERPROFILE%/.researchos/project_registry.yml`。
+6. 仍未定位时，只扫描 ResearchOS 父目录一级子目录中的 `.research/project_manifest.yml`。
 
-- `project_root` 是具体课题目录，不是 `00_ResearchOS` 通用框架目录。
-- 已读取 `.research/project_manifest.yml` 或明确说明其不存在。
-- 如果任务涉及文献，已先确认读书卡落点模式：默认检查 `corpus/reading-cards/cards/`、manifest 或项目登记中的集中主卡位置、项目指针和 `.research/fulltext_cache/`；随后检查 `03-文献矩阵/02-阅读计划/` 和阅读总表。
-- 如果任务涉及论文，已检查 `05-论文稿件/`、`.paper/`、项目进展文件或用户指定草稿。
-- 输出优先写入具体课题目录，不写入 `00_ResearchOS/.researchos/outputs/`；维护 ResearchOS 框架本身的人读说明写入 `docs/`，共享事实源写入 `corpus/`，执行证据写入 `.researchos/outputs/archive/`。
-- 写入同步盘、项目成果、人读报告、阅读矩阵、读书卡索引、项目交接文档时，路径必须使用项目相对路径、`{PROJECT_ROOT}/...`、`{RESEARCHOS_ROOT}/...` 或登记文件中的 `root_key + project_relative_path`。除机器内部运行配置外，禁止把本机绝对路径作为唯一定位方式写入这些文件。
-- 尚未明确课题归属的人工材料写入 `0.Inbox/`，而不是 `00_ResearchOS/.researchos/outputs/`；明确归属后再迁移到具体课题目录。
+`machine_config.json` 只负责把 `root_key` 映射为本机路径，不决定当前项目。优先读取 `%USERPROFILE%/.researchos/machine_config.json`；没有配置时，`projects_root` 默认为 ResearchOS 父目录。
 
-## 不失焦规则
+若两个候选项目同优先级且无法消解，列出候选并向用户确认，不猜测。
 
-- 每次开始长任务时，先用 3-6 行中文说明当前课题、当前目标、已知材料、缺口和本轮输出。
-- 对大型任务先使用已有读书卡、矩阵、项目计划和 memory，不从 Zotero 或互联网重新发散检索，除非用户要求补充检索。
-- 不把“候选文献”当成“已精读文献”；不把“项目设想”写成“已验证结论”。
-- 若发现任务正在偏离当前论文或课题阶段，应提醒用户并给出收敛方案。
-- 长任务结束时，建议更新或生成课题目录下的 `.research/run_state.json`、`team_tracking.md`、阅读总表或 `.paper/revision_history.yml`，但只在用户要求或任务本身需要时写入。
+### 2. 读取最小恢复包
 
-## Zotero 与本地文件边界
+项目定位后，先只读取存在的轻量文件：
 
-- Zotero 默认只读，遵守根 `AGENTS.md` 和 `POLICIES/ZOTERO_READONLY_POLICY.md`。
-- 已有读书卡和课题矩阵优先于重新从 Zotero 搜索。
-- 只有当读书卡缺失、PDF 文本缺失或用户要求核查原文时，才调用 Zotero Local API 定位 PDF 和抽取文本。
-- 不移动、不复制、不重命名 Zotero PDF；不读取或修改 `zotero.sqlite`。
+1. `.research/project_manifest.yml`
+2. `.research/run_state.json`
+3. `.research/run-log.jsonl` 最后 5 条有效记录
+4. `.research/project_overview_and_plan.md`
+5. `.research/material_index.md`
+
+随后根据本轮任务按需读取：文献任务读阅读计划、读书卡指针和矩阵；论文任务读用户指定稿件和必要 `.paper/` 索引；实验任务读实验矩阵和数据字典。不要为了恢复上下文读取全部全文。
+
+### 3. 处理冲突
+
+信息冲突时按以下优先级判断：
+
+```text
+用户本轮明确说明
+→ 当前项目原始/人读文件
+→ project_manifest.yml
+→ run_state.json
+→ run-log.jsonl
+→ active_project.yml
+→ project_registry.yml
+→ 其他历史记忆
+```
+
+不得静默覆盖冲突。对会改变项目目标、研究问题、证据状态或输出位置的冲突，向用户说明；只涉及过期进度时，可按当前文件更新状态并记录来源。
+
+### 4. 输出恢复摘要
+
+执行任务前用不超过 6 行说明：当前项目与定位依据、当前阶段和本轮目标、已恢复的关键材料、缺失或冲突信息，以及本轮预计输出位置。
+
+## 状态更新
+
+以下任务完成后更新 `.research/run_state.json` 并向 `.research/run-log.jsonl` 追加一条记录：
+
+- 长任务或多步骤任务。
+- 创建、修改或移动了项目文件。
+- 形成了新的研究判断、审批状态或阻塞项。
+- 需要跨会话交接。
+
+简单问答、纯解释、没有状态变化的只读查看不记录。
+
+- 只在稳定项目事实、研究问题或规范输出位置改变时更新 `project_manifest.yml`。
+- 只在切换当前项目时更新 `active_project.yml`。
+- `run_state.json` 可覆盖，表示最新快照。
+- `run-log.jsonl` 只追加，不改写历史；纠错时追加新记录并引用原 `run_id`。
+
+最小字段和隐私规则见 `templates/research-run-state.json`、`templates/research-run-record.json`。
+
+## 项目与输出边界
+
+- `project_root` 必须是具体课题目录，不是 `00_ResearchOS`。
+- 具体成果写入项目工作区；ResearchOS 自身治理说明写入 `docs/`。
+- 读书卡默认使用 `corpus/reading-cards/cards/` 集中主卡和项目指针。
+- 尚未归属的人工材料进入与 ResearchOS 平级的 `0.Inbox/`。
+- Zotero 默认只读；父文档正常时不直接访问 Local API/PDF。
+- 同步状态中的路径使用项目相对路径或便携指针，不写本机绝对项目路径。
+
+## 完成标准
+
+- 当前项目定位可解释且唯一。
+- 只加载了本轮必要的上下文。
+- 恢复摘要区分事实、推断和缺失项。
+- 需要留痕的任务已更新快照并追加最小日志；普通问答没有制造噪声记录。
