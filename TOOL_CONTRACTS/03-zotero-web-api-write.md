@@ -12,7 +12,7 @@
 
 本专题只用于用户明确批准后的 Zotero Web API 写入。写入范围包括标签、文献集、项目覆盖层等高风险操作。
 
-这些工具统一放在 `tools/zotero/write/`，不得作为普通科研助理能力自动触发。该目录名称描述 Zotero 写入功能，不改变其高风险属性。目录只保留追加式、保留式或窄范围清理工具；全量重建标签、全量重建文献集或清理旧 collection 树的旧链路不再作为 ResearchOS 工具入口。
+这些工具统一放在 `tools/zotero/write/`，不得作为普通科研助理能力自动触发。该目录名称描述 Zotero 写入功能，不改变其高风险属性。目录只保留追加式、显式限定的增减式或窄范围清理工具；全量重建标签、全量重建文献集或清理旧 collection 树的旧链路不再作为 ResearchOS 工具入口。`execute_zotero_additive_write_plan.py` 为兼容历史入口保留文件名，但其移除能力只能由计划中的 `remove_collections`、`remove_tags` 明确列出，且必须保存写前/写后快照与回滚载荷。
 
 ## 3. 强制前置条件
 

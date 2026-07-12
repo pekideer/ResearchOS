@@ -23,8 +23,9 @@ ResearchOS 是方法论与生成物工作区，负责：
 
 ## Collection、Tag、Note 配合方式
 
-- Zotero collection 用于保存项目或主题下的文献集合。
-- Zotero 标签 用于标注文献属性，如方法、对象、场景、数据类型、待读、已读。
+- Zotero collection 用于保存项目或主题用途；`00-待分配-triage` 是项目相关性与用途尚未完成分配时的唯一临时入口。
+- Zotero 标签 用于标注文献属性和阅读状态。`rs:read/todo` 固定表示尚未生成读书卡，`rs:read/initial-card` 表示已有初步读书卡，`rs:read/deep-read` 表示已完成精读。
+- “待读”不再作为项目 collection 名称；需要浏览待读文献时，应根据读书卡索引或 `rs:read/todo` 建立保存检索。
 - Zotero note 可用于保存最终人工确认后的读书卡摘要。
 - ResearchOS 生成的读书卡优先保存在 `corpus/reading-cards/cards/`；无课题目录时先确认项目路径或进入平级 `0.Inbox/`。
 - PRISMA 主状态保存在 `03-文献矩阵/prisma/prisma-records.csv` 和读书卡 YAML 头部；Zotero 只镜像少量 `rs:*` 标签。

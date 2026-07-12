@@ -22,9 +22,9 @@ from card_common import parse_metadata
 
 READ_STATUS_TAGS = {
     "todo": "rs:read/todo",
-    "skimmed": "rs:read/skimmed",
-    "done": "rs:read/done",
-    "deep": "rs:read/deep",
+    "skimmed": "rs:read/initial-card",
+    "done": "rs:read/initial-card",
+    "deep": "rs:read/deep-read",
 }
 
 IMPORTANCE_TAGS = {

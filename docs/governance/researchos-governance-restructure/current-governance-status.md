@@ -33,6 +33,7 @@
 | 期刊等级 | `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中的 `journal_rankings` 词典表作为映射来源 |
 | Zotero governance | 用户入口为 `tools/zotero/zotero_ai_governance.py`；只读、治理和受控写入已归入同一主题目录 |
 | Tools 结构 | 按 `zotero/`、`reading_cards/`、`project/`、`runtime/` 分组；顶层仅保留跨主题基础模块 |
+| Templates 结构 | 按 `annotations/`、`ideas/`、`literature/`、`prisma/`、`gap-to-topic/`、`writing/`、`paper-memory/`、`project-state/` 分组；模板名与实际输出名一致 |
 | 高风险写入 | 通过 `tools/zotero/write/` 和 Zotero Web API 审批流程执行 |
 | skill 边界 | 保留 20 个独立 skill；项目地图同时承担明确请求的上下文恢复与汇报导航 |
 | 上下文状态 | `active_project.yml` 定位，manifest 保存稳定事实，`run_state.json` 保存当前快照，`run-log.jsonl` 只追加最小历史 |

@@ -27,6 +27,9 @@ description: 审计论文中的 论断 与 证据 是否匹配，识别过度声
 
 ## 输出
 
+逐项审计表使用 `templates/writing/claim-evidence-audit-table.md` 的列结构；如用户只需
+简短结论，可以裁剪空列，但不得改变论断、证据、风险和修改建议的含义。
+
 - 论断
 - 证据
 - 证据类型

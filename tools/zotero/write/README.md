@@ -14,7 +14,7 @@
 | 工具 | 用途 | 默认状态 |
 |---|---|---|
 | `execute_project_collection_overlay_write.py` | 写入项目文献集覆盖层 | 需审批 |
-| `execute_zotero_additive_write_plan.py` | 执行追加式 Zotero Web API 写入计划 | 需审批 |
+| `execute_zotero_additive_write_plan.py` | 执行显式限定的条目 collection/标签增减计划；保留历史文件名以兼容旧入口 | 需审批 |
 | `execute_zotero_deleted_collection_cleanup.py` | 清理已删除 collection 引用 | 需审批 |
 | `zotero_web_api.py` | 共享环境配置、脱敏代理、HTTP 请求和分页 helper | 仅供本目录工具调用 |
 
@@ -23,6 +23,7 @@
 - `execute_project_collection_overlay_write.py` 必须由调用方显式提供具体项目参数。
 - `--assignments`、`--hierarchy`、`--runs-dir`、canary `--item-key` 和 `--target-path` 均必须显式传入。
 - 普通科研任务不能通过默认参数误触发具体项目写入。
+- `execute_zotero_additive_write_plan.py` 默认保留现有 collection 和标签；只有已审批 action 中显式列入 `remove_collections` 或 `remove_tags` 的值才允许移除。工具不删除条目、附件或 collection 本身。
 
 ## 输出边界
 

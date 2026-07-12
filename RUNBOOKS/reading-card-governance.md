@@ -75,7 +75,7 @@ HTML 中显示 Zotero 条目 key 时必须使用：
 
 不得在读书卡开头使用 raw HTML `<h1>` 或整块 `<div>` 题录信息。原因是 Obsidian 的不同视图、同步预览和外部 Markdown 阅读器可能直接显示原始 HTML 代码，造成“代码泄露”而不是正常可视化。
 
-作者和第一作者单位的权威来源是读书卡生成时的 PDF 首页语义识别，提示词见 `templates/reading-card-first-page-bibliographic-extraction-prompt.md`。生成卡片时只需把 PDF 第 1 页、必要时 第 2 页 的题录/作者/单位区文本送入语义识别，不要为了单位识别反复上传整篇 PDF 文本。
+作者和第一作者单位的权威来源是读书卡生成时的 PDF 首页语义识别，提示词见 `templates/literature/first-page-bibliographic-extraction-prompt.md`。生成卡片时只需把 PDF 第 1 页、必要时 第 2 页 的题录/作者/单位区文本送入语义识别，不要为了单位识别反复上传整篇 PDF 文本。
 
 单位识别的材料读取顺序必须固定为：
 
@@ -123,6 +123,16 @@ sciif, sci, ssci, zhongguokejihexin, eii, cssci, cscd, xr, xrWarn, xrTop
 配置入口见 `RUNBOOKS/easyscholar-api-setup.md`。
 
 ## 4. 同步脚本规则
+
+### 阅读状态语义
+
+“待读”固定表示尚未生成读书卡，不使用项目 collection 表达。阅读状态以集中读书卡为事实源，Zotero 只在审批后镜像：
+
+- 无读书卡：`rs:read/todo`；
+- 已有读书卡但未明确完成全文精读：`rs:read/initial-card`；
+- 读书卡 `read_status` 明确为 `deep`、`全文精读` 或等价状态：`rs:read/deep-read`。
+
+项目相关性与用途尚未完成分配时使用唯一临时 collection `00-待分配-triage`。退出待分配不代表已经生成读书卡；生成或深化读书卡也不自动改变项目用途 collection。
 
 ### 4.0 全局集中主卡规则
 

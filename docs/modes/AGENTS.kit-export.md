@@ -17,7 +17,7 @@
 4. `POLICIES/ZOTERO_READONLY_POLICY.md`
 5. `TOOL_CONTRACTS.md`
 6. `TOOL_CONTRACTS/00-index.md`
-7. `templates/research-run-state.md`
+7. `templates/project-state/run-state.md`
 8. 本文件
 
 ## 3. 默认可包含内容

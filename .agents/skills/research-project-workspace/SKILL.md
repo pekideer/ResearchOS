@@ -36,7 +36,7 @@ description: 根据用户指定的研究课题目录，创建带编号前缀的 
    - `10-批注/processed/`
 6. 创建 `10-批注/inbox.md` 和 `10-批注/review-log.md`，用于本课题人工阅读批注；已处理条目归档到 `10-批注/processed/`。
 7. 默认创建 `.research/project_manifest.yml`、`.research/run_state.json` 和空的 `.research/run-log.jsonl`，形成可恢复项目；不覆盖已有状态文件。
-8. 读书卡统一使用 `00_ResearchOS/templates/paper-reading-card.md`。默认采用集中主卡模式：主卡写入 `00_ResearchOS/corpus/reading-cards/cards/`，项目目录只保留阅读总表、团队追踪、项目指针和必要审计；若用户明确要求本地读书卡，必须在 manifest 中单独声明中文本地落点，不得再创建旧英文读书卡目录作为默认目录。
+8. 读书卡统一使用 `00_ResearchOS/templates/literature/paper-reading-card.md`。默认采用集中主卡模式：主卡写入 `00_ResearchOS/corpus/reading-cards/cards/`，项目目录只保留阅读总表、团队追踪、项目指针和必要审计；若用户明确要求本地读书卡，必须在 manifest 中单独声明中文本地落点，不得再创建旧英文读书卡目录作为默认目录。
 9. 不移动、不复制、不删除现有文件。
 10. 输出已创建和已存在的目录清单。
 

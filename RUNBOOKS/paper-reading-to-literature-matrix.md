@@ -18,7 +18,7 @@
 
 使用 `paper-deep-reading`，每篇读书卡至少包含：
 
-读书卡版式与元数据位置遵循 `RUNBOOKS/reading-card-governance.md`。集中主卡开头保留简短 YAML 头部；题目、作者、第一作者一级单位与国家、年份、期刊/来源、Zotero 条目 key、摘要、阅读状态、计划用途、证据强度、PDF 附件、Zotero 版本、collections、relations 等详细字段放入文末 `## 7. 元数据（折叠）`。正文标题必须编号。作者和单位按 `templates/reading-card-first-page-bibliographic-extraction-prompt.md` 从 PDF 首页或前两页语义识别。
+读书卡版式与元数据位置遵循 `RUNBOOKS/reading-card-governance.md`。集中主卡开头保留简短 YAML 头部；题目、作者、第一作者一级单位与国家、年份、期刊/来源、Zotero 条目 key、摘要、阅读状态、计划用途、证据强度、PDF 附件、Zotero 版本、collections、relations 等详细字段放入文末 `## 7. 元数据（折叠）`。正文标题必须编号。作者和单位按 `templates/literature/first-page-bibliographic-extraction-prompt.md` 从 PDF 首页或前两页语义识别。
 
 - 条目 key
 - 题录信息

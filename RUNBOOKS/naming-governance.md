@@ -82,6 +82,12 @@ tools/runtime/         本机环境、OCR 和本地服务
 只保留参数解析、任务编排和本任务特有的校验。共享模块不得反向调用高风险执行入口。
 只有确实跨越多个主题的基础路径常量等模块可以保留在 `tools/` 顶层。
 
+模板按能力主题组织在 `templates/<capability>/`，不得把不同能力的模板重新堆放在
+`templates/` 顶层。目录已经表达能力时，文件名使用实际落地名称，例如
+`templates/paper-memory/claims.yml` 对应项目 `.paper/claims.yml`，不再重复使用
+`paper-memory-claims.yml`。每个活跃模板必须在 skill、工作流、runbook 或工具中至少
+保留一个完整相对路径引用。
+
 低层运行留存目录可使用：
 
 ```text

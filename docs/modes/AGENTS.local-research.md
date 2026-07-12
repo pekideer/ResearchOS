@@ -84,7 +84,7 @@ run-log.jsonl            只追加最小运行历史
 - `run_state.json` 可覆盖，表示最新快照。
 - `run-log.jsonl` 只追加，不改写历史；纠错时追加新记录并引用原 `run_id`。
 
-最小字段和隐私规则见 `templates/research-run-state.json`、`templates/research-run-record.json`。
+最小字段和隐私规则见 `templates/project-state/run-state.json`、`templates/project-state/run-record.json`。
 
 ## 项目与输出边界
 

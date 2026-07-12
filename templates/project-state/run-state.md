@@ -25,7 +25,7 @@
 
 用途：让未来 AI 或研究者快速理解课题状态、研究问题、输入材料和输出位置。
 
-模板：`templates/research-project-manifest.yml`
+模板：`templates/project-state/project-manifest.yml`
 
 核心字段：
 
@@ -41,7 +41,7 @@
 
 用途：记录当前执行状态，便于中断恢复。
 
-模板：`templates/research-run-state.json`
+模板：`templates/project-state/run-state.json`
 
 ```json
 {
@@ -61,7 +61,7 @@
 
 ## `run-log.jsonl`
 
-用途：只追加复杂任务的最小运行元数据。每行使用 `templates/research-run-record.json` 的字段；不得保存完整对话、正文、密钥、本机绝对项目路径或未发表全文。
+用途：只追加复杂任务的最小运行元数据。每行使用 `templates/project-state/run-record.json` 的字段；不得保存完整对话、正文、密钥、本机绝对项目路径或未发表全文。
 
 - 长任务、文件变更、新研究判断、审批状态变化或跨会话交接时追加。
 - 简单问答和没有状态变化的只读查看不记录。
@@ -71,19 +71,19 @@
 
 用途：记录实验、模型、验证路径和输出。
 
-模板：`templates/research-experiment-matrix.yml`
+模板：`templates/project-state/experiment-matrix.yml`
 
 ## `data_dictionary.yml`
 
 用途：记录数据来源、变量、单位、角色和限制。
 
-模板：`templates/research-data-dictionary.yml`
+模板：`templates/project-state/data-dictionary.yml`
 
 ## `open_questions.md`
 
 用途：记录研究问题、证据问题、方法问题、用户决策和阻塞项。
 
-模板：`templates/research-open-questions.md`
+模板：`templates/project-state/open-questions.md`
 
 ## 使用规则
 

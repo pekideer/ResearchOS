@@ -1,4 +1,8 @@
-"""Execute additive Zotero Web API writes from a guarded dry-run plan."""
+"""Execute explicitly scoped Zotero Web API item mutations from an approved dry-run plan.
+
+The historical filename is retained for compatibility. Existing collections and tags are
+preserved unless the approved action names them in remove_collections or remove_tags.
+"""
 
 from __future__ import annotations
 
@@ -38,7 +42,9 @@ AUDIT_FIELDS = [
     "item_key",
     "write_performed",
     "target_collections",
+    "remove_collections",
     "add_tags",
+    "remove_tags",
     "http_status",
     "before_version",
     "after_version",
@@ -114,7 +120,7 @@ def read_plan(path: Path) -> dict[str, Any]:
     plan = json.loads(path.read_text(encoding="utf-8-sig"))
     policy = plan.get("policy", {})
     if not policy.get("preserve_existing_collections") or not policy.get("preserve_existing_tags"):
-        raise SystemExit("Refusing plan: additive preserve policy is not present")
+        raise SystemExit("Refusing plan: explicit preservation policy is not present")
     return plan
 
 
@@ -128,16 +134,20 @@ def target_actions(plan: dict[str, Any], max_items: int | None, item_key: str | 
     return actions
 
 
-def update_preview(item: dict[str, Any], target_collection_keys: list[str], add_tags: list[str], path_by_key: dict[str, str]) -> dict[str, Any]:
+def update_preview(item: dict[str, Any], target_collection_keys: list[str], remove_collection_keys: list[str], add_tags: list[str], remove_tags: list[str], path_by_key: dict[str, str]) -> dict[str, Any]:
     data = item.get("data", {})
     before_collections = list(data.get("collections", []) or [])
     after_collections: list[str] = []
     for key in before_collections + target_collection_keys:
+        if key in remove_collection_keys:
+            continue
         if key and key not in after_collections:
             after_collections.append(key)
     before_tags = [tag.get("tag", "") for tag in data.get("tags", []) or [] if tag.get("tag")]
     after_tags: list[str] = []
     for tag in before_tags + add_tags:
+        if tag in remove_tags:
+            continue
         if tag and tag not in after_tags:
             after_tags.append(tag)
     return {
@@ -146,10 +156,13 @@ def update_preview(item: dict[str, Any], target_collection_keys: list[str], add_
         "before_collection_paths": [path_by_key.get(key, key) for key in before_collections],
         "target_collection_keys": target_collection_keys,
         "target_collection_paths": [path_by_key.get(key, key) for key in target_collection_keys],
+        "remove_collection_keys": remove_collection_keys,
+        "remove_collection_paths": [path_by_key.get(key, key) for key in remove_collection_keys],
         "after_collection_keys": after_collections,
         "after_collection_paths": [path_by_key.get(key, key) for key in after_collections],
         "before_tags": before_tags,
         "add_tags": add_tags,
+        "remove_tags": remove_tags,
         "after_tags": after_tags,
     }
 
@@ -184,7 +197,8 @@ def run(args: argparse.Namespace) -> int:
     for action in actions:
         item_key = str(action["item_key"])
         target_paths = split_semicolon(action.get("target_collections", ""))
-        missing = [path for path in target_paths if path not in key_by_path]
+        remove_paths = split_semicolon(action.get("remove_collections", ""))
+        missing = [path for path in target_paths + remove_paths if path not in key_by_path]
         if missing:
             audit_rows.append(
                 {
@@ -193,7 +207,9 @@ def run(args: argparse.Namespace) -> int:
                     "item_key": item_key,
                     "write_performed": False,
                     "target_collections": "; ".join(target_paths),
+                    "remove_collections": "; ".join(remove_paths),
                     "add_tags": action.get("add_tags", ""),
+                    "remove_tags": action.get("remove_tags", ""),
                     "http_status": "",
                     "before_version": "",
                     "after_version": "",
@@ -203,8 +219,36 @@ def run(args: argparse.Namespace) -> int:
             continue
         _, _, item_before = zotero_request(config, "GET", f"items/{item_key}", opener=opener)
         target_keys = [key_by_path[path] for path in target_paths]
+        remove_keys = [key_by_path[path] for path in remove_paths]
         add_tags = split_semicolon(action.get("add_tags", ""))
-        preview = update_preview(item_before, target_keys, add_tags, path_by_key)
+        remove_tags = split_semicolon(action.get("remove_tags", ""))
+        current_collection_keys = list(item_before.get("data", {}).get("collections", []) or [])
+        missing_memberships = [path for path, key in zip(remove_paths, remove_keys) if key not in current_collection_keys]
+        if missing_memberships:
+            audit_rows.append(
+                {
+                    "timestamp": utc_now(), "mode": "missing_current_membership", "item_key": item_key,
+                    "write_performed": False, "target_collections": "; ".join(target_paths),
+                    "remove_collections": "; ".join(remove_paths), "add_tags": "; ".join(add_tags),
+                    "remove_tags": "; ".join(remove_tags), "http_status": "",
+                    "before_version": item_before.get("version"), "after_version": "",
+                    "blocking_conditions": "; ".join(missing_memberships),
+                }
+            )
+            continue
+        preview = update_preview(item_before, target_keys, remove_keys, add_tags, remove_tags, path_by_key)
+        if remove_paths and not preview["after_collection_keys"]:
+            audit_rows.append(
+                {
+                    "timestamp": utc_now(), "mode": "would_remove_all_collections", "item_key": item_key,
+                    "write_performed": False, "target_collections": "; ".join(target_paths),
+                    "remove_collections": "; ".join(remove_paths), "add_tags": "; ".join(add_tags),
+                    "remove_tags": "; ".join(remove_tags), "http_status": "",
+                    "before_version": item_before.get("version"), "after_version": "",
+                    "blocking_conditions": "at least one collection must remain",
+                }
+            )
+            continue
         previews.append(preview)
         before_items.append(item_before)
         if not args.write:
@@ -215,7 +259,9 @@ def run(args: argparse.Namespace) -> int:
                     "item_key": item_key,
                     "write_performed": False,
                     "target_collections": "; ".join(target_paths),
+                    "remove_collections": "; ".join(remove_paths),
                     "add_tags": "; ".join(add_tags),
+                    "remove_tags": "; ".join(remove_tags),
                     "http_status": 200,
                     "before_version": item_before.get("version"),
                     "after_version": "",
@@ -252,11 +298,13 @@ def run(args: argparse.Namespace) -> int:
         audit_rows.append(
             {
                 "timestamp": utc_now(),
-                "mode": "additive_write",
+                "mode": "scoped_item_mutation",
                 "item_key": item_key,
                 "write_performed": True,
                 "target_collections": "; ".join(target_paths),
+                "remove_collections": "; ".join(remove_paths),
                 "add_tags": "; ".join(add_tags),
+                "remove_tags": "; ".join(remove_tags),
                 "http_status": 204,
                 "before_version": item_before.get("version"),
                 "after_version": item_after.get("version"),

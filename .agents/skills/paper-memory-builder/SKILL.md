@@ -9,6 +9,11 @@ description: 为论文草稿或返修稿显式创建或更新可复用的 `.pape
 
 ## 输入
 
+`.paper/` 核心文件使用 `templates/paper-memory/manuscript_map.yml`、
+`templates/paper-memory/claims.yml`、`templates/paper-memory/figures.yml`、
+`templates/paper-memory/evidence_artifacts.yml` 和
+`templates/paper-memory/revision_history.yml`，不得在 skill 中另造不兼容字段。
+
 - 论文草稿、摘要、引言、结果、讨论、结论或返修稿。
 - 图表清单、图注、结果表、统计结果、补充材料或用户说明。
 - 可选：审稿意见、已有 论断-证据 表、修改记录、目标期刊要求。

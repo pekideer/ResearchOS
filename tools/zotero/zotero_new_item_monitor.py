@@ -55,7 +55,7 @@ DEFAULT_REPORT_CSV = M004_ZOTERO_NEW_ITEM_MONITOR / "new-items-report.csv"
 DEFAULT_CLASSIFICATION_CSV = M004_ZOTERO_NEW_ITEM_MONITOR / "new-item-classification-plan.csv"
 DEFAULT_CLASSIFICATION_JSON = M004_ZOTERO_NEW_ITEM_MONITOR / "new-item-classification-plan.json"
 DEFAULT_WRITE_PLAN = M004_ZOTERO_NEW_ITEM_MONITOR / "zotero-new-item-write-plan-dry-run.json"
-DEFAULT_WATCHLIST_COLLECTION = "00.09-watchlist-待补读与跟踪"
+DEFAULT_TRIAGE_COLLECTION = "00-待分配-triage"
 TOP_LEVEL_ENDPOINT = "items/top"
 SKIP_ITEM_TYPES = {"attachment", "note", "annotation"}
 
@@ -415,7 +415,7 @@ def match_rule_group(row: dict[str, Any], rules: dict[str, Any], group_name: str
     return matches
 
 
-def classify_row(row: dict[str, Any], rules: dict[str, Any], watchlist_collection: str) -> dict[str, Any]:
+def classify_row(row: dict[str, Any], rules: dict[str, Any], triage_collection: str) -> dict[str, Any]:
     directions = match_rule_group(row, rules, "research_directions")
     methods = match_rule_group(row, rules, "research_methods")
     objects = match_rule_group(row, rules, "research_objects")
@@ -439,7 +439,7 @@ def classify_row(row: dict[str, Any], rules: dict[str, Any], watchlist_collectio
         "date_added": row.get("date_added", ""),
         "current_collections": "; ".join(row.get("collections") or []),
         "current_tags": "; ".join(row.get("tags") or []),
-        "suggested_collections": watchlist_collection,
+        "suggested_collections": triage_collection,
         "recommended_tags": "; ".join(recommended_tags),
         "classification_basis": "metadata_only",
         "review_required": "yes" if not directions and not methods and not objects else "no",
@@ -535,7 +535,7 @@ def command_report(args: argparse.Namespace) -> int:
 def command_classify(args: argparse.Namespace) -> int:
     rows = load_rows_for_action(args)
     rules = load_rules(Path(args.rules))
-    classifications = [classify_row(row, rules, args.watchlist_collection) for row in rows]
+    classifications = [classify_row(row, rules, args.triage_collection) for row in rows]
     fields = [
         "item_key",
         "zotero_link",
@@ -635,7 +635,12 @@ def build_parser() -> argparse.ArgumentParser:
     add_common_monitor_args(classify)
     classify.add_argument("--input-jsonl")
     classify.add_argument("--rules", default=str(DEFAULT_RULES))
-    classify.add_argument("--watchlist-collection", default=DEFAULT_WATCHLIST_COLLECTION)
+    classify.add_argument(
+        "--triage-collection",
+        dest="triage_collection",
+        default=DEFAULT_TRIAGE_COLLECTION,
+        help="Temporary collection for items whose project use is not assigned.",
+    )
     classify.add_argument("--output-csv", default=str(DEFAULT_CLASSIFICATION_CSV))
     classify.add_argument("--output-json", default=str(DEFAULT_CLASSIFICATION_JSON))
     classify.add_argument("--write-plan", default=str(DEFAULT_WRITE_PLAN))
@@ -655,8 +660,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    effective_argv = list(argv) if argv is not None else sys.argv[1:]
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(effective_argv)
     if getattr(args, "batch_size", 1) < 1:
         parser.error("--batch-size must be >= 1")
     if getattr(args, "max_records", 1) < 1:

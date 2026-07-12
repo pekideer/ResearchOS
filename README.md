@@ -173,11 +173,11 @@ Zotero 父文档、规范化全文和主要人读报告使用 `corpus\` 与 `doc
 - `corpus/`：共享事实源和语料，包含 Zotero SQLite 父文档、规范化全文、集中读书卡和索引。
 - `configs/`：机器配置示例。真实机器配置建议放在 `%USERPROFILE%\.researchos\machine_config.json`。
 - `templates/`：读书卡、综述矩阵、PRISMA 状态库、论文大纲、审稿回复表和 论断-证据审计表模板。
-- `templates/reading-summary-table.html`：读书卡同步宽表模板，面向跨文献浏览、评分、PRISMA 状态、人工参阅编号和 Zotero 条目/PDF 点击跳转管理。
-- `templates/reading-summary-table.md`：Markdown 备用表模板。
-- `templates/prisma-*`：PRISMA 检索日志、筛选状态数据库和 Zotero 标签镜像 规则模板。
-- `templates/gap-to-topic-*`：`topic_dossier.md` 和 `gaps.yml` 输出模板。
-- `templates/paper-memory-*`：`.paper/` 记忆模板，用于论断、图表、证据和修订历史索引。
+- `templates/literature/reading-summary-table.html`：读书卡同步宽表模板，面向跨文献浏览、评分、PRISMA 状态、人工参阅编号和 Zotero 条目/PDF 点击跳转管理。
+- `templates/literature/reading-summary-table.md`：Markdown 备用表模板。
+- `templates/prisma/`：PRISMA 检索日志、筛选状态数据库和 Zotero 标签镜像规则模板。
+- `templates/gap-to-topic/`：`topic_dossier.md` 和 `gaps.yml` 输出模板。
+- `templates/paper-memory/`：`.paper/` 记忆模板，用于论断、图表、证据和修订历史索引。
 - `templates/research-*`：`.research/` 状态模板，用于 project manifest、run state、experiment matrix、data dictionary 和 open questions。
 - `docs/references/`：中文/英文学术表达、工程论文逻辑、科研诚信和 Zotero 工作流说明。
 - `docs/references/zotero-library-governance.md`：Zotero 文献库治理、分类规则和写入审批规则。

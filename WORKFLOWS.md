@@ -90,7 +90,7 @@
 
 目标：让用户在项目/idea 本地固定文件中记录阅读想法、意见和疑问；未归属内容才进入全局入口。agent 后续读取这些条目，映射到对应文档位置，检查证据边界，并给出建议、更新或归档。
 
-1. 用户优先在当前项目/idea 的 `10-批注/inbox.md` 追加批注条目；跨项目或暂时不知道归属时，写入 `.researchos/human-annotation-inbox/inbox.md`。可复制 `templates/human-annotation-inbox-entry.md`。
+1. 用户优先在当前项目/idea 的 `10-批注/inbox.md` 追加批注条目；跨项目或暂时不知道归属时，写入 `.researchos/human-annotation-inbox/inbox.md`。可复制 `templates/annotations/inbox-entry.md`。
 2. 用户触发“处理我的批注/读取我的阅读意见/根据批注更新文档”。
 3. 使用 `human-annotation-inbox` 选择本地 inbox 或全局 inbox，读取 `status: new`、`status: needs-confirmation` 或用户指定条目。
 4. 根据 `target_document`、`target_anchor`、引用片段、标题、IDEA ID、Zotero key 或关键词映射到目标文档位置。
@@ -332,9 +332,9 @@
 目标：在文献综述过程中维护可复查的 PRISMA 主状态，并把少量状态镜像到 Zotero 标签。
 
 1. 在课题目录下使用 `03-文献矩阵/prisma/`。
-2. 用 `templates/prisma-search-log.csv` 记录每次检索的数据库、检索式、筛选条件和导出文件。
-3. 用 `templates/prisma-records.csv` 维护每条候选文献的 PRISMA 阶段、筛选决策、排除原因、阅读状态、重要性和计划用途。
-4. 读书卡使用 `templates/paper-reading-card.md`。全部元数据保存在文末 `## 7. 元数据（折叠）`。
+2. 用 `templates/prisma/search-log.csv` 记录每次检索的数据库、检索式、筛选条件和导出文件。
+3. 用 `templates/prisma/records.csv` 维护每条候选文献的 PRISMA 阶段、筛选决策、排除原因、阅读状态、重要性和计划用途。
+4. 读书卡使用 `templates/literature/paper-reading-card.md`。全部元数据保存在文末 `## 7. 元数据（折叠）`。
 5. 主状态以读书卡文末元数据块和 `prisma-records.csv` 为准；Zotero 只镜像 `rs:*` 标签。
 6. 运行 `tools/reading_cards/build_prisma_status_outputs.py` 生成提醒、PRISMA 计数和 `zotero-tag-mirror-plan.json`。
 7. 如需要真正写入 Zotero 标签，必须转入 `POLICIES/ZOTERO_WRITE_POLICY.md`，按试运行、人工确认、金丝雀测试和小批量执行。
@@ -565,7 +565,7 @@
 
 输出建议：
 
-- `manuscript-outline.md`
+- `manuscript-outline.md`（结构模板：`templates/writing/manuscript-outline.md`）
 - `.paper/论断s.yml`
 - `.paper/figures.yml`
 - `.paper/evidence_artifacts.yml`
@@ -689,7 +689,7 @@
 - 本机配置优先读取 `%USERPROFILE%\.researchos\machine_config.json`。
 - 如果没有配置，则默认使用 `00_ResearchOS` 的父目录作为 `projects_root`。
 - 仍然支持 `--root` 传入完整路径，适合一次性特殊目录。
-- `.research/` manifest 可使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。manifest 必须声明读书卡落点模式：默认 `centralized_links` 对应集中主卡和项目指针；如确需项目本地读书卡，必须显式声明中文本地落点。
+- `.research/` manifest 可使用 `templates/project-state/project-manifest.yml`、`templates/project-state/run-state.json`、`templates/project-state/experiment-matrix.yml`、`templates/project-state/data-dictionary.yml` 和 `templates/project-state/open-questions.md`。manifest 必须声明读书卡落点模式：默认 `centralized_links` 对应集中主卡和项目指针；如确需项目本地读书卡，必须显式声明中文本地落点。
 
 使用的质量检查：
 

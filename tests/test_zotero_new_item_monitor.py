@@ -116,9 +116,11 @@ class ZoteroNewItemMonitorTests(unittest.TestCase):
             "research_methods": [{"name": "Experiment", "keywords": ["experiment"]}],
             "research_objects": [],
         }
-        classified = monitor.classify_row(row, rules, "00.09-watchlist-待补读与跟踪")
+        classified = monitor.classify_row(row, rules, "00-待分配-triage")
         self.assertEqual(classified["review_required"], "no")
         self.assertIn("rs:topic/spectrally-selective-materials", classified["recommended_tags"])
+        self.assertEqual(classified["suggested_collections"], "00-待分配-triage")
+        self.assertIn("rs:read/todo", classified["recommended_tags"])
         self.assertEqual(classified["classification_basis"], "metadata_only")
 
     def test_write_plan_is_dry_run_only(self) -> None:
@@ -127,7 +129,7 @@ class ZoteroNewItemMonitorTests(unittest.TestCase):
                 {
                     "item_key": "ITEM0001",
                     "title": "Example",
-                    "suggested_collections": "00.09-watchlist-待补读与跟踪",
+                    "suggested_collections": "00-待分配-triage",
                     "recommended_tags": "rs:read/todo",
                     "reason": "test",
                     "review_required": "no",
@@ -138,6 +140,11 @@ class ZoteroNewItemMonitorTests(unittest.TestCase):
         self.assertEqual(plan["mode"], "dry_run_only")
         self.assertIn("requires explicit user approval", plan["write_policy"])
         self.assertEqual(plan["pdf_access_policy"], "forbidden; this plan was built from item metadata only")
+
+    def test_legacy_watchlist_option_is_rejected(self) -> None:
+        parser = monitor.build_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["classify", "--watchlist-collection", "legacy"])
 
 
 if __name__ == "__main__":

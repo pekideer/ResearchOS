@@ -2,9 +2,9 @@
 # The authoritative state remains in reading cards and prisma-records.csv.
 read_status:
   todo: "rs:read/todo"
-  skimmed: "rs:read/skimmed"
-  done: "rs:read/done"
-  deep: "rs:read/deep"
+  skimmed: "rs:read/initial-card"
+  done: "rs:read/initial-card"
+  deep: "rs:read/deep-read"
 
 importance:
   core: "rs:priority/core"

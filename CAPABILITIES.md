@@ -99,12 +99,12 @@ ResearchOS 的能力按六个科研助理场景域理解；具体细目以“统
 | 安全入口 | 管理科研诚信、输出语言、API key 和 Zotero 写入审批 | `POLICIES/` |
 | 操作手册入口 | 承载复杂任务细则，避免根目录文档过重 | `RUNBOOKS/` |
 | 测试入口 | 检查 skill 稳定性、科研诚信和可复核输出 | `EVALS.md` |
-| 状态模板入口 | 支持长任务中断后的状态恢复 | `RUN_STATE_TEMPLATE.md`、`templates/research-run-state.md` |
+| 状态模板入口 | 支持长任务中断后的状态恢复 | `RUN_STATE_TEMPLATE.md`、`templates/project-state/run-state.md` |
 | 项目工作区能力映射 | 固化能力、基础功能文件和项目目录作用 | `docs/capabilities/project-workspace-capability-map.md` |
 
-`.research/` manifest 建议使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。
+`.research/` manifest 建议使用 `templates/project-state/project-manifest.yml`、`templates/project-state/run-state.json`、`templates/project-state/experiment-matrix.yml`、`templates/project-state/data-dictionary.yml` 和 `templates/project-state/open-questions.md`。
 
-PRISMA 综述状态建议使用课题目录 `03-文献矩阵/prisma/`，并从 `templates/prisma-records.csv`、`templates/prisma-search-log.csv` 和 `templates/prisma-zotero-tag-map.yml` 初始化。主状态保存在 `prisma-records.csv` 和读书卡文末元数据；Zotero 只镜像 `rs:*` 标签。
+PRISMA 综述状态建议使用课题目录 `03-文献矩阵/prisma/`，并从 `templates/prisma/records.csv`、`templates/prisma/search-log.csv` 和 `templates/prisma/zotero-tag-map.yml` 初始化。主状态保存在 `prisma-records.csv` 和读书卡文末元数据；Zotero 只镜像 `rs:*` 标签。
 
 ## 自然语言入口
 
