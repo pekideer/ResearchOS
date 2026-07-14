@@ -34,6 +34,7 @@
 | `TOOL_CONTRACTS/03-zotero-web-api-write.md` | Zotero Web API 写入、金丝雀测试、回滚和高风险写入 |
 | `TOOL_CONTRACTS/04-reading-cards-prisma.md` | 读书卡、PRISMA、期刊等级、作者机构和引用显示 |
 | `TOOL_CONTRACTS/05-project-workspace.md` | 点子、课题、项目工作区和项目材料治理；具体科研成果默认写入指定项目路径 |
+| `TOOL_CONTRACTS/08-zotero-reading-card-annotation-sync.md` | Zotero annotation 只读回流、读书卡受控更新和经审批的子笔记发布 |
 | `TOOL_CONTRACTS/06-researchos-governance.md` | ResearchOS 自身规则、输出边界、命名、Obsidian 打开方式和审计 |
 | `TOOL_CONTRACTS/07-runtime-ocr-local-env.md` | 本机运行环境、OCR 和依赖配置 |
 

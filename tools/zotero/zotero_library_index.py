@@ -377,6 +377,57 @@ def init_db(conn: sqlite3.Connection) -> None:
           last_seen_at TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS annotations (
+          annotation_key TEXT PRIMARY KEY,
+          attachment_key TEXT NOT NULL,
+          parent_item_key TEXT NOT NULL,
+          version INTEGER,
+          annotation_type TEXT,
+          annotation_text TEXT,
+          annotation_comment TEXT,
+          annotation_color TEXT,
+          annotation_page_label TEXT,
+          annotation_sort_index TEXT,
+          annotation_position_json TEXT,
+          tags_json TEXT,
+          raw_json TEXT NOT NULL,
+          date_added TEXT,
+          date_modified TEXT,
+          content_hash TEXT NOT NULL,
+          first_seen_at TEXT NOT NULL,
+          last_seen_at TEXT NOT NULL,
+          last_synced_at TEXT NOT NULL,
+          zotero_deleted INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS annotation_sync_runs (
+          run_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          started_at TEXT NOT NULL,
+          finished_at TEXT,
+          status TEXT NOT NULL,
+          scope TEXT NOT NULL,
+          items_scanned INTEGER DEFAULT 0,
+          attachments_scanned INTEGER DEFAULT 0,
+          annotations_seen INTEGER DEFAULT 0,
+          annotations_upserted INTEGER DEFAULT 0,
+          annotations_soft_deleted INTEGER DEFAULT 0,
+          errors INTEGER DEFAULT 0,
+          notes TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS reading_card_zotero_notes (
+          card_id TEXT PRIMARY KEY,
+          item_key TEXT NOT NULL,
+          card_path TEXT NOT NULL,
+          note_key TEXT,
+          note_version INTEGER,
+          source_hash TEXT NOT NULL,
+          published_note_hash TEXT,
+          publish_status TEXT NOT NULL,
+          last_planned_at TEXT,
+          last_published_at TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS pdf_texts (
           attachment_key TEXT PRIMARY KEY,
           item_key TEXT NOT NULL,
@@ -405,6 +456,9 @@ def init_db(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_items_date_modified ON items(date_modified);
         CREATE INDEX IF NOT EXISTS idx_attachments_parent ON attachments(parent_item_key);
+        CREATE INDEX IF NOT EXISTS idx_annotations_parent_item ON annotations(parent_item_key);
+        CREATE INDEX IF NOT EXISTS idx_annotations_attachment ON annotations(attachment_key);
+        CREATE INDEX IF NOT EXISTS idx_annotations_modified ON annotations(date_modified);
         """
     )
     ensure_sync_run_columns(conn)

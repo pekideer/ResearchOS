@@ -14,6 +14,7 @@
 - 检查 `docs/`、`corpus/`、`.researchos/outputs/machine/`、`.researchos/outputs/archive/` 和活跃工具边界。
 - 更新系统级人读说明、治理状态、命名规则和工具契约。
 - 在用户批准后修复影响功能闭环的路径常量或脚本入口。
+- 为 Zotero 读书卡标注闭环维护 `M-005-reading-card-annotation-sync` 机器预览和 `A-003-reading-card-note-publish` 写入审计常量。
 
 ## 4. 禁止行为
 

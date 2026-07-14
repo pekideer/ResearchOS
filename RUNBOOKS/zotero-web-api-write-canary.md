@@ -79,6 +79,18 @@ $env:ZOTERO_API_BASE
 5. 生成 回滚计划。
 6. 用户确认。
 
+## 单条读书卡笔记测试
+
+仅在用户批准具体 `approved-plan-candidate.json` 后执行：
+
+1. 选择一张已映射 item key 的集中读书卡。
+2. 只读获取母条目和现有 children，生成 `note-preview.html`。
+3. 确认 action 为 `create`，或为已登记且版本/结构化内容指纹均匹配的 `update`；批准计划必须保留在原预检目录且 provenance 匹配。
+4. 使用 `publish_reading_card_note.py --write --canary --approved-plan ...` 执行一条。
+5. 保存母条目/children 执行前状态、note 执行前/后状态和脱敏代理记录；写后核验 note key、类型、母条目、标签、结构化内容指纹和版本。
+6. 创建操作生成“另行批准后删除”的回滚计划；更新操作保存原 note HTML。
+7. 用户在 Zotero 中确认条目归属、排版、链接和同步结果后，才能讨论扩大范围。
+
 ## 人工确认点
 
 - 试运行计划 是否完整。

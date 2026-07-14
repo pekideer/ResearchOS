@@ -29,8 +29,10 @@ ARCHIVE_ROOT = OUTPUTS_ROOT / "archive"
 
 M002_LIBRARY_GOVERNANCE = MACHINE_ROOT / "M-002-library-governance"
 M004_ZOTERO_NEW_ITEM_MONITOR = MACHINE_ROOT / "M-004-zotero-new-item-monitor"
+M005_READING_CARD_ANNOTATION_SYNC = MACHINE_ROOT / "M-005-reading-card-annotation-sync"
 
 A001_LIBRARY_GOVERNANCE = ARCHIVE_ROOT / "A-001-library-governance"
+A003_READING_CARD_NOTE_PUBLISH = ARCHIVE_ROOT / "A-003-reading-card-note-publish"
 
 DOCS_LIBRARY_GOVERNANCE = REPORTS_ROOT / "library-governance"
 DOCS_RULE_AUDITS = REPORTS_ROOT / "rule-audits"

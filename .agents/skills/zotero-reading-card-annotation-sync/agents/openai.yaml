@@ -1,0 +1,6 @@
+interface:
+  display_name: "Zotero 读书卡标注闭环"
+  short_description: "同步 Zotero 读书卡笔记并回流人工阅读标注证据"
+  default_prompt: "Use $zotero-reading-card-annotation-sync to sync one Zotero reading-card note and review returned annotations."
+policy:
+  allow_implicit_invocation: true

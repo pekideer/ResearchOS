@@ -13,6 +13,7 @@
 | `05-project-workspace.md` | 点子、课题、项目工作区和项目材料治理 |
 | `06-researchos-governance.md` | ResearchOS 自身规则、输出边界、命名和审计 |
 | `07-runtime-ocr-local-env.md` | 本机运行环境、OCR 和依赖配置 |
+| `08-zotero-reading-card-annotation-sync.md` | Zotero annotation 回流、读书卡生成区和经审批的条目子笔记发布 |
 
 ## 2. 工具角色分层
 
@@ -50,6 +51,9 @@
 | `tools/reading_cards/sync_reading_summary_table.py` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/sync_zotero_metadata_to_cards.py` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/card_common.py` | `04-reading-cards-prisma.md` |
+| `tools/zotero/zotero_annotation_sync.py` | `08-zotero-reading-card-annotation-sync.md` |
+| `tools/reading_cards/sync_zotero_annotations_to_cards.py` | `08-zotero-reading-card-annotation-sync.md` |
+| `tools/zotero/write/publish_reading_card_note.py` | `08-zotero-reading-card-annotation-sync.md`、`03-zotero-web-api-write.md` |
 | `tools/project/extract_project_materials.py` | `05-project-workspace.md` |
 | `tools/project/create_project_workspace.py` | `05-project-workspace.md` |
 | `tools/researchos_outputs.py` | `06-researchos-governance.md` |

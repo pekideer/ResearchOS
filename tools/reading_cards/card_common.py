@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import html
+import hashlib
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 
@@ -115,6 +117,82 @@ def parse_metadata(body: str, headings: tuple[str, ...] = METADATA_HEADINGS) -> 
         key, value = line.split(":", 1)
         data[key.strip()] = value.strip().strip("'\"")
     return data
+
+
+def parse_frontmatter(body: str) -> dict[str, str]:
+    """Parse the deliberately small scalar YAML header used by reading cards."""
+    if not body.startswith("---"):
+        return {}
+    match = re.match(r"\A---\s*\n(.*?)\n---(?:\s*\n|\Z)", body, re.S)
+    if not match:
+        return {}
+    data: dict[str, str] = {}
+    for raw in match.group(1).splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        data[key.strip()] = value.strip().strip("'\"")
+    return data
+
+
+def reading_card_project_links(body: str) -> list[dict[str, Any]]:
+    """Return multi-project links while preserving legacy ``project_id`` cards."""
+    header = parse_frontmatter(body)
+    raw_links = str(header.get("project_links") or "").strip()
+    if raw_links:
+        try:
+            parsed = json.loads(raw_links)
+        except json.JSONDecodeError:
+            parsed = []
+        if isinstance(parsed, list):
+            links: list[dict[str, Any]] = []
+            for source_order, row in enumerate(parsed, start=1):
+                if isinstance(row, str) and row.strip():
+                    links.append({
+                        "project_id": row.strip(),
+                        "project_name": "",
+                        "association_order": source_order,
+                    })
+                elif isinstance(row, dict) and str(row.get("project_id") or "").strip():
+                    try:
+                        association_order = int(row.get("association_order") or source_order)
+                    except (TypeError, ValueError):
+                        association_order = source_order
+                    links.append({
+                        "project_id": str(row.get("project_id") or "").strip(),
+                        "project_name": str(row.get("project_name") or "").strip(),
+                        "association_order": association_order,
+                    })
+            if links:
+                return sorted(links, key=lambda row: int(row["association_order"]))
+    legacy = str(header.get("project_id") or "").strip()
+    return [{"project_id": legacy, "project_name": "", "association_order": 1}] if legacy else []
+
+
+def reading_card_identity(body: str, path: Path | None = None) -> tuple[str, str]:
+    """Return stable card id and Zotero parent item key from a reading card."""
+    header = parse_frontmatter(body)
+    metadata = parse_metadata(body)
+    card_id = str(header.get("card_id") or metadata.get("card_id") or "").strip()
+    if not card_id and path is not None:
+        match = re.match(r"(RC-\d+)", path.stem, re.I)
+        card_id = match.group(1).upper() if match else path.stem
+    item_key = ""
+    for value in (
+        header.get("zotero_key"),
+        header.get("item_key"),
+        metadata.get("item_key"),
+        metadata.get("zotero_item_key"),
+    ):
+        item_key = raw_zotero_item_key(value)
+        if item_key:
+            break
+    return card_id, item_key
+
+
+def content_sha256(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def raw_zotero_item_key(value: Any) -> str:

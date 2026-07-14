@@ -17,6 +17,7 @@
 | `execute_zotero_additive_write_plan.py` | 执行显式限定的条目 collection/标签增减计划；保留历史文件名以兼容旧入口 | 需审批 |
 | `execute_zotero_deleted_collection_cleanup.py` | 清理已删除 collection 引用 | 需审批 |
 | `zotero_web_api.py` | 共享环境配置、脱敏代理、HTTP 请求和分页 helper | 仅供本目录工具调用 |
+| `publish_reading_card_note.py` | 生成读书卡 note 计划，并在具体批准后执行一条 create/update 金丝雀 | 默认 dry-run；写入需批准 |
 
 ## 参数边界
 
@@ -24,6 +25,7 @@
 - `--assignments`、`--hierarchy`、`--runs-dir`、canary `--item-key` 和 `--target-path` 均必须显式传入。
 - 普通科研任务不能通过默认参数误触发具体项目写入。
 - `execute_zotero_additive_write_plan.py` 默认保留现有 collection 和标签；只有已审批 action 中显式列入 `remove_collections` 或 `remove_tags` 的值才允许移除。工具不删除条目、附件或 collection 本身。
+- `publish_reading_card_note.py` 默认只生成 live preflight；真实写入必须同时指定 `--write --canary --approved-plan`，计划必须位于原预检目录且 provenance 匹配，并且只允许一个 `card_id` 对应一条生成笔记。写后后置条件全部通过后才登记成功映射。
 
 ## 输出边界
 
@@ -36,3 +38,4 @@
   `--runs-dir` 显式指定具体项目的 `.internal/zotero-collection-overlay/` 或经批准的
   ResearchOS 审计归档位置。
 - 不得把真实写入运行包重新写回 `outputs/machine/`。
+- 读书卡 note dry-run 进入 `.researchos/outputs/machine/M-005-reading-card-annotation-sync/`，真实金丝雀运行包进入 `.researchos/outputs/archive/A-003-reading-card-note-publish/`。

@@ -23,6 +23,7 @@
 | 记录碎片想法、建立 IDEA、初步潜力判断 | C04 | `idea-to-research-potential` | 0 | 点子潜力 |
 | 父文档缺失/过期、Local API 排障、定位 PDF | C05 | `zotero-literature-access` | 1 | 来源、Zotero 父文档 |
 | 单篇论文精读、读书卡 | C06 | `paper-deep-reading` | 1、1A | 证据、来源、输出 |
+| 把读书卡发布为 Zotero 笔记、同步 PDF 高亮/批注并回流读书卡 | C06、C11 | `zotero-reading-card-annotation-sync` | 1B | 证据、Zotero 父文档、写入 |
 | 关键词、检索式、数据库路线、候选发现 | C07 | `literature-search-map` | 2A | 来源、输出 |
 | 多篇文献比较、综述矩阵、研究缺口线索 | C07 | `literature-matrix` | 2 | 证据、来源 |
 | PRISMA 检索、筛选和阅读状态 | C07 | `WORKFLOWS.md` 工作流 2A | 2A | 来源、输出 |
@@ -48,6 +49,7 @@
 - 点子记录 → `idea-to-research-potential`；检索式 → `literature-search-map`；深度综合报告 → `research-intelligence-report`；立项判断 → `gap-to-topic`；问题和变量 → `research-question-framing`。
 - `.paper/` 只在明确建记忆或复杂多轮返修时创建；普通润色、审计、结果叙事和审稿回复不自动触发它。
 - 父文档正常时，普通阅读不触发 `zotero-literature-access`。
+- Zotero 标注回流由 `zotero-reading-card-annotation-sync` 处理；本地批注文件仍由 `human-annotation-inbox` 处理。
 - 普通任务结尾不触发项目地图；只有用户明确要求恢复、定位或导航时使用 `project-map-builder`。
 - 每个请求默认只有一个主 skill；辅助 skill 不重复生成主输出。
 

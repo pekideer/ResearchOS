@@ -283,6 +283,43 @@
 - 缺失的一段话综述、与主题相关性、评分、期刊缩写或 PRISMA 字段会进入 reminders。
 - 不面向人工日常阅读的 CSV 镜像、提醒、候选池、种子矩阵等机器产物应放入 `.internal/`。
 
+## 工作流 1B：Zotero 读书卡与人工标注闭环
+
+能力编号：`C05`、`C06`、`C11`
+
+目标：把集中读书卡作为对应 Zotero 条目下的阅读笔记，并将 Zotero 原生 PDF 高亮和评论以可追溯证据回流读书卡。
+
+1. 使用 `zotero-reading-card-annotation-sync`，确认目标 item key 已映射到唯一集中读书卡。
+2. 先运行 `tools/zotero/zotero_annotation_sync.py` 的只读 dry-run；从题录 children 定位 PDF attachment，并通过一次全局 `itemType=annotation` 分页枚举按 `parentItem` 过滤目标标注。
+3. 用户确认范围后加 `--write-mirror`，只写 ResearchOS 父文档的 `annotations` 表；全局枚举或目标条目读取失败时不执行相关 attachment 的软删除。
+4. 运行 `tools/reading_cards/sync_zotero_annotations_to_cards.py` 生成读书卡受控区预览；原文摘录、人工判断、定位线索和需要核查分开显示。
+5. 用户要求应用后才加 `--write-cards`，并必须显式给出至少一个 `--item-key`；工具只能替换唯一且配对正确的 `researchos:zotero-annotations` 起止标记内内容。
+6. 需要在 Zotero 中阅读读书卡时，运行 `tools/zotero/write/publish_reading_card_note.py --card ...` 生成 live dry-run 和 HTML 预览。
+7. 用户必须确认具体 `approved-plan-candidate.json`；随后只用 `--write --canary --approved-plan ...` 执行单条创建或版本安全更新。
+8. 用户在 Zotero 中检查条目归属、排版、链接和同步结果；未确认前不得扩大批量。
+
+主要输出：
+
+- 父文档 `annotations` 与 `reading_card_zotero_notes` 表。
+- 读书卡 `6.99 人工阅读标注（Zotero 同步）` 生成区。
+- `.researchos/outputs/machine/M-005-reading-card-annotation-sync/`。
+- `.researchos/outputs/archive/A-003-reading-card-note-publish/`。
+
+使用的质量检查：
+
+- `证据检查`
+- `Zotero 父文档检查`
+- `Zotero 写入检查`
+- `Zotero 读书卡标注闭环检查`
+- `输出检查`
+
+完成标准：
+
+- Zotero annotation 读取未修改 Zotero、PDF 或原始数据库。
+- 标注可回溯到 item、attachment、页码和 annotation key。
+- 读书卡其他正文未被同步程序覆盖。
+- 真实 note 写入具有来源受限的具体批准计划、版本检查、写后身份/归属/标签/内容核验、执行前后证据和独立回滚计划。
+
 ## 工作流 2：从多篇文献到 只追加 综述矩阵
 
 能力编号：`C07`

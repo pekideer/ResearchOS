@@ -10,6 +10,7 @@
 - `sync_reading_summary_table.py`
 - `card_common.py`
 - `sync_zotero_metadata_to_cards.py`
+- `sync_zotero_annotations_to_cards.py`
 - `card_common.py`
 
 ## 2. 工具目的
@@ -23,6 +24,7 @@
 - 维护 PRISMA 状态输出。
 - 从批准配置读取 EasyScholar 信息并同步期刊等级。
 - 生成可读引用标签和可点击 Zotero 链接。
+- 从父文档 annotation 镜像生成读书卡受控人工标注区。
 
 ## 4. 禁止行为
 

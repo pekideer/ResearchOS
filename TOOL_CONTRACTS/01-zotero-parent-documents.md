@@ -9,6 +9,7 @@
 - `ensure_ocr_needed.py`
 - `zotero_fast_collection_sync.py`
 - `zotero_library_index.py`
+- `zotero_annotation_sync.py`
 - `start_zotero_library_watcher.ps1`
 
 ## 2. 工具目的
@@ -30,6 +31,7 @@
 - 生成供阅读、综述、选题、矩阵和治理使用的上下文包。
 - 标记扫描版、文本缺失或可能需要 OCR 的文件。
 - 维护 watcher 所需的本地同步状态。
+- 只读采集已有集中读书卡对应条目的 Zotero 原生 PDF annotation，并写入父文档镜像。
 
 ## 5. 禁止行为
 
