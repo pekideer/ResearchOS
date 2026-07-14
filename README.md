@@ -178,7 +178,7 @@ Zotero 父文档、规范化全文和主要人读报告使用 `corpus\` 与 `doc
 - `templates/prisma/`：PRISMA 检索日志、筛选状态数据库和 Zotero 标签镜像规则模板。
 - `templates/gap-to-topic/`：`topic_dossier.md` 和 `gaps.yml` 输出模板。
 - `templates/paper-memory/`：`.paper/` 记忆模板，用于论断、图表、证据和修订历史索引。
-- `templates/research-*`：`.research/` 状态模板，用于 project manifest、run state、experiment matrix、data dictionary 和 open questions。
+- `templates/project-state/`：`.research/` 状态模板，用于 project manifest、run state、experiment matrix、data dictionary 和 open questions。
 - `docs/references/`：中文/英文学术表达、工程论文逻辑、科研诚信和 Zotero 工作流说明。
 - `docs/references/zotero-library-governance.md`：Zotero 文献库治理、分类规则和写入审批规则。
 - `.researchos/outputs/machine/`：低层机器留存区。
