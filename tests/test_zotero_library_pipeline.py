@@ -10,7 +10,6 @@ from tools.reading_cards.zotero_library_pipeline import (
     enrich_existing_card,
     journal_display,
     machine_network_env,
-    page_one_affiliation_candidate,
     relative_link_path,
     render_card,
     rollback_file_writes,
@@ -80,14 +79,6 @@ class ZoteroLibraryPipelineTests(unittest.TestCase):
         self.assertEqual(canonical, "Hunan University")
         self.assertEqual(normalized, "hunanuniversity")
 
-    def test_page_one_affiliation_ignores_title_before_author_block(self) -> None:
-        text = """===== Page 1 =====
-Hybrid Approach for Digital Twins in the Built Environment Yu-Wen Lin yuwen.lin@example.edu University of California, Berkeley Berkeley, CA, USA ABSTRACT details
-===== Page 2 =====
-2. Laboratory experiment University wording in the body
-"""
-        self.assertEqual(page_one_affiliation_candidate(text), "University of California, Berkeley")
-
     def test_missing_rank_has_explicit_status_instead_of_question_mark(self) -> None:
         self.assertEqual(journal_display("no_match", ""), "未收录")
         self.assertEqual(journal_display("unqueried", ""), "待查询")
@@ -97,11 +88,11 @@ Hybrid Approach for Digital Twins in the Built Environment Yu-Wen Lin yuwen.lin@
         updated = enrich_existing_card(
             card,
             {
-                "display": "Hunan University",
-                "status": "heuristic_candidate",
-                "raw": "Hunan University",
-                "normalized": "hunanuniversity",
-                "source": "test",
+                "display": "",
+                "status": "not_processed",
+                "raw": "",
+                "normalized": "",
+                "source": "semantic review required",
                 "evidence_path": "test.txt",
             },
             "no_match",
@@ -126,11 +117,11 @@ Hybrid Approach for Digital Twins in the Built Environment Yu-Wen Lin yuwen.lin@
             "version": 7,
         }
         affiliation = {
-            "display": "Test University",
-            "status": "heuristic_candidate",
-            "raw": "Test University",
-            "normalized": "testuniversity",
-            "source": "test",
+            "display": "",
+            "status": "not_processed",
+            "raw": "",
+            "normalized": "",
+            "source": "semantic review required",
             "evidence_path": "test.txt",
         }
         evidence = {
@@ -147,7 +138,7 @@ Hybrid Approach for Digital Twins in the Built Environment Yu-Wen Lin yuwen.lin@
         self.assertIn("本卡不生成第 6 章", card)
         self.assertNotIn("**期刊等级：** ?", card)
         self.assertIn("单位：** 待语义识别", card)
-        self.assertIn("first_author_affiliation_candidate", card)
+        self.assertNotIn("first_author_affiliation_candidate", card)
         self.assertNotIn("单位：** Test University", card)
 
     def test_semantic_result_preserves_country_in_display(self) -> None:

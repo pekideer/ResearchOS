@@ -18,11 +18,9 @@ topic_directions:
   - code: T1
     label: "T1_方向名称"
     display: "方向名称"
-    relevance_default: "待判定"
   - code: T2
     label: "T2_另一个方向"
     display: "另一个方向"
-    relevance_default: "待判定"
 
 sources:
   literature_matrix: []

@@ -132,7 +132,7 @@ def ensure_python_ocr_packages(install: bool, dry_run: bool) -> None:
         return
     print("python_ocr_packages_missing: " + ", ".join(missing))
     if not install:
-        raise SystemExit("ERROR: Python OCR packages are missing. Re-run without --no-install or install tools/requirements/ocr.txt manually.")
+        raise SystemExit("ERROR: Python OCR packages are missing. Re-run with --install after approval, or install tools/requirements/ocr.txt manually.")
     requirements = RESEARCHOS_ROOT / "tools" / "requirements" / "ocr.txt"
     command = [
         sys.executable,
@@ -258,7 +258,7 @@ def ensure_tesseract(install: bool, languages: list[str], proxy: str | None, dry
     if tesseract is None:
         print("tesseract: missing")
         if not install:
-            raise SystemExit("ERROR: tesseract.exe is missing. Re-run without --no-install or install Tesseract manually.")
+            raise SystemExit("ERROR: tesseract.exe is missing. Re-run with --install after approval, or install Tesseract manually.")
         install_tesseract_with_winget(dry_run)
         tesseract = resolve_tesseract()
     if tesseract is None:
@@ -323,7 +323,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--ocr-dpi", type=int, default=DEFAULT_OCR_DPI)
     parser.add_argument("--language", action="append", dest="languages", default=None, help="Tessdata language to ensure; default eng and chi_sim.")
     parser.add_argument("--proxy", default=normalize_proxy(os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")), help="Optional proxy for tessdata downloads, e.g. http://127.0.0.1:7888.")
-    parser.add_argument("--no-install", action="store_true", help="Fail instead of installing missing Python packages or Tesseract.")
+    install_group = parser.add_mutually_exclusive_group()
+    install_group.add_argument(
+        "--install",
+        action="store_true",
+        help="Explicitly allow installation of missing Python packages, Tesseract or tessdata.",
+    )
+    install_group.add_argument(
+        "--no-install",
+        action="store_false",
+        dest="install",
+        help="Compatibility flag; installation is already disabled by default.",
+    )
+    parser.set_defaults(install=False)
     parser.add_argument("--dry-run", action="store_true", help="Report planned actions without installing or running OCR.")
     parser.add_argument("--lock-stale-after", type=int, default=1800)
     parser.add_argument("--force-lock", action="store_true")
@@ -354,10 +366,9 @@ def main(argv: list[str]) -> int:
         print("OK: no eligible OCR work needed.")
         return 0
 
-    install = not args.no_install
-    ensure_python_ocr_packages(install, args.dry_run)
+    ensure_python_ocr_packages(args.install, args.dry_run)
     languages = args.languages or list(DEFAULT_LANGUAGES)
-    ensure_tesseract(install, languages, args.proxy, args.dry_run)
+    ensure_tesseract(args.install, languages, args.proxy, args.dry_run)
     run_ocr_needed(args)
     return 0
 

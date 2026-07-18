@@ -91,9 +91,9 @@ HTML 中显示 Zotero 条目 key 时必须使用：
 - `first_author_affiliation`：只写第一作者一级单位和国家，格式为 `一级单位, 国家`。
 - `first_author_affiliation_raw`：保留 PDF 中支持判断的原始单位片段。
 - `first_author_affiliation_source`：写明 `PDF 第 1 页 作者区 语义抽取` 或对应页码。
-- `first_author_affiliation_status`：正式使用 `semantic_confirmed`、`manual_confirmed`、`semantic_needs_check`、`semantic_not_found`、`source_unavailable`；`heuristic_candidate` 只表示待语义处理的机器线索。旧 `ok` 仅在同时具有 PDF 页码、语义来源和原始证据时兼容为 `semantic_confirmed`，旧 `not_found` 不视为已经语义核查。
+- `first_author_affiliation_status`：正式使用 `semantic_confirmed`、`manual_confirmed`、`semantic_needs_check`、`semantic_not_found`、`source_unavailable`；新流水线在判断前只写 `not_processed`。历史 `heuristic_candidate` 仍视为待处理，旧 `ok` 仅在同时具有 PDF 页码、语义来源和原始证据时兼容为 `semantic_confirmed`，旧 `not_found` 不视为已经语义核查。
 
-不得把本地启发式抽取结果直接当作最终单位。`tools/reading_cards/zotero_library_pipeline.py semantic-packet` 是全库、新增和指定条目的统一证据包入口；`tools/reading_cards/build_affiliation_semantic_packet.py` 保留给项目局部缓存。`tools/reading_cards/sync_first_author_affiliations.py` 只用于候选线索。语义结果必须先通过 `semantic-apply` 的 item version、证据哈希、页码、原始片段和状态校验，才能写入 SQLite 和集中读书卡。
+代码不得用正则抽取单位并写入读书卡。`tools/reading_cards/zotero_library_pipeline.py semantic-packet` 是全库、新增和指定条目的统一证据包入口；`tools/reading_cards/build_affiliation_semantic_packet.py` 保留给项目局部缓存。语义结果必须先通过 `semantic-apply` 的 item version、证据哈希、页码、原始片段和状态校验，才能写入 SQLite 和集中读书卡。
 
 ## 3. 期刊等级来源
 
@@ -211,7 +211,7 @@ python tools\reading_cards\build_affiliation_semantic_packet.py --project-root "
 - 项目 `03-文献矩阵/` 只保留项目视角的团队追踪、矩阵和 gap 判断，不长期保存通用机构缓存或大段语义证据包。
 - 后续 AI/人工语义判断必须基于临时证据包、父文档 规范化文本 或同一 全文缓存 片段。
 
-`tools/reading_cards/sync_first_author_affiliations.py` 用于卡片核查和生成候选线索；若其结果与 PDF 首页语义识别冲突，以语义识别结果为准，并把冲突写入需要核查项。
+旧卡片中的 `heuristic_candidate` 只作为迁移状态保留，必须重新进入首页语义证据包；不得用旧候选直接补齐正式单位。
 
 ### 4.1 Zotero 人工标注生成区
 

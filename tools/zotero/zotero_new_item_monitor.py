@@ -3,7 +3,8 @@
 This tool compares Zotero Local API top-level item metadata against the
 ResearchOS Zotero SQLite parent document. It deliberately reads only item and
 collection metadata. It does not request attachment contents, does not open PDF
-files, does not read normalized full-text caches, and does not write to Zotero.
+files, does not read normalized full-text caches, does not classify research
+semantics, and does not write to Zotero.
 """
 
 from __future__ import annotations
@@ -11,7 +12,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import re
 import sqlite3
 import sys
 from dataclasses import dataclass
@@ -47,15 +47,10 @@ from tools.zotero.zotero_local_api import (
 
 
 DEFAULT_DB = CORPUS_ZOTERO_LIBRARY_DB
-DEFAULT_RULES = Path("configs/zotero_governance_rules.example.json")
 DEFAULT_STATE = M004_ZOTERO_NEW_ITEM_MONITOR / "monitor_state.jsonl"
 DEFAULT_LATEST_JSONL = M004_ZOTERO_NEW_ITEM_MONITOR / "new-items-latest.jsonl"
 DEFAULT_REPORT_MD = DOCS_ZOTERO_NEW_ITEM_MONITOR / "new-items-report.md"
 DEFAULT_REPORT_CSV = M004_ZOTERO_NEW_ITEM_MONITOR / "new-items-report.csv"
-DEFAULT_CLASSIFICATION_CSV = M004_ZOTERO_NEW_ITEM_MONITOR / "new-item-classification-plan.csv"
-DEFAULT_CLASSIFICATION_JSON = M004_ZOTERO_NEW_ITEM_MONITOR / "new-item-classification-plan.json"
-DEFAULT_WRITE_PLAN = M004_ZOTERO_NEW_ITEM_MONITOR / "zotero-new-item-write-plan-dry-run.json"
-DEFAULT_TRIAGE_COLLECTION = "00-待分配-triage"
 TOP_LEVEL_ENDPOINT = "items/top"
 SKIP_ITEM_TYPES = {"attachment", "note", "annotation"}
 
@@ -258,7 +253,7 @@ def fetch_new_items(
         "api_batches_read": batches,
         "metadata_records_read_limit": max_records,
         "stopped_at_watermark": stopped_at_watermark,
-        "pdf_access_policy": "forbidden in monitor/classify/sync-selected",
+        "pdf_access_policy": "forbidden in check/report/sync-selected",
     }
     records.sort(key=lambda row: (parse_zotero_time(row.get("date_added")) or datetime.min.replace(tzinfo=timezone.utc), row["item_key"]), reverse=True)
     return records, diagnostics
@@ -381,113 +376,6 @@ def render_report(rows: list[dict[str, Any]], diagnostics: dict[str, Any]) -> st
     return "\n".join(lines) + "\n"
 
 
-def load_rules(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8-sig"))
-
-
-def slug(value: str) -> str:
-    text = re.sub(r"[^A-Za-z0-9]+", "-", value.strip().lower()).strip("-")
-    return text or "unclassified"
-
-
-def text_blob(row: dict[str, Any]) -> str:
-    parts = [
-        row.get("title", ""),
-        row.get("abstract_note", ""),
-        row.get("publication", ""),
-        " ".join(row.get("tags") or []),
-        " ".join(row.get("collections") or []),
-    ]
-    return " ".join(str(part) for part in parts if part).casefold()
-
-
-def match_rule_group(row: dict[str, Any], rules: dict[str, Any], group_name: str) -> list[dict[str, str]]:
-    blob = text_blob(row)
-    matches: list[dict[str, str]] = []
-    for rule in rules.get(group_name, []) or []:
-        name = str(rule.get("name") or "")
-        keywords = [str(keyword) for keyword in rule.get("keywords", []) or []]
-        hit = next((keyword for keyword in keywords if keyword.casefold() in blob), "")
-        if name and hit:
-            matches.append({"name": name, "keyword": hit})
-    return matches
-
-
-def classify_row(row: dict[str, Any], rules: dict[str, Any], triage_collection: str) -> dict[str, Any]:
-    directions = match_rule_group(row, rules, "research_directions")
-    methods = match_rule_group(row, rules, "research_methods")
-    objects = match_rule_group(row, rules, "research_objects")
-    recommended_tags = ["rs:read/todo", "rs:source/zotero-new"]
-    recommended_tags.extend(f"rs:topic/{slug(match['name'])}" for match in directions)
-    recommended_tags.extend(f"rs:method/{slug(match['name'])}" for match in methods)
-    recommended_tags.extend(f"rs:object/{slug(match['name'])}" for match in objects)
-    recommended_tags = sorted(dict.fromkeys(recommended_tags))
-    reasons: list[str] = []
-    for label, matches in [("研究方向", directions), ("方法", methods), ("对象", objects)]:
-        for match in matches:
-            reasons.append(f"{label}命中 `{match['keyword']}` -> {match['name']}")
-    if not reasons:
-        reasons.append("仅基于题录元数据未命中明确分类规则，建议人工复核。")
-    return {
-        "item_key": row.get("item_key", ""),
-        "zotero_link": row.get("zotero_link", ""),
-        "citation_label": citation_label(row),
-        "title": row.get("title", ""),
-        "year": row.get("year", ""),
-        "date_added": row.get("date_added", ""),
-        "current_collections": "; ".join(row.get("collections") or []),
-        "current_tags": "; ".join(row.get("tags") or []),
-        "suggested_collections": triage_collection,
-        "recommended_tags": "; ".join(recommended_tags),
-        "classification_basis": "metadata_only",
-        "review_required": "yes" if not directions and not methods and not objects else "no",
-        "reason": "; ".join(reasons),
-    }
-
-
-def build_write_plan(classifications: list[dict[str, Any]], output_csv: Path) -> dict[str, Any]:
-    return {
-        "mode": "dry_run_only",
-        "plan_type": "zotero_new_item_collection_tag_recommendations",
-        "created_at": utc_now(),
-        "write_policy": "requires explicit user approval, Zotero Web API canary, batch execution, and rollback plan",
-        "local_api_policy": "Zotero Local API is read-only and must not be used for writes",
-        "pdf_access_policy": "forbidden; this plan was built from item metadata only",
-        "source_classification_csv": str(output_csv),
-        "item_count": len(classifications),
-        "items": [
-            {
-                "item_key": row.get("item_key", ""),
-                "zotero_link": row.get("zotero_link", ""),
-                "title": row.get("title", ""),
-                "target_collections": row.get("suggested_collections", ""),
-                "recommended_tags": row.get("recommended_tags", ""),
-                "reason": row.get("reason", ""),
-                "review_required": row.get("review_required", ""),
-                "action": "propose_collection_tag_update",
-            }
-            for row in classifications
-        ],
-    }
-
-
-def load_rows_for_action(args: argparse.Namespace) -> list[dict[str, Any]]:
-    if args.input_jsonl:
-        return read_jsonl(Path(args.input_jsonl))
-    rows, _diagnostics = fetch_new_items(
-        Path(args.db),
-        args.api_base,
-        args.user_id,
-        args.batch_size,
-        args.max_records,
-        args.timeout,
-        allow_initial_scan=args.allow_initial_scan,
-    )
-    return rows
-
-
 def command_check(args: argparse.Namespace) -> int:
     rows, diagnostics = fetch_new_items(
         Path(args.db),
@@ -529,36 +417,6 @@ def command_report(args: argparse.Namespace) -> int:
     Path(args.output_md).write_text(render_report(rows, diagnostics), encoding="utf-8", newline="\n")
     append_state_events(Path(args.state), rows, reported_at=utc_now())
     print(json.dumps({"reported_items": len(rows), "report_md": str(args.output_md), "report_csv": str(args.output_csv)}, ensure_ascii=False, indent=2))
-    return 0
-
-
-def command_classify(args: argparse.Namespace) -> int:
-    rows = load_rows_for_action(args)
-    rules = load_rules(Path(args.rules))
-    classifications = [classify_row(row, rules, args.triage_collection) for row in rows]
-    fields = [
-        "item_key",
-        "zotero_link",
-        "citation_label",
-        "title",
-        "year",
-        "date_added",
-        "current_collections",
-        "current_tags",
-        "suggested_collections",
-        "recommended_tags",
-        "classification_basis",
-        "review_required",
-        "reason",
-    ]
-    write_csv(Path(args.output_csv), classifications, fields)
-    Path(args.output_json).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.output_json).write_text(json.dumps(classifications, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
-    write_plan = build_write_plan(classifications, Path(args.output_csv))
-    Path(args.write_plan).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.write_plan).write_text(json.dumps(write_plan, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
-    append_state_events(Path(args.state), rows, classification_status="classified_metadata_only", write_plan_status="dry_run_created")
-    print(json.dumps({"classified_items": len(classifications), "classification_csv": str(args.output_csv), "write_plan": str(args.write_plan)}, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -630,21 +488,6 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--output-csv", default=str(DEFAULT_REPORT_CSV))
     report.add_argument("--include-reported", action="store_true")
     report.set_defaults(func=command_report)
-
-    classify = subparsers.add_parser("classify", help="Build metadata-only collection/tag recommendations.")
-    add_common_monitor_args(classify)
-    classify.add_argument("--input-jsonl")
-    classify.add_argument("--rules", default=str(DEFAULT_RULES))
-    classify.add_argument(
-        "--triage-collection",
-        dest="triage_collection",
-        default=DEFAULT_TRIAGE_COLLECTION,
-        help="Temporary collection for items whose project use is not assigned.",
-    )
-    classify.add_argument("--output-csv", default=str(DEFAULT_CLASSIFICATION_CSV))
-    classify.add_argument("--output-json", default=str(DEFAULT_CLASSIFICATION_JSON))
-    classify.add_argument("--write-plan", default=str(DEFAULT_WRITE_PLAN))
-    classify.set_defaults(func=command_classify)
 
     sync_selected = subparsers.add_parser("sync-selected", help="Sync selected item metadata into the ResearchOS parent document.")
     sync_selected.add_argument("--db", default=str(DEFAULT_DB))

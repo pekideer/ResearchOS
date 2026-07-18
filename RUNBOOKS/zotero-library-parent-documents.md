@@ -68,6 +68,8 @@ python tools\zotero\zotero_library_index.py normalize-text-cache --overwrite
 python tools\runtime\ensure_ocr_needed.py
 ```
 
+该命令默认只使用已安装依赖；缺少 Python OCR 包、Tesseract 或 tessdata 时停止。只有用户明确批准安装后，才使用 `python tools\runtime\ensure_ocr_needed.py --install`。
+
 ## 5. 冲突处理
 
 - `tools/zotero/zotero_local_api_cli.py` 只作为父文档维护或故障排查的底层工具，不作为普通阅读/治理默认入口。

@@ -161,7 +161,6 @@ def parse_topic_directions(values: list[str]) -> list[dict[str, str]]:
                 "code": code,
                 "label": full_label,
                 "display": full_label.split("_", 1)[1] if "_" in full_label else full_label,
-                "relevance_default": "待判定",
             }
         )
     return directions
@@ -197,7 +196,6 @@ def project_manifest_text(
                     f"  - code: {direction['code']}",
                     f"    label: \"{direction['label']}\"",
                     f"    display: \"{direction['display']}\"",
-                    f"    relevance_default: \"{direction['relevance_default']}\"",
                 ]
             )
     else:
@@ -206,7 +204,6 @@ def project_manifest_text(
                 "  - code: T1",
                 "    label: \"T1_方向名称\"",
                 "    display: \"方向名称\"",
-                "    relevance_default: \"待判定\"",
             ]
         )
     topic_block = "\n".join(topic_lines)

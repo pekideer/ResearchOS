@@ -251,14 +251,15 @@
 目标：在生成或更新每篇读书卡后，同步一张可筛选的大表，用于跨文献浏览、写作素材管理、评分、PRISMA 状态追踪和 Zotero 回溯。
 
 1. 读书卡文末 `## 7. 元数据（折叠）` 尽量填写 `zotero_item_key`、`generated_at`、`read_status`、`importance`、`planned_use`、`topic_relevance`、`tags`、`journal_abbrev`、`publication_tags`、`rating_5`、`evidence_strength`、`one_paragraph_review`、`prisma_record_id`、`prisma_stage` 和 `gap_ids`。
-2. 读书卡正文保留 `## 一段话综述`，用一段话压缩“背景 + 目的 + 方法 + 结论 + 意义”。
-3. 运行同步脚本，按课题 manifest 或项目登记确认读书卡来源；默认读取 `corpus/reading-cards/cards/` 中的集中主卡及项目链接，不把缺失的旧本地读书卡目录当作有效输入。
-4. 脚本生成或更新人工活动总表 `03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html`，并按课题方向生成 `03-文献矩阵/04-阅读总表/分主题阅读总表/LM-004_reading-summary-table-<code>.html`；方向优先来自 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv`，若未配置则从读书卡 `tags` 中的 `T数字_方向名` 自动发现；同时生成 Markdown 备用表，并在 `03-文献矩阵/.internal/` 生成 CSV 镜像和 `reading-summary-reminders.csv`。
-5. 如已有总表，脚本按 Zotero 条目 key、读书卡路径或题目匹配既有行；读书卡中明确填写的字段可更新总表，读书卡缺失字段不覆盖既有人工填写内容。
-6. 这张表不替代 `literature-review-matrix.csv`：它偏阅读管理和写作素材汇总；完整综述矩阵仍负责研究对象、方法、指标、solved problem、real 研究缺口 和 pseudo 研究缺口。
-7. 所有需要人工打开参阅的条目使用 `RC-###` 编号；提醒使用 `TODO-###` 编号，便于逐条处理。
-8. `Zotero引用链接` 跳转 Zotero 母条目；人工表中的文献显示标签优先用 `Author(year)`，`Zotero PDF链接` 只有在读书卡或 PRISMA records 提供 PDF 附件 key 时生成。条目 key 放在机器镜像、元数据或审计字段；若人工表确需显示 条目 key，本身也必须是可点击 `zotero://select/library/items/KEY` 链接。
-9. HTML 中“卡”按钮使用本地文件链接。
+2. `topic_relevance` 只接受用户或当前 agent 的明确判断；缺失时保持为空或待判断，汇总脚本不得根据 tags 或方向默认值自动补齐。
+3. 读书卡正文保留 `## 一段话综述`，用一段话压缩“背景 + 目的 + 方法 + 结论 + 意义”。
+4. 运行同步脚本，按课题 manifest 或项目登记确认读书卡来源；默认读取 `corpus/reading-cards/cards/` 中的集中主卡及项目链接，不把缺失的旧本地读书卡目录当作有效输入。
+5. 脚本生成或更新人工活动总表 `03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html`，并按课题方向生成 `03-文献矩阵/04-阅读总表/分主题阅读总表/LM-004_reading-summary-table-<code>.html`；方向优先来自 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv`，若未配置则从读书卡 `tags` 中的 `T数字_方向名` 自动发现；同时生成 Markdown 备用表，并在 `03-文献矩阵/.internal/` 生成 CSV 镜像和 `reading-summary-reminders.csv`。
+6. 如已有总表，脚本按 Zotero 条目 key、读书卡路径或题目匹配既有行；读书卡中明确填写的字段可更新总表，读书卡缺失字段不覆盖既有人工填写内容。
+7. 这张表不替代 `literature-review-matrix.csv`：它偏阅读管理和写作素材汇总；完整综述矩阵仍负责研究对象、方法、指标、solved problem、real 研究缺口 和 pseudo 研究缺口。
+8. 所有需要人工打开参阅的条目使用 `RC-###` 编号；提醒使用 `TODO-###` 编号，便于逐条处理。
+9. `Zotero引用链接` 跳转 Zotero 母条目；人工表中的文献显示标签优先用 `Author(year)`，`Zotero PDF链接` 只有在读书卡或 PRISMA records 提供 PDF 附件 key 时生成。条目 key 放在机器镜像、元数据或审计字段；若人工表确需显示 条目 key，本身也必须是可点击 `zotero://select/library/items/KEY` 链接。
+10. HTML 中“卡”按钮使用本地文件链接。
 
 命令入口：使用 `tools/reading_cards/sync_reading_summary_table.py`；完整参数和输出约束见 `TOOL_CONTRACTS/04-reading-cards-prisma.md`。
 
@@ -332,7 +333,7 @@
 2. 代理地址属于机器私有配置：优先继承各电脑自己的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`、`NO_PROXY`，也可写入未跟踪的 `.local/machine_config.json` 的 `proxy` 段；共享脚本、自动任务和仓库配置不得写死代理 host/port。`127.0.0.1`、`localhost`、`::1` 始终加入直连名单。
 3. 原始抽取文本写入 `corpus/fulltext/zotero-library/`，AI 规范化文本写入 `corpus/fulltext/zotero-library-normalized/`；普通抽取后只对 `needs_ocr` 队列执行受限 OCR，超页数、book/thesis 默认跳过并保留原因；缺 PDF 和抽取错误保留明确状态，不伪装为成功。
 4. 期刊词典只对 `journalArticle` 的期刊名称查询；`待查询`、`未收录`、`查询失败，待重试` 和 `不适用` 必须显式区分，禁止用裸 `?` 代替状态。
-5. 单位候选脚本只保存 `heuristic_candidate`、原始写法、规范化别名、归并实体和频次，不得把候选写成正式单位。正式单位必须进入下一步语义阶段。
+5. 流水线只记录首页文本是否可用和证据路径，初始状态为 `not_processed`；不得用正则单位候选填充读书卡字段。
 6. 运行 `semantic-packet`，从 SQLite 指向的规范化全文提取第 1–3 页并生成带 `item version + input hash` 的批次。模型按首页题录提示词亲自判断作者、作者标号、单位标号、第一作者对应的第一个一级单位和国家；首页为封面时检查后续页。
 7. 模型输出 `semantic_confirmed`、`semantic_needs_check`、`semantic_not_found` 或 `source_unavailable` 结果。先用 `semantic-apply` 默认预检，校验 item version、证据哈希、页码、原始片段和来源；通过后才用 `--write-local` 更新 SQLite 与读书卡。
 8. 现有人工/精读卡只更新受控题录、单位和元数据字段，不覆盖人工正文、annotation 生成区、项目关联或第 6 章。无卡条目先生成 `auto_initial_screening` 卡，再由模型根据题录、摘要和可用全文更新 1–5、7 章，不把摘要或片段冒充全文结论。
@@ -489,10 +490,10 @@
 3. 生成字段清单，判断哪些字段对科研、分类和治理有用。
 4. 读取文献集，建立文件夹层级路径。
 5. 读取 顶层条目，提取元信息、文献集、标签、期刊、年份、DOI 和 规范化文本 可用性。
-6. 使用 `configs/zotero_governance_rules.example.json` 或用户自定义规则匹配研究方向、研究方法、研究对象和期刊级别。
-7. 输出 `zotero_library_matrix.csv` 和可选 JSON。
-8. 基于题目、摘要、标签和期刊生成相近主题文献簇与相似文献对。
-9. 基于矩阵输出 `zotero_governance_report.md` 和可审批的 `zotero_governance_plan.json`。
+6. 使用 `prepare-corpus` 和 `build-agent-packet` 生成带条目 key、来源字段、题名、摘要和可用文本片段的语料包；代码不得调用模型 API，也不得依据关键词直接产出研究方向、方法或对象标签。
+7. 当前 ChatGPT/Codex agent 亲自读取语料包，使用 `zotero-library-governance` 完成研究语义分类、主题关系和治理建议，并输出结构化结果。
+8. `build-plan` 只校验 agent 结果的字段、命名空间和条目映射，生成只读 CSV/JSON 计划；确定性相似度只能作为召回候选，不得自动提升为主题结论或重复判定。
+9. 基于 agent 判断和校验后的矩阵输出 `zotero_governance_report.md` 和可审批的 `zotero_governance_plan.json`。
 10. 默认只生成治理建议和 计划，不写入 Zotero。
 11. 若用户明确要求写入 Zotero，必须转到 `POLICIES/ZOTERO_WRITE_POLICY.md`。
 12. 写入前必须执行试运行、人工确认、金丝雀测试、分批执行和回滚计划。
@@ -540,16 +541,16 @@
 
 能力编号：`C11`
 
-目标：发现 Zotero 中晚于 ResearchOS 父文档水位线的新顶层条目，先做元数据级分诊，再决定是否同步父文档、生成读书卡、加入项目文献集或进入 Zotero 写入审批流程。
+目标：发现 Zotero 中晚于 ResearchOS 父文档水位线的新顶层条目，准备元数据语料供当前 agent 分诊，再决定是否同步父文档、生成读书卡、加入项目文献集或进入 Zotero 写入审批流程。
 
 该工作流是父文档规则的受控例外：为了发现父文档尚未同步的新条目，可以只读访问 Zotero Local API 顶层条目元数据；不得读取 PDF、附件文件或全文缓存，不得抽取全文，不得写入 Zotero。
 
 1. 检查 ResearchOS 父文档水位线，默认读取 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中已有顶层条目的最新添加时间。
 2. 使用 `tools/zotero/zotero_new_item_monitor.py check` 只读查询 Zotero Local API 顶层条目，找出晚于水位线的新条目。
 3. 生成新增条目报告，人工版写入 `docs/reports/zotero-new-item-monitor/new-items-report.md`，机器 CSV/JSON 和状态写入低层留存区 `.researchos/outputs/machine/M-004-zotero-new-item-monitor/`。
-4. 使用 `tools/zotero/zotero_new_item_monitor.py classify` 基于题名、摘要、标签、期刊等元数据生成分类建议和 `zotero-new-item-write-plan-dry-run.json`；分类只能作为人工复核线索。
+4. 当前 ChatGPT/Codex agent 读取 `new-items-latest.jsonl` 和人工报告，结合用户目标判断研究方向、方法、对象、相关性和后续动作；监控代码不执行关键词分类，也不自动生成研究标签或文献集建议。
 5. 对需要进入父文档的新条目，使用 `sync-selected` 或 `tools/zotero/zotero_library_index.py sync` 同步元数据到父文档；如后续需要全文，仍按父文档维护流程处理 PDF 文本状态。
-6. 用 `monitor_state.jsonl` 追加记录状态，保留既有状态。建议状态包括：`detected`、`reported`、`classified_metadata_only`、`dry_run_created`、`metadata_synced`、`write_approved`、`zotero_written`、`card_created`、`assigned_to_project_collection`、`excluded`、`needs_review`。
+6. 用 `monitor_state.jsonl` 追加记录确定性运行状态，保留既有状态。建议状态包括：`detected`、`reported`、`metadata_synced`、`write_approved`、`zotero_written`、`card_created`、`assigned_to_project_collection`、`excluded`、`needs_review`；agent 语义判断进入人读报告或经审批计划，不由监控脚本伪装为机器事实。
 7. 若需要真正写入 Zotero 文献集或标签，必须转入 `POLICIES/ZOTERO_WRITE_POLICY.md` 和 `RUNBOOKS/zotero-web-api-write-canary.md`，完成试运行、人工确认、金丝雀测试、分批执行和回滚计划。
 8. 若需要生成读书卡，转入“工作流 1：从 Zotero 到单篇读书卡”；读书卡必须优先使用同步后的父文档和规范化文本，不能因为监控报告存在就直接读取 PDF。
 
@@ -560,9 +561,6 @@
 - `docs/reports/zotero-new-item-monitor/new-items-report.md`
 - `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-items-report.csv`
 - `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-items-latest.jsonl`
-- `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-item-classification-plan.csv`
-- `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-item-classification-plan.json`
-- `.researchos/outputs/machine/M-004-zotero-new-item-monitor/zotero-new-item-write-plan-dry-run.json`
 - `.researchos/outputs/machine/M-004-zotero-new-item-monitor/monitor_state.jsonl`
 
 使用的质量检查：

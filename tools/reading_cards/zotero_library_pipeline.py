@@ -39,8 +39,7 @@ from tools.reading_cards.card_common import (  # noqa: E402
     reading_card_project_links,
     yaml_scalar,
 )
-from tools.reading_cards.sync_first_author_affiliations import candidate_affiliation, set_metadata  # noqa: E402
-from tools.reading_cards.sync_journal_rankings import normalize_journal_name  # noqa: E402
+from tools.reading_cards.sync_journal_rankings import normalize_journal_name, set_metadata  # noqa: E402
 from tools.researchos_outputs import (  # noqa: E402
     CORPUS_READING_CARDS_ROOT,
     CORPUS_ZOTERO_FULLTEXT_NORMALIZED,
@@ -331,59 +330,6 @@ def canonicalize_affiliation(raw: str) -> tuple[str, str]:
     return canonical, normalized
 
 
-def plausible_affiliation(canonical: str) -> bool:
-    text = re.sub(r"\s+", " ", canonical or "").strip()
-    if not text or len(text) > 100:
-        return False
-    top_level = re.search(
-        r"(?i)(University|Institute of Technology|Academy of Sciences|Research Institute|Hospital|Laborator(?:y|ies)|Corporation|Company|Co\.?,?\s*Ltd|Inc\.|大学|学院|研究院|研究所|实验室|医院|集团|公司)",
-        text,
-    )
-    if not top_level:
-        return False
-    if re.search(r"(?i)(event-trigger|model setup|experimental chamber|temperature meas|introduction|abstract)", text):
-        return False
-    if re.match(r"(?i)^(Department|School|Faculty|College)\b", text) and not re.search(
-        r"(?i)(University|Institute of Technology|Academy|Hospital|Corporation|Company|Co\.?,?\s*Ltd)", text
-    ):
-        return False
-    return True
-
-
-def first_page_region(text: str) -> str:
-    match = re.search(r"(?s)===== Page 1 =====\s*(.*?)(?===== Page 2 =====|\Z)", text)
-    page = match.group(1) if match else text[:8000]
-    return re.split(r"(?i)\b(?:ARTICLE INFO|ABSTRACT|KEYWORDS?)\b", page, maxsplit=1)[0].strip()
-
-
-def page_one_affiliation_candidate(text: str) -> str:
-    page = first_page_region(text)
-    direct_patterns = [
-        r"(?:[A-Z][A-Za-z&'.\-]*\s+){1,5}University(?: of (?:Science and )?Technology)?",
-        r"University of [A-Z][A-Za-z&'.\-]+(?:\s+[A-Z][A-Za-z&'.\-]+){0,4}(?:,\s*[A-Z][A-Za-z&'.\-]+)?",
-        r"(?:[A-Z][A-Za-z&'.\-]*\s+){1,5}Institute of Technology",
-        r"(?:[A-Z][A-Za-z&'.\-]*\s+){1,5}(?:Corporation|Company|Co\.?,?\s*Ltd\.?)",
-    ]
-    for pattern in direct_patterns:
-        match = re.search(pattern, page)
-        if match:
-            return re.sub(r"\s+", " ", match.group(0)).strip(" ,;")
-    country = r"China|USA|United States|UK|United Kingdom|Japan|Germany|France|Italy|Denmark|Australia|Canada|Netherlands|Singapore|Switzerland|Korea|India"
-    english = re.search(
-        rf"(?i)(?:Department|School|Faculty|College|Institute|Laboratory|Centre|Center)\b.{{4,260}}?\b(?:{country})\b",
-        page,
-    )
-    if english:
-        return re.sub(r"\s+", " ", english.group(0)).strip(" ,;")
-    chinese = re.search(
-        r"[\u4e00-\u9fffA-Za-z0-9（），、()\-\s]{0,120}(?:大学|学院|研究院|研究所|实验室|医院|集团|公司)[\u4e00-\u9fffA-Za-z0-9（），、()\-\s]{0,100}",
-        page,
-    )
-    if chinese:
-        return re.sub(r"\s+", " ", chinese.group(0)).strip(" ,;；。")
-    return candidate_affiliation(page)
-
-
 def authoritative_affiliation(card: dict[str, Any] | None) -> tuple[str, str, str] | None:
     if not card:
         return None
@@ -531,7 +477,7 @@ def semantic_packet_command(args: argparse.Namespace) -> int:
     jsonl_path.write_text("\n".join(json.dumps(record, ensure_ascii=False) for record in records) + ("\n" if records else ""), encoding="utf-8")
     lines = [
         "# 第一作者单位语义识别批次", "",
-        "必须由模型或人工阅读下列首页证据；Python 候选不得作为最终依据。", "",
+        "必须由模型或人工阅读下列首页证据；代码只准备页段和来源，不判断作者—单位对应。", "",
         "结果按 `expected_result` 字段输出为 JSONL，并先运行 `semantic-apply` 预检。", "",
     ]
     for record in records:
@@ -703,20 +649,20 @@ def detect_affiliation(conn: sqlite3.Connection, item_key: str, card: dict[str, 
         return {"raw": raw, "display": canonical or raw, "normalized": normalized, "source": source, "status": status, "evidence_path": portable_path(card["path"])}
     text_status, cache_path, _error = first_text_record(conn, item_key)
     if text_status != "ok" or not cache_path:
-        return {"raw": "", "display": "", "normalized": "", "source": text_status, "status": "not_found", "evidence_path": portable_path(cache_path) if cache_path else ""}
+        return {"raw": "", "display": "", "normalized": "", "source": text_status, "status": "not_processed", "evidence_path": portable_path(cache_path) if cache_path else ""}
     path = Path(cache_path)
     if not path.is_absolute():
         path = RESEARCHOS_ROOT / path
     if not path.exists():
-        return {"raw": "", "display": "", "normalized": "", "source": "cache_missing", "status": "not_found", "evidence_path": portable_path(path)}
-    first_region = path.read_text(encoding="utf-8-sig", errors="replace")[:24000]
-    raw = page_one_affiliation_candidate(first_region).strip()
-    if not raw:
-        return {"raw": "", "display": "", "normalized": "", "source": "normalized PDF first-page region heuristic", "status": "not_found", "evidence_path": portable_path(path)}
-    canonical, normalized = canonicalize_affiliation(raw)
-    if not plausible_affiliation(canonical):
-        return {"raw": raw, "display": "", "normalized": "", "source": "normalized PDF first-page region heuristic", "status": "not_found", "evidence_path": portable_path(path)}
-    return {"raw": raw, "display": canonical or raw[:120], "normalized": normalized, "source": "normalized PDF first-page region heuristic", "status": "heuristic_candidate", "evidence_path": portable_path(path)}
+        return {"raw": "", "display": "", "normalized": "", "source": "cache_missing", "status": "not_processed", "evidence_path": portable_path(path)}
+    return {
+        "raw": "",
+        "display": "",
+        "normalized": "",
+        "source": "normalized PDF evidence available; semantic review required",
+        "status": "not_processed",
+        "evidence_path": portable_path(path),
+    }
 
 
 def canonical_id(normalized: str) -> str:
@@ -869,9 +815,6 @@ def render_card(item: sqlite3.Row, card_id: str, affiliation: dict[str, str], jo
         "first_author_affiliation_raw": affiliation["raw"] if affiliation_final else "",
         "first_author_affiliation_source": affiliation["source"] if affiliation_final else "",
         "first_author_affiliation_status": affiliation["status"],
-        "first_author_affiliation_candidate": affiliation["display"] if affiliation["status"] == "heuristic_candidate" else "",
-        "first_author_affiliation_candidate_raw": affiliation["raw"] if affiliation["status"] == "heuristic_candidate" else "",
-        "first_author_affiliation_candidate_source": affiliation["source"] if affiliation["status"] == "heuristic_candidate" else "",
         "year": str(item["year"] or ""),
         "venue": str(item["publication"] or ""),
         "publication_tags": journal_tags,
@@ -1090,7 +1033,7 @@ def process_assets(args: argparse.Namespace) -> int:
     next_number = max_card_number(existing) + 1
     lock_path: Path | None = None
     file_rollback = FileWriteRollback()
-    stats = {"selected": 0, "created": 0, "enriched": 0, "deleted_preserved": 0, "affiliation_candidates": 0, "affiliation_not_found": 0}
+    stats = {"selected": 0, "created": 0, "enriched": 0, "deleted_preserved": 0, "affiliation_pending": 0}
     try:
         if not args.dry_run:
             lock_path = acquire_writer_lock(db, 1800, args.force_lock)
@@ -1114,10 +1057,8 @@ def process_assets(args: argparse.Namespace) -> int:
                 item_key = str(item["item_key"])
                 card = existing.get(item_key)
                 affiliation = detect_affiliation(conn, item_key, card)
-                if affiliation["status"] == "heuristic_candidate":
-                    stats["affiliation_candidates"] += 1
-                if affiliation["status"] == "not_found":
-                    stats["affiliation_not_found"] += 1
+                if affiliation["status"] not in AFFILIATION_FINAL_STATUSES:
+                    stats["affiliation_pending"] += 1
                 journal_status, journal_tags = journal_record(conn, str(item["publication"] or ""), str(item["item_type"] or ""))
                 evidence = text_evidence(conn, item_key)
                 if not args.dry_run:

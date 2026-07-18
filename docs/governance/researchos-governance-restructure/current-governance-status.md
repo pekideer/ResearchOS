@@ -1,6 +1,6 @@
 # ResearchOS 当前治理状态
 
-- 更新时间：2026-07-11
+- 更新时间：2026-07-19
 - 维护方式：本文件是 ResearchOS 治理的当前状态入口。
 - 当前目标：让 `00_ResearchOS` 稳定承担 Codex 科研助理运行框架。
 
@@ -30,9 +30,9 @@
 | 低层机器留存 | 机器 CSV/JSON、试运行计划和执行记录进入 `.researchos/outputs/machine/` |
 | 外部写入证据 | 审批、执行前后、回滚和审计材料进入 `.researchos/outputs/archive/` |
 | 集中读书卡 | `corpus/reading-cards/cards/` 使用 `RC-###_ZoteroKey_短题名.md` 和简短 YAML 头部 |
-| 读书卡流水线 | `tools/reading_cards/zotero_library_pipeline.py` 统一处理全库、增量和显式 item key；单位候选必须经过语义证据包、预检、受控本地写入和严格审计 |
+| 读书卡流水线 | `tools/reading_cards/zotero_library_pipeline.py` 统一处理全库、增量和显式 item key；代码只准备首页证据，单位由当前 agent 语义判断并经过预检、受控本地写入和严格审计 |
 | 期刊等级 | `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中的 `journal_rankings` 词典表作为映射来源 |
-| Zotero governance | 用户入口为 `tools/zotero/zotero_ai_governance.py`；只读、治理和受控写入已归入同一主题目录 |
+| Zotero governance | 用户入口为 `tools/zotero/zotero_ai_governance.py`；代码只准备 agent 语料并校验结构化结果，不调用语言模型 API，不以关键词替代语义分类 |
 | Tools 结构 | 按 `zotero/`、`reading_cards/`、`project/`、`runtime/` 分组；顶层仅保留跨主题基础模块 |
 | Templates 结构 | 按 `annotations/`、`ideas/`、`literature/`、`prisma/`、`gap-to-topic/`、`writing/`、`paper-memory/`、`project-state/` 分组；模板名与实际输出名一致 |
 | 高风险写入 | 通过 `tools/zotero/write/` 和 Zotero Web API 审批流程执行 |
@@ -40,11 +40,14 @@
 | 上下文状态 | `active_project.yml` 定位，manifest 保存稳定事实，`run_state.json` 保存当前快照，`run-log.jsonl` 只追加最小历史 |
 | 根规则负担 | `AGENTS.md` 保留最高规则，`TRIGGERS.md` 使用紧凑路由表，详细边界按需读取 |
 | 首次运行 | 先做只读就绪检查；普通科研任务不要求预装 Python 或配置 Zotero |
+| OCR 安装门禁 | 默认只检查并停止；只有用户明确批准且传入 `--install` 时才安装依赖 |
+| 阅读汇总 | 只生成静态 Markdown/HTML 和普通相对链接；主题相关性缺失时保持为空，不由标签或默认值推断 |
 
 ## 3. 当前边界
 
 - 普通科研任务优先由 LLM 完成理解、总结、推理、写作、润色和审查。
 - 工具用于本地语料获取、批量结构化、PDF/OCR、Zotero 读写和外部系统桥接。
+- 批量语义任务统一使用“语料包 → 当前 ChatGPT/Codex agent 判断 → 结构化结果校验/应用”；代码不读取模型 API key，也不另建模型推理链。
 - Zotero 默认只读；写入标签、文献集、笔记或条目必须单独审批。
 - ResearchOS 根目录保存规则、能力、流程、模板、契约、策略、运行说明和共享事实源。
 - 具体科研成果写入项目工作区或 `0.Inbox/`。

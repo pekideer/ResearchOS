@@ -1,7 +1,7 @@
-"""Prepare AI-assisted Zotero library governance inputs and dry-run assets.
+"""Prepare Zotero governance evidence for the active ChatGPT/Codex agent.
 
 This tool reads ResearchOS governance assets only. It does not read zotero.sqlite, write
-to Zotero, move PDFs, or modify Zotero tags/collections.
+to Zotero, move PDFs, modify Zotero tags/collections, or call a language-model API.
 """
 
 from __future__ import annotations
@@ -9,17 +9,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
 import re
 import sqlite3
 import sys
-import uuid
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
 if str(RESEARCHOS_ROOT) not in sys.path:
@@ -48,8 +44,9 @@ DEFAULT_KEYWORDS_CSV = M002_LIBRARY_GOVERNANCE / "ai-governance-keyword-recovery
 DEFAULT_KEYWORDS_JSON = M002_LIBRARY_GOVERNANCE / "ai-governance-keyword-recovery.json"
 DEFAULT_CORPUS_JSONL = M002_LIBRARY_GOVERNANCE / "ai-governance-corpus.jsonl"
 DEFAULT_CORPUS_CSV = M002_LIBRARY_GOVERNANCE / "ai-governance-corpus-preview.csv"
-DEFAULT_BATCH_JSONL = M002_LIBRARY_GOVERNANCE / "ai-governance-openai-batch-requests.jsonl"
-DEFAULT_BATCH_RESULTS_JSONL = M002_LIBRARY_GOVERNANCE / "ai-governance-openai-batch-results.jsonl"
+DEFAULT_AGENT_PACKET_JSONL = M002_LIBRARY_GOVERNANCE / "ai-governance-agent-packet.jsonl"
+DEFAULT_AGENT_INSTRUCTIONS_MD = M002_LIBRARY_GOVERNANCE / "ai-governance-agent-instructions.md"
+DEFAULT_SEMANTIC_RESULTS_JSONL = M002_LIBRARY_GOVERNANCE / "ai-governance-semantic-results.jsonl"
 DEFAULT_CLASSIFICATION_PLAN_CSV = M002_LIBRARY_GOVERNANCE / "ai-governance-classification-plan.csv"
 DEFAULT_CLASSIFICATION_PLAN_JSON = M002_LIBRARY_GOVERNANCE / "ai-governance-classification-plan.json"
 DEFAULT_COLLECTION_PLAN_CSV = M002_LIBRARY_GOVERNANCE / "ai-governance-collection-plan.csv"
@@ -57,8 +54,6 @@ DEFAULT_COLLECTION_PLAN_JSON = M002_LIBRARY_GOVERNANCE / "ai-governance-collecti
 DEFAULT_CLASSIFICATION_REPORT = DOCS_LIBRARY_GOVERNANCE / "ai-governance-classification-plan-report.md"
 DEFAULT_REPORT = DOCS_LIBRARY_GOVERNANCE / "ai-governance-preparation-report.md"
 DEFAULT_NORMALIZED_ROOT = CORPUS_ZOTERO_FULLTEXT_NORMALIZED
-DEFAULT_API_BASE = "https://api.openai.com"
-DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 
 GOVERNANCE_PREFIXES = (
     "#Domain/",
@@ -581,8 +576,8 @@ def system_prompt() -> str:
     )
 
 
-def item_prompt(item: dict[str, Any]) -> str:
-    payload = {
+def item_evidence(item: dict[str, Any]) -> dict[str, Any]:
+    return {
         "item_key": item.get("item_key", ""),
         "item_type": item.get("item_type", ""),
         "title": item.get("title", ""),
@@ -601,17 +596,13 @@ def item_prompt(item: dict[str, Any]) -> str:
         "keywords_for_ai": item.get("keywords_for_ai", []),
         "abstract_note": item.get("abstract_note", ""),
     }
-    return (
-        "Classify this single Zotero item. Return JSON matching the schema. "
-        "Use the title, abstract, recovered keywords, and PDF first-page text as semantic evidence. "
-        "Evidence must cite only visible input fields, not external knowledge.\n\n"
-        + json.dumps(payload, ensure_ascii=False, indent=2)
-    )
 
 
-def command_build_batch_file(args: argparse.Namespace) -> int:
+def command_build_agent_packet(args: argparse.Namespace) -> int:
+    """Build bounded evidence records for the active agent without any model API call."""
     schema = classification_schema()
     output = Path(args.output_jsonl)
+    instructions = Path(args.instructions_md)
     output.parent.mkdir(parents=True, exist_ok=True)
     count = 0
     with Path(args.corpus_jsonl).open("r", encoding="utf-8") as source, output.open("w", encoding="utf-8", newline="\n") as target:
@@ -619,121 +610,50 @@ def command_build_batch_file(args: argparse.Namespace) -> int:
             if not line.strip():
                 continue
             item = json.loads(line)
-            request = {
-                "custom_id": str(item["item_key"]),
-                "method": "POST",
-                "url": "/v1/chat/completions",
-                "body": {
-                    "model": args.model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt()},
-                        {"role": "user", "content": item_prompt(item)},
-                    ],
-                    "response_format": {
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": "zotero_item_governance",
-                            "strict": True,
-                            "schema": schema,
-                        },
+            target.write(
+                json.dumps(
+                    {
+                        "item_key": str(item["item_key"]),
+                        "evidence": item_evidence(item),
                     },
-                    "temperature": 0.2,
-                },
-            }
-            target.write(json.dumps(request, ensure_ascii=False) + "\n")
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
             count += 1
             if args.limit and count >= args.limit:
                 break
-    print(json.dumps({"requests": count, "batch_jsonl": str(output), "model": args.model}, ensure_ascii=False))
+    instructions.parent.mkdir(parents=True, exist_ok=True)
+    instructions.write_text(
+        "# Zotero governance agent instructions\n\n"
+        + system_prompt()
+        + "\n\nRead each JSONL evidence record yourself. Return one plain classification JSON object per line; "
+        "do not wrap results in an API response envelope. ResearchOS code must not call a language-model API.\n\n"
+        "## Result schema\n\n```json\n"
+        + json.dumps(schema, ensure_ascii=False, indent=2)
+        + "\n```\n",
+        encoding="utf-8",
+    )
+    print(json.dumps({"items": count, "agent_packet": str(output), "instructions": str(instructions)}, ensure_ascii=False))
     return 0
 
 
-def openai_headers() -> dict[str, str]:
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set.")
-    return {"Authorization": f"Bearer {api_key}"}
-
-
-def post_json(api_base: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
-    body = json.dumps(payload).encode("utf-8")
-    headers = openai_headers()
-    headers["Content-Type"] = "application/json"
-    request = Request(api_base.rstrip("/") + path, data=body, headers=headers, method="POST")
-    with urlopen(request, timeout=60) as response:
-        return json.loads(response.read().decode("utf-8", errors="replace"))
-
-
-def upload_batch_file(api_base: str, file_path: Path) -> dict[str, Any]:
-    boundary = "----researchos-" + uuid.uuid4().hex
-    headers = openai_headers()
-    headers["Content-Type"] = f"multipart/form-data; boundary={boundary}"
-    file_bytes = file_path.read_bytes()
-    parts = [
-        f"--{boundary}\r\nContent-Disposition: form-data; name=\"purpose\"\r\n\r\nbatch\r\n".encode("utf-8"),
-        (
-            f"--{boundary}\r\n"
-            f"Content-Disposition: form-data; name=\"file\"; filename=\"{file_path.name}\"\r\n"
-            "Content-Type: application/jsonl\r\n\r\n"
-        ).encode("utf-8"),
-        file_bytes,
-        f"\r\n--{boundary}--\r\n".encode("utf-8"),
-    ]
-    request = Request(api_base.rstrip("/") + "/v1/files", data=b"".join(parts), headers=headers, method="POST")
-    with urlopen(request, timeout=120) as response:
-        return json.loads(response.read().decode("utf-8", errors="replace"))
-
-
-def command_submit_batch(args: argparse.Namespace) -> int:
-    try:
-        file_response = upload_batch_file(args.api_base, Path(args.batch_jsonl))
-        batch_response = post_json(
-            args.api_base,
-            "/v1/batches",
-            {
-                "input_file_id": file_response["id"],
-                "endpoint": "/v1/chat/completions",
-                "completion_window": args.completion_window,
-                "metadata": {"description": "ResearchOS Zotero AI governance classification"},
-            },
-        )
-    except HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        print(f"ERROR: HTTP {exc.code}: {body}")
-        return 2
-    except (RuntimeError, HTTPError, URLError) as exc:
-        print(f"ERROR: {exc}")
-        return 2
-    safe_response = {
-        "uploaded_file_id": file_response.get("id"),
-        "batch_id": batch_response.get("id"),
-        "status": batch_response.get("status"),
-        "endpoint": batch_response.get("endpoint"),
-        "input_file_id": batch_response.get("input_file_id"),
-    }
-    print(json.dumps(safe_response, ensure_ascii=False, indent=2))
-    if args.output_json:
-        write_json(Path(args.output_json), {**safe_response, "created_at": utc_now()})
-    return 0
-
-
-def parse_batch_result_line(line: str) -> tuple[str, dict[str, Any] | None, str]:
+def parse_agent_result_line(line: str) -> tuple[str, dict[str, Any] | None, str]:
     payload = json.loads(line)
-    item_key = str(payload.get("custom_id") or "")
-    response = payload.get("response") or {}
-    if response.get("status_code") != 200:
-        return item_key, None, f"status_code={response.get('status_code')}"
-    body = response.get("body") or {}
-    choices = body.get("choices") or []
-    if not choices:
-        return item_key, None, "missing choices"
-    content = ((choices[0].get("message") or {}).get("content") or "").strip()
-    if not content:
-        return item_key, None, "missing content"
-    try:
-        return item_key, json.loads(content), ""
-    except json.JSONDecodeError as exc:
-        return item_key, None, f"invalid classification json: {exc}"
+    if not isinstance(payload, dict):
+        return "", None, "result must be a JSON object"
+    if "response" in payload or "custom_id" in payload:
+        return str(payload.get("custom_id") or ""), None, "legacy model API response envelopes are not accepted"
+    classification = payload.get("classification", payload)
+    if not isinstance(classification, dict):
+        return str(payload.get("item_key") or ""), None, "classification must be a JSON object"
+    item_key = str(classification.get("item_key") or payload.get("item_key") or "").strip().upper()
+    missing = [field for field in classification_schema()["required"] if field not in classification]
+    if not item_key:
+        missing.insert(0, "item_key")
+    if missing:
+        return item_key, None, "missing required fields: " + ", ".join(dict.fromkeys(missing))
+    return item_key, classification, ""
 
 
 def normalize_tag_list(values: Any, prefix: str, max_items: int = 8) -> list[str]:
@@ -777,10 +697,10 @@ def command_build_plan(args: argparse.Namespace) -> int:
     collection_counter: Counter[tuple[str, str, str]] = Counter()
     collection_confidence: dict[tuple[str, str, str], list[float]] = {}
 
-    for raw_line in Path(args.batch_results_jsonl).read_text(encoding="utf-8").splitlines():
+    for raw_line in Path(args.results_jsonl).read_text(encoding="utf-8").splitlines():
         if not raw_line.strip():
             continue
-        item_key, classification, error = parse_batch_result_line(raw_line)
+        item_key, classification, error = parse_agent_result_line(raw_line)
         if error or classification is None:
             errors.append({"item_key": item_key, "error": error})
             continue
@@ -853,7 +773,7 @@ def command_build_plan(args: argparse.Namespace) -> int:
         Path(args.output_json),
         {
             "generated_at": utc_now(),
-            "source_batch_results": str(args.batch_results_jsonl),
+            "source_agent_results": str(args.results_jsonl),
             "items": item_rows,
             "errors": errors,
         },
@@ -862,7 +782,7 @@ def command_build_plan(args: argparse.Namespace) -> int:
         Path(args.collection_json),
         {
             "generated_at": utc_now(),
-            "source_batch_results": str(args.batch_results_jsonl),
+            "source_agent_results": str(args.results_jsonl),
             "collections": collection_rows,
         },
     )
@@ -922,24 +842,6 @@ def write_classification_report(path: Path, stats: dict[str, Any]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def command_aggregate_directions(args: argparse.Namespace) -> int:
-    from tools.zotero.governance import aggregate_research_directions
-
-    return aggregate_research_directions.command_aggregate(args)
-
-
-def command_build_collection_plan(args: argparse.Namespace) -> int:
-    from tools.zotero.governance import build_collection_restructure_plan
-
-    return build_collection_restructure_plan.command_build(args)
-
-
-def command_build_tag_plan(args: argparse.Namespace) -> int:
-    from tools.zotero.governance import build_tag_aggregation_plan
-
-    return build_tag_aggregation_plan.command_build(args)
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -950,7 +852,7 @@ def build_parser() -> argparse.ArgumentParser:
     recover.add_argument("--output-json", default=str(DEFAULT_KEYWORDS_JSON))
     recover.set_defaults(func=command_recover_keywords)
 
-    corpus = subparsers.add_parser("prepare-corpus", help="Build AI input corpus from read-only ResearchOS SQLite index.")
+    corpus = subparsers.add_parser("prepare-corpus", help="Build an agent evidence corpus from the read-only ResearchOS SQLite index.")
     corpus.add_argument("--db", default=str(DEFAULT_DB))
     corpus.add_argument("--normalized-root", default=str(DEFAULT_NORMALIZED_ROOT))
     corpus.add_argument("--max-first-page-chars", type=int, default=4000)
@@ -960,70 +862,21 @@ def build_parser() -> argparse.ArgumentParser:
     corpus.add_argument("--report", default=str(DEFAULT_REPORT))
     corpus.set_defaults(func=command_prepare_corpus)
 
-    batch = subparsers.add_parser("build-batch-file", help="Build OpenAI Batch API JSONL requests without uploading.")
-    batch.add_argument("--corpus-jsonl", default=str(DEFAULT_CORPUS_JSONL))
-    batch.add_argument("--output-jsonl", default=str(DEFAULT_BATCH_JSONL))
-    batch.add_argument("--model", default=DEFAULT_MODEL)
-    batch.add_argument("--limit", type=int, default=None, help="Optional request limit for testing.")
-    batch.set_defaults(func=command_build_batch_file)
+    packet = subparsers.add_parser("build-agent-packet", help="Build bounded JSONL evidence for the active ChatGPT/Codex agent.")
+    packet.add_argument("--corpus-jsonl", default=str(DEFAULT_CORPUS_JSONL))
+    packet.add_argument("--output-jsonl", default=str(DEFAULT_AGENT_PACKET_JSONL))
+    packet.add_argument("--instructions-md", default=str(DEFAULT_AGENT_INSTRUCTIONS_MD))
+    packet.add_argument("--limit", type=int, default=None, help="Optional item limit for review batches.")
+    packet.set_defaults(func=command_build_agent_packet)
 
-    submit = subparsers.add_parser("submit-batch", help="Upload a prepared JSONL file and create an OpenAI batch.")
-    submit.add_argument("--batch-jsonl", default=str(DEFAULT_BATCH_JSONL))
-    submit.add_argument("--api-base", default=os.environ.get("OPENAI_API_BASE", DEFAULT_API_BASE))
-    submit.add_argument("--completion-window", default="24h")
-    submit.add_argument("--output-json", default=str(M002_LIBRARY_GOVERNANCE / "ai-governance-openai-batch-submission.json"))
-    submit.set_defaults(func=command_submit_batch)
-
-    plan = subparsers.add_parser("build-plan", help="Build read-only tag/collection plan from OpenAI Batch results.")
-    plan.add_argument("--batch-results-jsonl", default=str(DEFAULT_BATCH_RESULTS_JSONL))
+    plan = subparsers.add_parser("build-plan", help="Validate agent classifications and build a read-only tag/collection plan.")
+    plan.add_argument("--results-jsonl", "--batch-results-jsonl", dest="results_jsonl", default=str(DEFAULT_SEMANTIC_RESULTS_JSONL))
     plan.add_argument("--output-csv", default=str(DEFAULT_CLASSIFICATION_PLAN_CSV))
     plan.add_argument("--output-json", default=str(DEFAULT_CLASSIFICATION_PLAN_JSON))
     plan.add_argument("--collection-csv", default=str(DEFAULT_COLLECTION_PLAN_CSV))
     plan.add_argument("--collection-json", default=str(DEFAULT_COLLECTION_PLAN_JSON))
     plan.add_argument("--report", default=str(DEFAULT_CLASSIFICATION_REPORT))
     plan.set_defaults(func=command_build_plan)
-
-    from tools.zotero.governance import aggregate_research_directions
-    from tools.zotero.governance import build_collection_restructure_plan
-    from tools.zotero.governance import build_tag_aggregation_plan
-
-    directions = subparsers.add_parser(
-        "aggregate-directions",
-        help="Aggregate item-level governance labels into candidate research directions.",
-    )
-    directions.add_argument("--plan-md", default=str(aggregate_research_directions.DEFAULT_PLAN_MD))
-    directions.add_argument("--corpus-jsonl", default=str(aggregate_research_directions.DEFAULT_CORPUS_JSONL))
-    directions.add_argument("--item-matrix", default=str(aggregate_research_directions.DEFAULT_ITEM_MATRIX))
-    directions.add_argument("--cluster-csv", default=str(aggregate_research_directions.DEFAULT_CLUSTER_CSV))
-    directions.add_argument("--cooccurrence-csv", default=str(aggregate_research_directions.DEFAULT_COOCCURRENCE_CSV))
-    directions.add_argument("--summary-json", default=str(aggregate_research_directions.DEFAULT_SUMMARY_JSON))
-    directions.add_argument("--report-md", default=str(aggregate_research_directions.DEFAULT_REPORT_MD))
-    directions.set_defaults(func=command_aggregate_directions)
-
-    collection_plan = subparsers.add_parser(
-        "build-collection-plan",
-        help="Build a read-only Zotero collection restructure plan from direction matrices.",
-    )
-    collection_plan.add_argument("--item-matrix", default=str(build_collection_restructure_plan.DEFAULT_ITEM_MATRIX))
-    collection_plan.add_argument("--cluster-csv", default=str(build_collection_restructure_plan.DEFAULT_CLUSTER_CSV))
-    collection_plan.add_argument("--assignment-csv", default=str(build_collection_restructure_plan.DEFAULT_ASSIGNMENT_CSV))
-    collection_plan.add_argument("--hierarchy-json", default=str(build_collection_restructure_plan.DEFAULT_HIERARCHY_JSON))
-    collection_plan.add_argument("--report-md", default=str(build_collection_restructure_plan.DEFAULT_REPORT_MD))
-    collection_plan.set_defaults(func=command_build_collection_plan)
-
-    tag_plan = subparsers.add_parser(
-        "build-tag-plan",
-        help="Build a compact read-only tag aggregation plan from direction and collection plans.",
-    )
-    tag_plan.add_argument("--item-matrix", default=str(build_tag_aggregation_plan.DEFAULT_ITEM_MATRIX))
-    tag_plan.add_argument("--collection-assignments", default=str(build_tag_aggregation_plan.DEFAULT_COLLECTION_ASSIGNMENTS))
-    tag_plan.add_argument("--alias-map", default=str(build_tag_aggregation_plan.DEFAULT_ALIAS_MAP))
-    tag_plan.add_argument("--item-tag-plan", default=str(build_tag_aggregation_plan.DEFAULT_ITEM_TAG_PLAN))
-    tag_plan.add_argument("--taxonomy-json", default=str(build_tag_aggregation_plan.DEFAULT_TAXONOMY_JSON))
-    tag_plan.add_argument("--peripheral-tags", default=str(build_tag_aggregation_plan.DEFAULT_PERIPHERAL_TAGS))
-    tag_plan.add_argument("--parameter-tags", default=str(build_tag_aggregation_plan.DEFAULT_PARAMETER_TAGS))
-    tag_plan.add_argument("--report-md", default=str(build_tag_aggregation_plan.DEFAULT_REPORT_MD))
-    tag_plan.set_defaults(func=command_build_tag_plan)
 
     return parser
 

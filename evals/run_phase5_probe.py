@@ -153,9 +153,6 @@ def run_probe(project: Path) -> dict[str, str]:
             "--dry-run",
         ]
     )
-    outputs["first_author"] = run_command(
-        ["tools/reading_cards/sync_first_author_affiliations.py", "--project-root", str(project), "--dry-run"]
-    )
     return outputs
 
 
@@ -175,8 +172,6 @@ def verify_probe(project: Path, outputs: dict[str, str]) -> None:
     require("zotero://select/library/items/ABCD1234" in summary_text, "summary output missing clickable Zotero item link")
     require("api_requests: 0" in outputs["journal_rankings"], "journal ranking dry-run unexpectedly requested API")
     require("ranking_table_hits: 1" in outputs["journal_rankings"], "journal ranking dry-run missed local table")
-    require("fulltext_cache_hits: 1" in outputs["first_author"], "first-author dry-run missed fulltext cache")
-    require("pdf_reads: 0" in outputs["first_author"], "first-author dry-run read PDF unexpectedly")
 
 
 def main() -> int:

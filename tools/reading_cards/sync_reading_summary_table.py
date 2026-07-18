@@ -17,8 +17,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from card_common import html_badges as journal_ranking_badges
-from card_common import metadata_heading_pattern, parse_metadata as parse_machine_metadata
+try:
+    from .card_common import html_badges as journal_ranking_badges
+    from .card_common import metadata_heading_pattern, parse_metadata as parse_machine_metadata
+except ImportError:  # Direct script execution keeps the script directory on sys.path.
+    from card_common import html_badges as journal_ranking_badges
+    from card_common import metadata_heading_pattern, parse_metadata as parse_machine_metadata
 
 
 FIELDS = [
@@ -198,12 +202,10 @@ def normalize_topic_direction(entry: dict[str, str], fallback_index: int) -> dic
     else:
         tag = label
     display = clean_config_value(entry.get("display", "")) or (tag.split("_", 1)[1] if "_" in tag else tag)
-    relevance_default = clean_config_value(entry.get("relevance_default", "")) or clean_config_value(entry.get("relevance", ""))
     return {
         "code": code,
         "label": tag,
         "display": display,
-        "relevance_default": relevance_default,
     }
 
 
@@ -289,19 +291,10 @@ def load_topic_directions(project_root: Path | None, config_path: Path | None = 
     return list(DEFAULT_TOPIC_DIRECTIONS)
 
 
-def infer_topic_relevance(tags: str, topic_directions: list[dict[str, str]]) -> str:
-    values = split_values(tags)
-    text = "; ".join(values)
-    for direction in topic_directions:
-        if direction["label"] in text or direction["code"] in values:
-            return direction.get("relevance_default", "")
-    return ""
-
-
-def normalize_relevance_degree(value: str, tags: str, topic_directions: list[dict[str, str]]) -> str:
+def normalize_relevance_degree(value: str) -> str:
     text = normalize(value)
     if not is_known(text):
-        return infer_topic_relevance(tags, topic_directions)
+        return ""
     if "直接相关" in text:
         return "直接相关"
     if "支撑相关" in text:
@@ -320,7 +313,7 @@ def topic_directions_for_row(row: dict[str, str], topic_directions: list[dict[st
     matches = [direction for direction in topic_directions if direction["label"] in text or direction["code"] in tag_values]
     if matches:
         return matches
-    return [{"code": "UNCLASSIFIED", "label": "未分类", "display": "未分类", "relevance_default": ""}]
+    return [{"code": "UNCLASSIFIED", "label": "未分类", "display": "未分类"}]
 
 
 def topic_table_path(html_output: Path, code: str) -> Path:
@@ -500,9 +493,7 @@ def parse_card(
         frontmatter.get("project_relevance"),
         frontmatter.get("relevance"),
     )
-    if not topic_relevance:
-        topic_relevance = infer_topic_relevance(tags, topic_directions)
-    topic_relevance = normalize_relevance_degree(topic_relevance, tags, topic_directions)
+    topic_relevance = normalize_relevance_degree(topic_relevance)
 
     row = {
         "人工参阅编号": first_known(frontmatter.get("manual_ref_id"), frontmatter.get("reading_ref_id")),
@@ -582,21 +573,7 @@ def html_escape(value: Any) -> str:
 def html_link(label: str, url: str) -> str:
     if not is_known(url):
         return ""
-    if url.startswith("zotero://"):
-        return (
-            f'<a href="{html_escape(url)}" '
-            f'onclick="researchosOpenZotero(event, this); return false;">{html_escape(label)}</a>'
-        )
     return f'<a href="{html_escape(url)}">{html_escape(label)}</a>'
-
-
-def local_open_anchor(label: str, url: str) -> str:
-    if not is_known(url):
-        return ""
-    return (
-        f'<a href="{html_escape(url)}" title="打开读书卡" '
-        f'onclick="researchosOpenCard(event, this); return false;">{html_escape(label)}</a>'
-    )
 
 
 def display_width(value: Any) -> int:
@@ -844,7 +821,7 @@ def write_html(
         "<body>",
         f"<h1>{html_escape(project_title)}</h1>",
         *topic_nav_html(path, topic_direction, topic_directions or []),
-        f'<p class="meta">课题方向：<strong>{html_escape(topic_direction)}</strong>。人工操作表，生成时间：{html_escape(generated)}。评分和 PRISMA 字段从读书卡或可选 PRISMA CSV 同步；点击 Zotero 条目或 Zotero PDF 需要本机已安装 Zotero，并注册 <code>zotero://</code> 协议。若需用默认程序打开读书卡，请通过 ResearchOS 本机 HTML 打开器或项目启动脚本打开本页。</p>',
+        f'<p class="meta">课题方向：<strong>{html_escape(topic_direction)}</strong>。人工操作表，生成时间：{html_escape(generated)}。评分和 PRISMA 字段从读书卡或可选 PRISMA CSV 同步；读书卡使用普通相对链接，Zotero 条目和 PDF 需要本机已安装 Zotero并注册 <code>zotero://</code> 协议。</p>',
         '<div class="table-scrollbar hidden" aria-hidden="true"><div class="table-scrollbar-inner"></div></div>',
         '<div class="table-shell">',
         "<table>",
@@ -867,7 +844,7 @@ def write_html(
             "年份": row.get("年份", ""),
             "一段话综述": row.get("一段话综述", ""),
             "与主题相关性": row.get("与主题相关性", ""),
-            "读书卡": local_open_anchor("卡", card_link),
+            "读书卡": html_link("卡", card_link),
             "Zotero 条目": html_link(row.get("Zotero Item Key", ""), row.get("Zotero引用链接", "")),
             "Zotero PDF": html_link("PDF", row.get("Zotero PDF链接", "")),
             "期刊缩写": row.get("期刊缩写", ""),
@@ -893,26 +870,6 @@ def write_html(
             "</div>",
             "<script>",
             "(() => {",
-            "  window.researchosOpenZotero = async (event, anchor) => {",
-            "    event.preventDefault();",
-            "    const href = anchor.getAttribute('href') || '';",
-            "    try {",
-            "      const response = await fetch('/__researchos_open/zotero?uri=' + encodeURIComponent(href), { method: 'POST' });",
-            "      if (response.ok) return false;",
-            "    } catch (_error) {}",
-            "    window.location.href = href;",
-            "    return false;",
-            "  };",
-            "  window.researchosOpenCard = async (event, anchor) => {",
-            "    event.preventDefault();",
-            "    const href = anchor.getAttribute('href') || '';",
-            "    try {",
-            "      const response = await fetch('/__researchos_open/card?path=' + encodeURIComponent(href), { method: 'POST' });",
-            "      if (response.ok) return false;",
-            "    } catch (_error) {}",
-            "    window.location.href = href;",
-            "    return false;",
-            "  };",
             "  const table = document.querySelector('table');",
             "  const tableShell = document.querySelector('.table-shell');",
             "  const topScrollbar = document.querySelector('.table-scrollbar');",
@@ -1039,7 +996,7 @@ def write_topic_html_tables(
         row
         for row in rows
         if topic_directions_for_row(row, topic_directions)
-        == [{"code": "UNCLASSIFIED", "label": "未分类", "display": "未分类", "relevance_default": ""}]
+        == [{"code": "UNCLASSIFIED", "label": "未分类", "display": "未分类"}]
     ]
     if unclassified_rows:
         path = topic_table_path(html_output, "UNCLASSIFIED")

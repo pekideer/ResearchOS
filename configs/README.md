@@ -12,7 +12,7 @@
 
 跨设备约束：同步盘、项目成果、阅读矩阵、读书卡索引、报告和交接文档不得写入真实本机绝对路径；只能使用项目相对路径、`{PROJECT_ROOT}/...`、`{RESEARCHOS_ROOT}/...` 或 `root_key + project_relative_path`。真实绝对路径仅允许出现在用户主目录机器配置、环境变量或被忽略的 `.local/` 中。
 | `easyscholar_api.example.yml` | EasyScholar provider 配置样例 | 保留，不包含真实 API key |
-| `zotero_governance_rules.example.json` | Zotero 文献治理规则样例 | 保留，被工作流和工具契约引用 |
+| `zotero_governance_rules.example.json` | Zotero 治理 taxonomy/偏好样例 | 保留，仅供当前 agent 判断时参考；代码不得执行关键词分类 |
 
 ## 真实配置位置
 

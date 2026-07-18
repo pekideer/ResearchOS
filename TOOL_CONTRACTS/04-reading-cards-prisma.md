@@ -4,7 +4,6 @@
 
 - `configure_easyscholar_api.ps1`
 - `sync_journal_rankings.py`
-- `sync_first_author_affiliations.py`
 - `build_affiliation_semantic_packet.py`
 - `build_prisma_status_outputs.py`
 - `sync_reading_summary_table.py`
@@ -54,6 +53,6 @@
 
 - 读书卡汇总表使用 `sync_reading_summary_table.py`。
 - 期刊等级同步使用 `sync_journal_rankings.py`。
-- 第一作者单位证据准备使用 `build_affiliation_semantic_packet.py`。
+- 第一作者单位证据准备使用 `build_affiliation_semantic_packet.py` 或 `zotero_library_pipeline.py semantic-packet`；代码只截取证据，不再用独立正则工具把单位候选写入读书卡。
 - 全库、新增或指定条目的首页证据准备优先使用 `zotero_library_pipeline.py semantic-packet`；语义结果必须先经 `semantic-apply` 默认预检，再用 `--write-local` 写入本地 SQLite 和集中读书卡。
 - `heuristic_candidate`、`existing_card_candidate`、旧 `not_found` 和 `not_processed` 不得作为确定单位显示，也不得通过 Zotero 读书卡发布预检。

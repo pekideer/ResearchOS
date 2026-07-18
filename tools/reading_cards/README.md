@@ -24,7 +24,7 @@ EasyScholar 首次接入可先执行不触碰读书卡的三期刊金丝雀：
 python tools/reading_cards/sync_journal_rankings.py --include-library-items --library-limit 3 --dictionary-only
 ```
 
-它编排父文档同步、PDF 文本规范化、期刊词典、单位候选/别名频次、模型/人工
-首页语义结果和集中初筛读书卡。机械候选不进入正式单位字段；语义结果需通过
+它编排父文档同步、PDF 文本规范化、期刊词典、首页单位证据包、模型/人工
+语义结果和集中初筛读书卡。代码不推断作者—单位对应；语义结果需通过
 item version、证据哈希、页码和来源校验。自动卡不生成项目借鉴章，不覆盖既有
 人工卡正文，也不写入 Zotero。

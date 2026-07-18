@@ -24,6 +24,8 @@
 | ResearchOS 自检 | 规则审计、契约审计、命名治理、输出边界、治理仪表盘 | 默认只读；代码适配需先汇报必要性 |
 | 高风险写入 | Zotero 写入、批量移动/删除/改名、项目结构改写 | 只在用户审批后运行，不作为普通科研能力自动触发 |
 
+所有工具角色共同遵守 LLM-first 边界：ResearchOS 代码不得直接调用通用语言模型 API，也不得用关键词、评分或规则分类替代当前 ChatGPT/Codex agent 的研究语义判断。批量语义处理只允许生成语料包和校验/应用 agent 结构化结果。
+
 ## 3. 工具映射
 
 | 工具 | 契约文件 |
@@ -45,7 +47,6 @@
 | `tools/zotero/write/README.md` | `03-zotero-web-api-write.md` |
 | `tools/reading_cards/configure_easyscholar_api.ps1` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/sync_journal_rankings.py` | `04-reading-cards-prisma.md` |
-| `tools/reading_cards/sync_first_author_affiliations.py` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/build_affiliation_semantic_packet.py` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/build_prisma_status_outputs.py` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/sync_reading_summary_table.py` | `04-reading-cards-prisma.md` |
@@ -59,12 +60,11 @@
 | `tools/project/create_project_workspace.py` | `05-project-workspace.md` |
 | `tools/researchos_outputs.py` | `06-researchos-governance.md` |
 | `tools/runtime/build_local_python_env.ps1` | `07-runtime-ocr-local-env.md` |
-| `tools/runtime/serve_portable_html.py` | `07-runtime-ocr-local-env.md` |
 
 ## 4. 当前治理要求
 
 - `tools/zotero/write/` 中的工具只能通过审批流程触发，并继续按高风险工具管理。
-- `zotero_ai_governance.py` 是 Zotero 文献库治理的主入口；方向聚合、标签计划和文献集计划由该入口调用内部模块。
+- `zotero_ai_governance.py` 是 Zotero 文献库治理的主入口；它只准备 agent 语料并校验 agent 结果，不再调用代码内方向评分、关键词标签归并或文献集语义规划模块。
 - 自动审计如需启用，应以当前 `docs/`、`corpus/`、`tools/zotero/write/` 和活跃工具清单为基准。
 - 新工具先判断是否真的需要代码；已批准的新工具必须登记到本索引和对应专题文件。
 - 工具契约变更后，应同步检查 `WORKFLOWS.md`、`TRIGGERS.md`、`QUALITY_GATES.md` 和相关 `RUNBOOKS/`。
