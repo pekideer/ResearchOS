@@ -17,7 +17,8 @@ authors: "作者显示名；多作者用 ; 分隔"
 first_author_affiliation: "一级单位, 国家"
 first_author_affiliation_raw: "PDF 中支持该判断的原始单位片段"
 first_author_affiliation_source: "PDF 第 1 页 作者区 语义抽取"
-first_author_affiliation_status: "ok|needs_check|not_found"
+first_author_affiliation_status: "semantic_confirmed|semantic_needs_check|semantic_not_found|source_unavailable"
+pages_checked: [1, 2]
 ```
 
 ## 作者规范
@@ -25,7 +26,7 @@ first_author_affiliation_status: "ok|needs_check|not_found"
 - 中文作者写成“姓+名”，中间不加空格，例如 `张三`、`欧阳明`。
 - 中文作者之间用 `; ` 分隔，不使用英文逗号拆开姓名。
 - 英文或拼音作者不翻译，尽量保留 PDF 或 Zotero 题录中的显示顺序。
-- 不确定姓名边界时保留原文，并把 `first_author_affiliation_status` 标为 `needs_check`。
+- 不确定姓名边界时保留原文，并把 `first_author_affiliation_status` 标为 `semantic_needs_check`。
 
 ## 单位规范
 
@@ -37,11 +38,12 @@ first_author_affiliation_status: "ok|needs_check|not_found"
 - 如果首页/前两页没有足够信息，写：
   - `first_author_affiliation: "需要核查"`
   - `first_author_affiliation_raw: "?"`
-  - `first_author_affiliation_status: "not_found"`
+  - `first_author_affiliation_status: "semantic_not_found"`
 
 ## 边界
 
 - 不得凭机构常识补全未出现的国家或单位。
 - 不得使用本地启发式抽取结果作为最终依据；它只能作为待核查线索。
+- 必须记录实际检查的页码；缺 PDF、OCR 未完成或抽取错误时使用 `source_unavailable`，不得写成已经检查正文后的 `semantic_not_found`。
 - 如果 Zotero 题录作者与 PDF 首页作者冲突，优先保留 PDF 首页作者区，并在读书卡“需要核查”中说明。
 - 输出写入读书卡顶部“作者/单位”信息和文末 `## 7. 元数据（折叠）`，不得写入 YAML 头部。

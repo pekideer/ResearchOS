@@ -51,6 +51,7 @@
 | `tools/reading_cards/sync_reading_summary_table.py` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/sync_zotero_metadata_to_cards.py` | `04-reading-cards-prisma.md` |
 | `tools/reading_cards/card_common.py` | `04-reading-cards-prisma.md` |
+| `tools/reading_cards/zotero_library_pipeline.py` | `04-reading-cards-prisma.md` |
 | `tools/zotero/zotero_annotation_sync.py` | `08-zotero-reading-card-annotation-sync.md` |
 | `tools/reading_cards/sync_zotero_annotations_to_cards.py` | `08-zotero-reading-card-annotation-sync.md` |
 | `tools/zotero/write/publish_reading_card_note.py` | `08-zotero-reading-card-annotation-sync.md`、`03-zotero-web-api-write.md` |

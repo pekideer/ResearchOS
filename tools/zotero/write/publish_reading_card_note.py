@@ -25,7 +25,12 @@ RESEARCHOS_ROOT = Path(__file__).resolve().parents[3]
 if str(RESEARCHOS_ROOT) not in sys.path:
     sys.path.insert(0, str(RESEARCHOS_ROOT))
 
-from tools.reading_cards.card_common import content_sha256, reading_card_identity
+from tools.reading_cards.card_common import (
+    affiliation_publish_blockers,
+    content_sha256,
+    parse_metadata,
+    reading_card_identity,
+)
 from tools.researchos_outputs import (
     A003_READING_CARD_NOTE_PUBLISH,
     CORPUS_READING_CARDS_ROOT,
@@ -362,7 +367,7 @@ def build_plan(
     children = fetch_paged(config, f"items/{item_key}/children", opener)
     matches = existing_generated_notes(children, card_id)
     mapping = mapped_note_state(db_path, card_id)
-    blockers: list[str] = []
+    blockers = affiliation_publish_blockers(parse_metadata(body))
     action = "create"
     existing_note: dict[str, Any] | None = None
     if len(matches) > 1:
@@ -390,6 +395,8 @@ def build_plan(
             action = "blocked"
         else:
             action = "update"
+    if blockers:
+        action = "blocked"
     relative_card = str(card_path.relative_to(root)).replace("\\", "/") if card_path.is_relative_to(root) else card_path.name
     plan = {
         "schema_version": 1,
@@ -650,6 +657,9 @@ def write_command(args: argparse.Namespace) -> int:
         "Reading card",
     )
     card_body = card_path.read_text(encoding="utf-8-sig")
+    evidence_blockers = affiliation_publish_blockers(parse_metadata(card_body))
+    if evidence_blockers:
+        raise SystemExit("Reading card affiliation evidence is not publishable: " + ", ".join(evidence_blockers))
     note_html = markdown_to_zotero_html(card_body, plan["card_id"])
     if content_sha256(card_body) != plan["source_hash"] or sha256_text(note_html) != plan["note_html_hash"]:
         raise SystemExit("Reading card changed after dry-run; generate a new plan")

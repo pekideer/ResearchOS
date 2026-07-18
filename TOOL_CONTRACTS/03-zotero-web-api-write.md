@@ -43,6 +43,7 @@
 - 不写入 annotation，不覆盖人工修改过的生成笔记，不自动删除冲突笔记。
 - 不把 API key、完整代理地址、代理账号密码写入文件、日志或报告。
 - 不接受脱离原预检目录、provenance 不匹配或越出集中读书卡目录的 note 批准计划。
+- 不发布单位仍为 `heuristic_candidate`、`existing_card_candidate`、旧 `not_found`、`not_processed`，或“已确认”但缺少原始片段和 PDF 页码来源的读书卡。
 - 不在失败状态下继续扩大写入批次。
 
 ## 6. 代理和密钥
@@ -52,7 +53,11 @@
 1. `ZOTERO_HTTPS_PROXY`
 2. `HTTPS_PROXY`
 3. `HTTP_PROXY`
-4. 当前系统代理设置
+4. `ALL_PROXY`
+5. 未跟踪的 `.local/machine_config.json`
+6. 当前系统代理设置
+
+Zotero Web API 没有可用代理时必须停止，不得自动回退直连；Zotero Local API 始终绕过代理。
 
 审计中最多记录“使用了代理”和脱敏后的主机/端口。不得记录完整代理 URL、账号、密码或 API key。
 

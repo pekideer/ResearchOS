@@ -12,6 +12,21 @@ from typing import Any
 
 MISSING = {"", "?", "[]", "null", "none", "未填写"}
 METADATA_HEADINGS = ("元数据（折叠）", "机器元数据（折叠）")
+AFFILIATION_FINAL_STATUSES = {
+    "semantic_confirmed",
+    "manual_confirmed",
+    "semantic_needs_check",
+    "semantic_not_found",
+    "source_unavailable",
+}
+AFFILIATION_PENDING_STATUSES = {
+    "",
+    "not_processed",
+    "heuristic_candidate",
+    "existing_card_candidate",
+    "not_found",
+    "authoritative_card",
+}
 
 RANK_ORDER = [
     "sciif",
@@ -88,6 +103,41 @@ CATEGORY_PATTERNS = [
 def known(value: Any) -> bool:
     text = str(value or "").strip().strip("'\"")
     return text.lower() not in MISSING
+
+
+def normalized_affiliation_status(metadata: dict[str, Any]) -> str:
+    """Normalize only legacy statuses whose semantic provenance is explicit."""
+    status = str(metadata.get("first_author_affiliation_status") or "").strip().lower()
+    if status not in {"ok", "confirmed"}:
+        return status
+    source = str(metadata.get("first_author_affiliation_source") or "")
+    raw = metadata.get("first_author_affiliation_raw")
+    if known(raw) and re.search(r"(?i)(semantic|语义)", source) and re.search(r"(?i)(page|页)", source):
+        return "semantic_confirmed"
+    return status
+
+
+def affiliation_publish_blockers(metadata: dict[str, Any]) -> list[str]:
+    """Return evidence blockers that must stop a Zotero reading-card publish."""
+    status = normalized_affiliation_status(metadata)
+    value = metadata.get("first_author_affiliation")
+    raw = metadata.get("first_author_affiliation_raw")
+    source = str(metadata.get("first_author_affiliation_source") or "").strip()
+    if status in AFFILIATION_PENDING_STATUSES:
+        return [f"affiliation_semantic_review_incomplete:{status or 'missing'}"]
+    if status not in AFFILIATION_FINAL_STATUSES:
+        return [f"affiliation_status_unsupported:{status or 'missing'}"]
+    blockers: list[str] = []
+    if status in {"semantic_confirmed", "manual_confirmed"} and not known(value):
+        blockers.append("affiliation_confirmed_without_value")
+    if status == "semantic_confirmed":
+        if not known(raw):
+            blockers.append("affiliation_semantic_confirmed_without_raw_evidence")
+        if not source or not re.search(r"(?i)(page|页)", source):
+            blockers.append("affiliation_semantic_confirmed_without_page_source")
+    if status in {"semantic_needs_check", "semantic_not_found", "source_unavailable"} and not source:
+        blockers.append("affiliation_nonconfirmed_without_reason_or_source")
+    return blockers
 
 
 def yaml_scalar(value: Any) -> str:

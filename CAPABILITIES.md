@@ -32,7 +32,7 @@ QUALITY_GATES.md 使用 C01-C12 组织验收
 | C03 | 人工批注收件箱 | `TRIGGERS.md` 人工批注收件箱 | `WORKFLOWS.md` 工作流 0X | 人工批注检查 |
 | C04 | 点子捕获与研究潜力评估 | `TRIGGERS.md` 点子捕获与研究潜力评估 | `WORKFLOWS.md` 工作流 0 | 点子潜力检查 |
 | C05 | Zotero 文献读取与父文档维护 | `TRIGGERS.md` Zotero 检索与读取 | `WORKFLOWS.md` 工作流 1 | 来源检查、Zotero 父文档检查 |
-| C06 | 单篇论文精读与读书卡 | `TRIGGERS.md` 单篇论文精读、Zotero 读书卡与标注闭环 | `WORKFLOWS.md` 工作流 1、1A、1B | 证据检查、来源检查、Zotero 读书卡标注闭环检查、输出检查 |
+| C06 | 论文阅读与读书卡 | `TRIGGERS.md` 单篇论文精读、Zotero 条目到读书卡流水线、读书卡与标注闭环 | `WORKFLOWS.md` 工作流 1、1A、1B、1C | 证据检查、来源检查、Zotero 读书卡标注闭环检查、输出检查 |
 | C07 | 多篇文献矩阵与 PRISMA | `TRIGGERS.md` 文献检索路线、多篇文献综述矩阵、PRISMA 检索筛选状态 | `WORKFLOWS.md` 工作流 2、2A | 证据检查、来源检查 |
 | C08 | 研究缺口到选题 | `TRIGGERS.md` Gap 到选题立项、科研选题凝练 | `WORKFLOWS.md` 工作流 2B、3 | 方法检查、证据检查 |
 | C09 | 论文写作、论断证据与方法审查 | `TRIGGERS.md` 方法路线审查、论文 论断-证据 审计、论文记忆 构建 | `WORKFLOWS.md` 工作流 4 | 方法检查、证据检查、过度声称检查 |
@@ -70,6 +70,7 @@ ResearchOS 的能力按六个科研助理场景域理解；具体细目以“统
 | 命名规则治理 | `RUNBOOKS/naming-governance.md` | 对象类型、已有目录/文件、命名冲突或新增命名规则需求 | 统一命名规则、命名审查清单、目录/编号/文件名建议 |
 | 从 Zotero 或 PDF 准备阅读语料 | `zotero-literature-access`、`zotero-library-governance`、既有工具契约 | 条目 key、查询词、项目目录、父文档状态 | 可回溯上下文包、规范化文本、缺失材料说明；科研判断仍由 LLM 完成 |
 | 单篇论文精读 | `paper-deep-reading` | 论文文本、题录信息、页码范围 | 读书卡、可引用观点、局限性和需要核查内容 |
+| Zotero 条目到语义读书卡 | `zotero-reading-card-pipeline` | 一个或多个 item key、新增范围或全库范围、父文档和规范化文本 | 期刊状态、第一作者单位语义结果、集中初筛读书卡、严格覆盖审计和可选发布预检 |
 | Zotero 读书卡与标注闭环 | `zotero-reading-card-annotation-sync` | 集中读书卡、item key、Zotero 原生 annotation、批准的 note 计划 | Zotero 读书卡子笔记、annotation 镜像、受控标注区和金丝雀审计 |
 | 设计检索路线 | `literature-search-map` | 研究主题、对象、关键词 | 中英文关键词、检索式、数据库路线和引用追踪策略 |
 | 撰写深度研究情报报告 | `research-intelligence-report` | 课题方向、技术细节、库内证据、可选外部数据库导出 | 人工阅读研究报告、证据矩阵、库内覆盖和需补足材料清单 |

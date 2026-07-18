@@ -11,7 +11,7 @@
 - `card_common.py`
 - `sync_zotero_metadata_to_cards.py`
 - `sync_zotero_annotations_to_cards.py`
-- `card_common.py`
+- `zotero_library_pipeline.py`
 
 ## 2. 工具目的
 
@@ -55,3 +55,5 @@
 - 读书卡汇总表使用 `sync_reading_summary_table.py`。
 - 期刊等级同步使用 `sync_journal_rankings.py`。
 - 第一作者单位证据准备使用 `build_affiliation_semantic_packet.py`。
+- 全库、新增或指定条目的首页证据准备优先使用 `zotero_library_pipeline.py semantic-packet`；语义结果必须先经 `semantic-apply` 默认预检，再用 `--write-local` 写入本地 SQLite 和集中读书卡。
+- `heuristic_candidate`、`existing_card_candidate`、旧 `not_found` 和 `not_processed` 不得作为确定单位显示，也不得通过 Zotero 读书卡发布预检。

@@ -108,6 +108,8 @@ corpus/
 | 临时 PDF 文本抽取 | 机器 | 项目 `.research/fulltext_cache/`；无项目时进入 `corpus/fulltext/` |
 | Zotero 新条目监控报告 | 人工 | `docs/reports/zotero-new-item-monitor/new-items-report.md` |
 | Zotero 新条目监控状态和试运行计划 | 机器留存 | `.researchos/outputs/machine/M-004-zotero-new-item-monitor/` |
+| Zotero 全库/增量摄取流水线日志 | 机器留存 | `.researchos/outputs/machine/M-006-zotero-ingestion-pipeline/` |
+| 期刊与单位词典、集中初筛读书卡 | 共享事实源 | `corpus/zotero/M-001-zotero-library/zotero_library.sqlite`、`corpus/reading-cards/indexes/` 与 `corpus/reading-cards/cards/` |
 | 项目级 Zotero 文献集覆盖层报告 | 人工 | 具体项目工作区内，优先使用 `03-文献矩阵/project-collection-plan.md` |
 | 项目级 Zotero 文献集覆盖层计划和执行记录 | 机器留存 | 具体项目工作区内的 `.internal/zotero-collection-overlay/` |
 | ResearchOS 当前治理状态 | 人工 | `docs/governance/researchos-governance-restructure/current-governance-status.md` |

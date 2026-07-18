@@ -36,6 +36,7 @@ if str(RESEARCHOS_ROOT) not in sys.path:
     sys.path.insert(0, str(RESEARCHOS_ROOT))
 
 from tools.zotero.write.zotero_web_api import fetch_web_api_paged
+from tools.zotero.write.zotero_web_api import normalize_proxy
 
 
 class ZoteroApiError(RuntimeError):
@@ -86,15 +87,6 @@ def env_config() -> dict[str, str]:
     return {"api_key": api_key, "user_id": user_id, "api_base": api_base}
 
 
-def normalize_proxy(value: str) -> str:
-    value = (value or "").strip()
-    if not value:
-        return ""
-    if "://" not in value:
-        value = f"http://{value}"
-    return value
-
-
 def system_proxy() -> str:
     if winreg is None:
         return ""
@@ -125,13 +117,31 @@ def proxy_config() -> tuple[str, str]:
         ("ZOTERO_HTTPS_PROXY", os.environ.get("ZOTERO_HTTPS_PROXY", "")),
         ("HTTPS_PROXY", os.environ.get("HTTPS_PROXY", "")),
         ("HTTP_PROXY", os.environ.get("HTTP_PROXY", "")),
+        ("ALL_PROXY", os.environ.get("ALL_PROXY", "")),
     ]
     for source, value in candidates:
         proxy = normalize_proxy(value)
         if proxy:
             return source, proxy
+    machine_config = RESEARCHOS_ROOT / ".local" / "machine_config.json"
+    if machine_config.exists():
+        try:
+            data = json.loads(machine_config.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError):
+            data = {}
+        proxy_fields = data.get("proxy", {}) if isinstance(data, dict) else {}
+        if isinstance(proxy_fields, dict):
+            for field in ("https_proxy", "http_proxy", "all_proxy"):
+                proxy = normalize_proxy(str(proxy_fields.get(field) or ""))
+                if proxy:
+                    return f"machine_config.{field}", proxy
     proxy = system_proxy()
-    return ("WindowsSystemProxy", proxy) if proxy else ("", "")
+    if proxy:
+        return "WindowsSystemProxy", proxy
+    raise SystemExit(
+        "Zotero Web API requires a per-machine proxy. Set ZOTERO_HTTPS_PROXY/HTTPS_PROXY/HTTP_PROXY/ALL_PROXY "
+        "or configure .local/machine_config.json; do not hardcode a shared host/port."
+    )
 
 
 def safe_proxy_label(proxy: str) -> str:
@@ -235,6 +245,80 @@ def target_map(assignments: list[dict[str, str]]) -> dict[str, list[str]]:
     return dict(grouped)
 
 
+TRIAGE_COLLECTION_NAME = "00-待分配-triage"
+
+
+def collection_assignment_policy(
+    target_paths: list[str],
+    key_by_path: dict[str, str],
+) -> dict[str, Any]:
+    """Resolve one project's triage path and reject ambiguous assignment plans."""
+    cleaned = [path.strip().strip("/") for path in target_paths if path.strip().strip("/")]
+    if not cleaned:
+        raise ValueError("item assignment has no target collection path")
+    parents = {path.rsplit("/", 1)[0] if "/" in path else "" for path in cleaned}
+    if len(parents) != 1:
+        raise ValueError("all target project collections for one item must share one project parent")
+    parent = next(iter(parents))
+    triage_path = f"{parent}/{TRIAGE_COLLECTION_NAME}" if parent else TRIAGE_COLLECTION_NAME
+    stable_paths = [path for path in cleaned if path != triage_path]
+    if stable_paths and triage_path in cleaned:
+        raise ValueError("triage and stable project collections cannot both be assignment targets")
+    return {
+        "triage_path": triage_path,
+        "triage_key": key_by_path.get(triage_path, ""),
+        "stable_assignment": bool(stable_paths),
+    }
+
+
+def exclusive_preview(
+    item: dict[str, Any],
+    target_collection_keys: list[str],
+    target_collection_paths: list[str],
+    path_by_key: dict[str, str],
+    key_by_path: dict[str, str],
+) -> dict[str, Any]:
+    """Plan add-then-remove transitions while preserving unrelated collections."""
+    policy = collection_assignment_policy(target_collection_paths, key_by_path)
+    data = item.get("data", {})
+    before_keys = list(data.get("collections", []) or [])
+    add_phase_keys = list(before_keys)
+    for key in target_collection_keys:
+        if key not in add_phase_keys:
+            add_phase_keys.append(key)
+    final_keys = list(add_phase_keys)
+    triage_key = str(policy["triage_key"] or "")
+    if policy["stable_assignment"] and triage_key:
+        final_keys = [key for key in final_keys if key != triage_key]
+    return {
+        "item_key": item.get("key"),
+        "item_version": item.get("version"),
+        "before_collection_keys": before_keys,
+        "before_collection_paths": [path_by_key.get(key, key) for key in before_keys],
+        "target_collection_keys": target_collection_keys,
+        "target_collection_paths": target_collection_paths,
+        "triage_collection_key": triage_key,
+        "triage_collection_path": policy["triage_path"],
+        "stable_assignment": policy["stable_assignment"],
+        "add_phase_collection_keys": add_phase_keys,
+        "add_phase_collection_paths": [path_by_key.get(key, key) for key in add_phase_keys],
+        "after_collection_keys": final_keys,
+        "after_collection_paths": [path_by_key.get(key, key) for key in final_keys],
+        "collection_policy": "exclusive: add and verify stable targets, then remove project triage, preserving unrelated collections",
+    }
+
+
+def collection_postcondition_errors(item: dict[str, Any], preview: dict[str, Any]) -> list[str]:
+    current = set((item.get("data", {}) or {}).get("collections", []) or [])
+    errors: list[str] = []
+    if not set(preview["target_collection_keys"]).issubset(current):
+        errors.append("target_collection_missing_after_write")
+    triage_key = str(preview.get("triage_collection_key") or "")
+    if preview.get("stable_assignment") and triage_key and triage_key in current:
+        errors.append("triage_collection_present_after_stable_assignment")
+    return errors
+
+
 def hierarchy_paths(path: Path) -> list[str]:
     if not path.exists():
         return []
@@ -325,48 +409,61 @@ def ensure_collection_path(
     return key_by_path[target_path], created, path_by_key
 
 
-def additive_preview(item: dict[str, Any], target_collection_keys: list[str], path_by_key: dict[str, str]) -> dict[str, Any]:
-    data = item.get("data", {})
-    before_keys = list(data.get("collections", []) or [])
-    after_keys = list(before_keys)
-    for key in target_collection_keys:
-        if key not in after_keys:
-            after_keys.append(key)
-    return {
-        "item_key": item.get("key"),
-        "item_version": item.get("version"),
-        "before_collection_keys": before_keys,
-        "before_collection_paths": [path_by_key.get(key, key) for key in before_keys],
-        "target_collection_keys": target_collection_keys,
-        "target_collection_paths": [path_by_key.get(key, key) for key in target_collection_keys],
-        "after_collection_keys": after_keys,
-        "after_collection_paths": [path_by_key.get(key, key) for key in after_keys],
-        "collection_policy": "additive: preserve all existing item collections and append missing target project collections",
-    }
-
-
 def patch_item_collections(
     config: dict[str, str],
     item_key: str,
     target_collection_keys: list[str],
+    target_collection_paths: list[str],
     path_by_key: dict[str, str],
+    key_by_path: dict[str, str],
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], int]:
     _, _, item_before = zotero_request(config, "GET", f"items/{item_key}")
-    preview = additive_preview(item_before, target_collection_keys, path_by_key)
-    if preview["after_collection_keys"] == preview["before_collection_keys"]:
-        return item_before, item_before, preview, 304
-    status, _headers, _ = zotero_request(
-        config,
-        "PATCH",
-        f"items/{item_key}",
-        {"collections": preview["after_collection_keys"]},
-        {"If-Unmodified-Since-Version": str(item_before["version"])},
+    preview = exclusive_preview(
+        item_before,
+        target_collection_keys,
+        target_collection_paths,
+        path_by_key,
+        key_by_path,
     )
-    if status != 204:
-        raise ZoteroApiError(status, f"Unexpected item update status for {item_key}")
-    time.sleep(0.1)
-    _, _, item_after = zotero_request(config, "GET", f"items/{item_key}")
-    return item_before, item_after, preview, status
+    wrote = False
+    live = item_before
+    if preview["add_phase_collection_keys"] != preview["before_collection_keys"]:
+        status, _headers, _ = zotero_request(
+            config,
+            "PATCH",
+            f"items/{item_key}",
+            {"collections": preview["add_phase_collection_keys"]},
+            {"If-Unmodified-Since-Version": str(item_before["version"])},
+        )
+        if status != 204:
+            raise ZoteroApiError(status, f"Unexpected add-phase item update status for {item_key}")
+        wrote = True
+        time.sleep(0.1)
+        _, _, live = zotero_request(config, "GET", f"items/{item_key}")
+    if not set(target_collection_keys).issubset(set((live.get("data", {}) or {}).get("collections", []) or [])):
+        raise RuntimeError(f"Add-phase postcondition failed for {item_key}: target collection missing")
+    triage_key = str(preview.get("triage_collection_key") or "")
+    live_keys = list((live.get("data", {}) or {}).get("collections", []) or [])
+    if preview["stable_assignment"] and triage_key and triage_key in live_keys:
+        final_keys = [key for key in live_keys if key != triage_key]
+        status, _headers, _ = zotero_request(
+            config,
+            "PATCH",
+            f"items/{item_key}",
+            {"collections": final_keys},
+            {"If-Unmodified-Since-Version": str(live["version"])},
+        )
+        if status != 204:
+            raise ZoteroApiError(status, f"Unexpected triage-removal item update status for {item_key}")
+        wrote = True
+        time.sleep(0.1)
+        _, _, live = zotero_request(config, "GET", f"items/{item_key}")
+    errors = collection_postcondition_errors(live, preview)
+    if errors:
+        raise RuntimeError(f"Exclusive collection postcondition failed for {item_key}: {', '.join(errors)}")
+    preview["after_collection_keys"] = list((live.get("data", {}) or {}).get("collections", []) or [])
+    preview["after_collection_paths"] = [path_by_key.get(key, key) for key in preview["after_collection_keys"]]
+    return item_before, live, preview, 204 if wrote else 304
 
 
 def audit_fields() -> list[str]:
@@ -398,6 +495,11 @@ def command_preflight(args: argparse.Namespace) -> int:
     item_results: list[dict[str, Any]] = []
     for key in sorted(targets):
         status, _headers, item = zotero_request(config, "GET", f"items/{key}")
+        try:
+            policy = collection_assignment_policy(targets[key], key_by_path)
+        except ValueError as exc:
+            raise SystemExit(f"Invalid collection assignment for {key}: {exc}") from exc
+        current_keys = set(item.get("data", {}).get("collections", []) or [])
         item_results.append(
             {
                 "item_key": key,
@@ -406,6 +508,9 @@ def command_preflight(args: argparse.Namespace) -> int:
                 "title": item.get("data", {}).get("title", ""),
                 "current_collection_count": len(item.get("data", {}).get("collections", []) or []),
                 "target_collection_count": len(targets[key]),
+                "triage_collection_path": policy["triage_path"],
+                "triage_present_before": bool(policy["triage_key"] and policy["triage_key"] in current_keys),
+                "execution_order": "add_targets_verify_then_remove_triage" if policy["stable_assignment"] else "retain_triage_only",
             }
         )
     target_paths = sorted(
@@ -454,11 +559,20 @@ def command_canary(args: argparse.Namespace) -> int:
     _, _, item_before = zotero_request(config, "GET", f"items/{args.item_key}")
     write_json(run_dir / "canary_item_before.json", item_before)
     target_key, created, path_by_key = ensure_collection_path(config, target_path, run_dir, audit_rows)
-    _, item_after, preview, status = patch_item_collections(config, args.item_key, [target_key], path_by_key)
+    collections_live = fetch_paged(config, "collections")
+    _, path_by_key, key_by_path = collection_paths(collections_live)
+    _, item_after, preview, status = patch_item_collections(
+        config,
+        args.item_key,
+        [target_key],
+        [target_path],
+        path_by_key,
+        key_by_path,
+    )
     write_json(run_dir / "canary_update_preview.json", preview)
     write_json(run_dir / "canary_item_after.json", item_after)
     rollback = {
-        "mode": "canary_additive_collection_rollback",
+        "mode": "canary_exclusive_collection_rollback",
         "item_key": args.item_key,
         "endpoint": f"items/{args.item_key}",
         "restore_collections": preview["before_collection_keys"],
@@ -547,7 +661,14 @@ def command_write(args: argparse.Namespace) -> int:
     rollback_items: list[dict[str, Any]] = []
     for key in selected_keys:
         target_keys = [key_by_path[path] for path in targets[key]]
-        item_before, item_after, preview, status = patch_item_collections(config, key, target_keys, path_by_key)
+        item_before, item_after, preview, status = patch_item_collections(
+            config,
+            key,
+            target_keys,
+            targets[key],
+            path_by_key,
+            key_by_path,
+        )
         before_items[key] = item_before
         after_items[key] = item_after
         previews[key] = preview
@@ -557,12 +678,13 @@ def command_write(args: argparse.Namespace) -> int:
                 "endpoint": f"items/{key}",
                 "restore_collections": preview["before_collection_keys"],
                 "target_collection_paths": preview["target_collection_paths"],
+                "triage_collection_path": preview["triage_collection_path"],
             }
         )
         audit_rows.append(
             {
                 "timestamp": utc_now(),
-                "mode": "add_item_to_project_collections",
+                "mode": "assign_project_collections_exclusive",
                 "item_key": key,
                 "write_performed": status == 204,
                 "target": "; ".join(targets[key]),
@@ -579,7 +701,7 @@ def command_write(args: argparse.Namespace) -> int:
     write_json(run_dir / "item_update_previews.json", previews)
     write_csv(run_dir / "write_audit.csv", audit_rows, audit_fields())
     write_json(run_dir / "rollback_plan.json", {
-        "mode": "project_collection_overlay_additive_rollback",
+        "mode": "project_collection_overlay_exclusive_rollback",
         "items": rollback_items,
         "created_collections_to_delete_if_rolling_back": [
             {
@@ -613,13 +735,20 @@ def command_write_batch(args: argparse.Namespace) -> int:
     selected_keys = sorted(targets)
     if args.incomplete_only:
         collections_live = fetch_paged(config, "collections")
-        _, live_path_by_key, _ = collection_paths(collections_live)
+        _, live_path_by_key, live_key_by_path = collection_paths(collections_live)
         items_live = fetch_items_by_keys(config, selected_keys)
-        selected_keys = [
-            key
-            for key in selected_keys
-            if set(targets[key]) - {live_path_by_key.get(collection_key, collection_key) for collection_key in items_live[key].get("data", {}).get("collections", []) or []}
-        ]
+        incomplete: list[str] = []
+        for key in selected_keys:
+            target_keys = [live_key_by_path[path] for path in targets[key] if path in live_key_by_path]
+            if len(target_keys) != len(targets[key]):
+                incomplete.append(key)
+                continue
+            preview = exclusive_preview(
+                items_live[key], target_keys, targets[key], live_path_by_key, live_key_by_path
+            )
+            if collection_postcondition_errors(items_live[key], preview):
+                incomplete.append(key)
+        selected_keys = incomplete
     if args.start_after:
         if args.start_after not in selected_keys:
             raise SystemExit(f"start-after key not found in selected keys: {args.start_after}")
@@ -647,85 +776,131 @@ def command_write_batch(args: argparse.Namespace) -> int:
     before_items = fetch_items_by_keys(config, selected_keys)
     write_json(run_dir / "items_before.json", before_items)
 
-    payload: list[dict[str, Any]] = []
+    add_payload: list[dict[str, Any]] = []
     previews: dict[str, Any] = {}
-    skipped: list[str] = []
     for key in selected_keys:
         target_keys = [key_by_path[path] for path in targets[key]]
-        preview = additive_preview(before_items[key], target_keys, path_by_key)
+        preview = exclusive_preview(
+            before_items[key], target_keys, targets[key], path_by_key, key_by_path
+        )
         previews[key] = preview
-        if preview["after_collection_keys"] == preview["before_collection_keys"]:
-            skipped.append(key)
-            continue
-        payload.append(
-            {
+        if preview["add_phase_collection_keys"] != preview["before_collection_keys"]:
+            add_payload.append({
                 "key": key,
                 "version": before_items[key]["version"],
-                "collections": preview["after_collection_keys"],
-            }
-        )
+                "collections": preview["add_phase_collection_keys"],
+            })
 
     write_json(run_dir / "item_update_previews.json", previews)
-    if payload:
-        status, headers, response = zotero_request(config, "POST", "items", payload)
-        if status != 200:
-            raise ZoteroApiError(status, "Unexpected batch item update status")
-        write_json(run_dir / "batch_update_response.json", response)
+    rollback_items = [
+        {
+            "item_key": key,
+            "endpoint": f"items/{key}",
+            "restore_collections": previews[key]["before_collection_keys"],
+            "before_collection_paths": previews[key]["before_collection_paths"],
+            "target_collection_paths": previews[key]["target_collection_paths"],
+            "triage_collection_path": previews[key]["triage_collection_path"],
+        }
+        for key in selected_keys
+    ]
+    write_json(run_dir / "rollback_plan.json", {
+        "mode": "project_collection_overlay_exclusive_batch_rollback",
+        "items": rollback_items,
+        "note": "Rollback must POST item objects with original collection arrays. No collections are deleted by this rollback plan.",
+    })
+
+    add_status = 304
+    if add_payload:
+        add_status, _headers, response = zotero_request(config, "POST", "items", add_payload)
+        write_json(run_dir / "batch_add_response.json", response)
+        if add_status != 200:
+            raise ZoteroApiError(add_status, "Unexpected batch add-phase status")
         failed = (response or {}).get("failed", {})
         if failed:
-            raise RuntimeError(f"Batch item update had failed rows: {json.dumps(failed, ensure_ascii=False)}")
-    else:
-        status, headers, response = 304, {}, {"successful": {}, "unchanged": {}}
-        write_json(run_dir / "batch_update_response.json", response)
+            raise RuntimeError(f"Batch add phase had failed rows: {json.dumps(failed, ensure_ascii=False)}")
+
+    add_after_items = fetch_items_by_keys(config, selected_keys)
+    write_json(run_dir / "items_after_add_phase.json", add_after_items)
+    for key in selected_keys:
+        current = set((add_after_items[key].get("data", {}) or {}).get("collections", []) or [])
+        if not set(previews[key]["target_collection_keys"]).issubset(current):
+            raise RuntimeError(f"Batch add-phase postcondition failed for {key}: target collection missing")
+
+    remove_payload: list[dict[str, Any]] = []
+    for key in selected_keys:
+        preview = previews[key]
+        triage_key = str(preview.get("triage_collection_key") or "")
+        live_keys = list((add_after_items[key].get("data", {}) or {}).get("collections", []) or [])
+        if preview["stable_assignment"] and triage_key and triage_key in live_keys:
+            remove_payload.append({
+                "key": key,
+                "version": add_after_items[key]["version"],
+                "collections": [collection_key for collection_key in live_keys if collection_key != triage_key],
+            })
+
+    remove_status = 304
+    if remove_payload:
+        remove_status, _headers, response = zotero_request(config, "POST", "items", remove_payload)
+        write_json(run_dir / "batch_triage_removal_response.json", response)
+        if remove_status != 200:
+            raise ZoteroApiError(remove_status, "Unexpected batch triage-removal status")
+        failed = (response or {}).get("failed", {})
+        if failed:
+            raise RuntimeError(f"Batch triage removal had failed rows: {json.dumps(failed, ensure_ascii=False)}")
 
     after_items = fetch_items_by_keys(config, selected_keys)
     write_json(run_dir / "items_after.json", after_items)
 
-    rollback_items: list[dict[str, Any]] = []
+    postcondition_failures: dict[str, list[str]] = {}
     for key in selected_keys:
         preview = previews[key]
         before_paths = preview["before_collection_paths"]
         after_paths = [path_by_key.get(collection_key, collection_key) for collection_key in after_items[key].get("data", {}).get("collections", []) or []]
+        errors = collection_postcondition_errors(after_items[key], preview)
+        if errors:
+            postcondition_failures[key] = errors
         audit_rows.append(
             {
                 "timestamp": utc_now(),
-                "mode": "batch_add_item_to_project_collections",
+                "mode": "batch_assign_project_collections_exclusive",
                 "item_key": key,
-                "write_performed": key not in skipped,
+                "write_performed": preview["before_collection_keys"] != list((after_items[key].get("data", {}) or {}).get("collections", []) or []),
                 "target": "; ".join(targets[key]),
-                "http_status": status,
+                "http_status": f"add:{add_status};remove:{remove_status}",
                 "before_version": before_items[key].get("version"),
                 "after_version": after_items[key].get("version"),
                 "created_key": "; ".join(preview["target_collection_keys"]),
-                "blocking_conditions": "" if set(targets[key]).issubset(after_paths) else "target_path_missing_after_write",
+                "blocking_conditions": ";".join(errors),
             }
         )
-        rollback_items.append(
-            {
-                "item_key": key,
-                "endpoint": f"items/{key}",
-                "restore_collections": preview["before_collection_keys"],
-                "before_collection_paths": before_paths,
-                "after_collection_paths": after_paths,
-                "target_collection_paths": preview["target_collection_paths"],
-            }
-        )
+        for rollback in rollback_items:
+            if rollback["item_key"] == key:
+                rollback["after_collection_paths"] = after_paths
+                break
 
     write_csv(run_dir / "write_audit.csv", audit_rows, audit_fields())
     write_json(run_dir / "rollback_plan.json", {
-        "mode": "project_collection_overlay_batch_additive_rollback",
+        "mode": "project_collection_overlay_exclusive_batch_rollback",
         "items": rollback_items,
         "note": "Rollback must POST item objects with original collection arrays. No collections are deleted by this rollback plan.",
     })
+    if postcondition_failures:
+        raise RuntimeError("Exclusive collection postcondition failures: " + json.dumps(postcondition_failures, ensure_ascii=False))
+    items_written = sum(
+        previews[key]["before_collection_keys"]
+        != list((after_items[key].get("data", {}) or {}).get("collections", []) or [])
+        for key in selected_keys
+    )
     print(json.dumps({
         "run_dir": str(run_dir),
         "mode": "write-batch",
         "proxy_source": proxy_source,
         "proxy": safe_proxy_label(proxy),
         "items_selected": len(selected_keys),
-        "items_written": len(payload),
-        "items_skipped_already_complete": len(skipped),
-        "http_status": status,
+        "items_written": items_written,
+        "items_skipped_already_complete": len(selected_keys) - items_written,
+        "add_phase_status": add_status,
+        "triage_removal_status": remove_status,
         "audit": str(run_dir / "write_audit.csv"),
         "rollback_plan": str(run_dir / "rollback_plan.json"),
     }, ensure_ascii=False, indent=2))

@@ -22,8 +22,9 @@
 | 处理阅读批注、映射意见、更新批注文档 | C03 | `human-annotation-inbox` | 0X | 人工批注 |
 | 记录碎片想法、建立 IDEA、初步潜力判断 | C04 | `idea-to-research-potential` | 0 | 点子潜力 |
 | 父文档缺失/过期、Local API 排障、定位 PDF | C05 | `zotero-literature-access` | 1 | 来源、Zotero 父文档 |
-| 单篇论文精读、读书卡 | C06 | `paper-deep-reading` | 1、1A | 证据、来源、输出 |
-| 把读书卡发布为 Zotero 笔记、同步 PDF 高亮/批注并回流读书卡 | C06、C11 | `zotero-reading-card-annotation-sync` | 1B | 证据、Zotero 父文档、写入 |
+| 单篇论文精读、仅生成本地读书卡 | C06 | `paper-deep-reading` | 1、1A | 证据、来源、输出 |
+| 为某个/多个/新增/全库 Zotero 条目抽取全文、识别第一作者单位、生成或更新读书卡；以及“生成某条阅读卡并同步到 Zotero”这类组合请求 | C05、C06、C11 | `zotero-reading-card-pipeline` | 1C、1B | 证据、Zotero 父文档、输出、写入 |
+| 仅把已有读书卡发布为 Zotero 笔记、仅同步 PDF 高亮/批注并回流读书卡 | C06、C11 | `zotero-reading-card-annotation-sync` | 1B | 证据、Zotero 父文档、写入 |
 | 关键词、检索式、数据库路线、候选发现 | C07 | `literature-search-map` | 2A | 来源、输出 |
 | 多篇文献比较、综述矩阵、研究缺口线索 | C07 | `literature-matrix` | 2 | 证据、来源 |
 | PRISMA 检索、筛选和阅读状态 | C07 | `WORKFLOWS.md` 工作流 2A | 2A | 来源、输出 |

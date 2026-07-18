@@ -17,6 +17,42 @@ from tools.zotero.write.publish_reading_card_note import (
 
 
 class PublishReadingCardNoteTests(unittest.TestCase):
+    def test_preflight_blocks_card_with_heuristic_affiliation(self) -> None:
+        body = """---
+card_id: RC-001
+zotero_key: ITEM1234
+---
+
+# Card
+
+## 7. 元数据（折叠）
+
+<details>
+<summary>Reading card metadata</summary>
+
+```yaml
+item_key: ITEM1234
+first_author_affiliation: Example University
+first_author_affiliation_status: heuristic_candidate
+first_author_affiliation_source: first-page regex
+```
+
+</details>
+"""
+        root = publisher.RESEARCHOS_ROOT
+        card = root / "card.md"
+        with (
+            patch.object(type(card), "read_text", return_value=body),
+            patch.object(publisher, "request", return_value=(200, {}, {"key": "ITEM1234", "data": {"itemType": "journalArticle"}})),
+            patch.object(publisher, "fetch_paged", return_value=[]),
+            patch.object(publisher, "mapped_note_state", return_value=None),
+        ):
+            plan, _html, _parent, _children = publisher.build_plan(
+                card, root, root / "test.sqlite", {}, object(), {"source": "test"}
+            )
+        self.assertEqual(plan["action"], "blocked")
+        self.assertIn("affiliation_semantic_review_incomplete:heuristic_candidate", plan["blocking_conditions"])
+
     def test_renderer_adds_stable_marker_and_readable_links(self) -> None:
         body = """---
 card_id: RC-001

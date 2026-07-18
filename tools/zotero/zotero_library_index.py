@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
-from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
 if str(RESEARCHOS_ROOT) not in sys.path:
@@ -227,7 +227,9 @@ class ZoteroClient:
         query = "?" + urlencode(params or {})
         url = f"{self.api_base}/users/{self.user_id}/{endpoint.lstrip('/')}{query}"
         request = Request(url, headers={"Zotero-API-Version": "3"})
-        with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        # Local API must stay direct even when different workstations use
+        # different HTTP(S) proxy hosts or ports.
+        with build_opener(ProxyHandler({})).open(request, timeout=TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8", errors="replace"))
 
     def fetch_paged(
@@ -258,7 +260,7 @@ class ZoteroClient:
     def resolve_file_url(self, attachment_key: str) -> tuple[str | None, Path | None]:
         url = f"{self.api_base}/users/{self.user_id}/items/{attachment_key}/file/view/url"
         request = Request(url, headers={"Zotero-API-Version": "3"})
-        opener = build_opener(NoRedirectHandler)
+        opener = build_opener(ProxyHandler({}), NoRedirectHandler)
         try:
             with opener.open(request, timeout=TIMEOUT_SECONDS) as response:
                 headers = response.headers

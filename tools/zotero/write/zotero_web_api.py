@@ -7,10 +7,22 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import Any, Callable
 
 
 WebApiRequest = Callable[[dict[str, str], str, str, Any | None, dict[str, str] | None], tuple[int, dict[str, str], Any]]
+RESEARCHOS_ROOT = Path(__file__).resolve().parents[3]
+
+
+def normalize_proxy(value: str) -> str:
+    """Normalize per-machine proxy values without exposing credentials."""
+    normalized = str(value or "").strip()
+    if not normalized:
+        return ""
+    if "://" not in normalized:
+        normalized = "http://" + normalized
+    return normalized
 
 
 def env_config() -> dict[str, str]:
@@ -24,16 +36,36 @@ def env_config() -> dict[str, str]:
     return {"api_key": api_key, "user_id": user_id, "api_base": api_base}
 
 
-def selected_proxy() -> tuple[urllib.request.OpenerDirector, dict[str, str]]:
-    """Build an opener and return only redacted proxy metadata for audits."""
+def _machine_config_proxy() -> tuple[str, str]:
+    path = RESEARCHOS_ROOT / ".local" / "machine_config.json"
+    if not path.exists():
+        return "", ""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return "", ""
+    proxy = data.get("proxy", {}) if isinstance(data, dict) else {}
+    if not isinstance(proxy, dict):
+        return "", ""
+    for field in ("https_proxy", "http_proxy", "all_proxy"):
+        value = str(proxy.get(field) or "").strip()
+        if value:
+            return f"machine_config.{field}", value
+    return "", ""
+
+
+def selected_proxy(require_proxy: bool = True) -> tuple[urllib.request.OpenerDirector, dict[str, str]]:
+    """Build a Web API proxy opener and return only redacted audit metadata."""
     proxy_value = ""
     source = ""
-    for name in ("ZOTERO_HTTPS_PROXY", "HTTPS_PROXY", "HTTP_PROXY"):
+    for name in ("ZOTERO_HTTPS_PROXY", "HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY"):
         value = os.environ.get(name) or os.environ.get(name.lower())
         if value:
             proxy_value = value
             source = name
             break
+    if not proxy_value:
+        source, proxy_value = _machine_config_proxy()
     if not proxy_value and os.name == "nt":
         try:
             import winreg
@@ -54,7 +86,13 @@ def selected_proxy() -> tuple[urllib.request.OpenerDirector, dict[str, str]]:
         except OSError:
             proxy_value = ""
             source = ""
+    proxy_value = normalize_proxy(proxy_value)
     if not proxy_value:
+        if require_proxy:
+            raise SystemExit(
+                "Zotero Web API requires a per-machine proxy. Set ZOTERO_HTTPS_PROXY/HTTPS_PROXY/HTTP_PROXY/ALL_PROXY "
+                "or configure .local/machine_config.json; do not hardcode a shared host/port."
+            )
         return urllib.request.build_opener(), {"enabled": "no", "source": "", "host_port": ""}
     parsed = urllib.parse.urlparse(proxy_value)
     host_port = parsed.netloc.rsplit("@", 1)[-1] if parsed.netloc else parsed.path

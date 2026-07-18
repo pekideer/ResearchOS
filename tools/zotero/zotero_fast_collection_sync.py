@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import ProxyHandler, Request, build_opener
 
 
 RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
@@ -56,7 +56,7 @@ class ZoteroClient:
         query = "?" + urlencode(params or {})
         url = f"{self.api_base}/users/{self.user_id}/{endpoint.lstrip('/')}{query}"
         request = Request(url, headers={"Zotero-API-Version": "3"})
-        with urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        with build_opener(ProxyHandler({})).open(request, timeout=TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode("utf-8", errors="replace"))
 
     def fetch_paged(self, endpoint: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:

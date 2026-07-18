@@ -320,6 +320,46 @@
 - 读书卡其他正文未被同步程序覆盖。
 - 真实 note 写入具有来源受限的具体批准计划、版本检查、写后身份/归属/标签/内容核验、执行前后证据和独立回滚计划。
 
+## 工作流 1C：Zotero 条目到语义读书卡流水线
+
+能力编号：`C05`、`C06`、`C11`
+
+主 skill：`zotero-reading-card-pipeline`
+
+目标：响应“生成某条阅读卡并同步到 Zotero”“处理新增条目”“全库生成读书卡”等自然语言，对一个、多个、新增或全库条目连续完成父文档、PDF 文本、期刊词典、第一作者单位语义识别、集中初筛读书卡和审计；真实 Zotero 笔记发布另行进入工作流 1B 的审批边界。
+
+1. 按 `load_workspace_dependencies -> Zotero Local API 探测 -> sync -> 条件校验` 的顺序更新父文档；Zotero 不可用时停止，不扩大为直接读取 `zotero.sqlite`。
+2. 代理地址属于机器私有配置：优先继承各电脑自己的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`、`NO_PROXY`，也可写入未跟踪的 `.local/machine_config.json` 的 `proxy` 段；共享脚本、自动任务和仓库配置不得写死代理 host/port。`127.0.0.1`、`localhost`、`::1` 始终加入直连名单。
+3. 原始抽取文本写入 `corpus/fulltext/zotero-library/`，AI 规范化文本写入 `corpus/fulltext/zotero-library-normalized/`；普通抽取后只对 `needs_ocr` 队列执行受限 OCR，超页数、book/thesis 默认跳过并保留原因；缺 PDF 和抽取错误保留明确状态，不伪装为成功。
+4. 期刊词典只对 `journalArticle` 的期刊名称查询；`待查询`、`未收录`、`查询失败，待重试` 和 `不适用` 必须显式区分，禁止用裸 `?` 代替状态。
+5. 单位候选脚本只保存 `heuristic_candidate`、原始写法、规范化别名、归并实体和频次，不得把候选写成正式单位。正式单位必须进入下一步语义阶段。
+6. 运行 `semantic-packet`，从 SQLite 指向的规范化全文提取第 1–3 页并生成带 `item version + input hash` 的批次。模型按首页题录提示词亲自判断作者、作者标号、单位标号、第一作者对应的第一个一级单位和国家；首页为封面时检查后续页。
+7. 模型输出 `semantic_confirmed`、`semantic_needs_check`、`semantic_not_found` 或 `source_unavailable` 结果。先用 `semantic-apply` 默认预检，校验 item version、证据哈希、页码、原始片段和来源；通过后才用 `--write-local` 更新 SQLite 与读书卡。
+8. 现有人工/精读卡只更新受控题录、单位和元数据字段，不覆盖人工正文、annotation 生成区、项目关联或第 6 章。无卡条目先生成 `auto_initial_screening` 卡，再由模型根据题录、摘要和可用全文更新 1–5、7 章，不把摘要或片段冒充全文结论。
+9. 初筛卡默认不生成第 6 章“借鉴”，也不自动建立项目用途；项目关联确认后再按关联时间顺序追加 6.1.1、6.1.2 等三级目录。
+10. 增量模式以 `item version + pipeline version` 判定是否需要重跑；显式 `--item-key` 可触发单条同一流程。
+11. 完成本地卡后运行 `audit --strict`。只要仍有 `heuristic_candidate`、`existing_card_candidate`、旧 `not_found` 或 `not_processed`，不得报告单位识别完成。
+12. 本工作流本地阶段只写 ResearchOS 父文档、词典、文本缓存和集中读书卡。用户要求同步 Zotero 时，转入工作流 1B：先 live dry-run，再对具体批准计划执行金丝雀；本工作流本身不授权写 Zotero。
+
+命令入口：
+
+- 全库/首次运行：`python tools/reading_cards/zotero_library_pipeline.py run --scope all`
+- 日常增量：`python tools/reading_cards/zotero_library_pipeline.py run --scope new`
+- 单条自然语言触发对应命令：`python tools/reading_cards/zotero_library_pipeline.py run --item-key ITEMKEY`
+- 生成待语义处理批次：`python tools/reading_cards/zotero_library_pipeline.py semantic-packet --scope pending --batch-size 20`
+- 语义结果预检：`python tools/reading_cards/zotero_library_pipeline.py semantic-apply --results RESULTS.jsonl`
+- 写入本地父文档和读书卡：`python tools/reading_cards/zotero_library_pipeline.py semantic-apply --results RESULTS.jsonl --write-local`
+- 严格覆盖率审计：`python tools/reading_cards/zotero_library_pipeline.py audit --strict`
+
+完成标准：
+
+- 活跃条目、流水线状态和集中读书卡可按 item key 对齐。
+- 文本成功、OCR、缺 PDF、抽取错误分别计数；成功记录有可访问的原始与规范化文本路径。
+- 期刊字段无裸 `?`；单位只有 `semantic_confirmed` 或 `manual_confirmed` 可作为确定事实显示，其余状态明确说明语义未决、未找到或来源不可用。
+- 请求范围满足数量守恒，不存在未说明的候选或未处理条目；确定单位均有原始片段、页码、来源和证据哈希。
+- 现有人工读书卡正文未被模板覆盖；自动初筛卡没有项目借鉴章，也没有把摘要改写成已核实全文结论。
+- 未写入 Zotero，未复制、移动、删除或重命名 Zotero PDF。
+
 ## 工作流 2：从多篇文献到 只追加 综述矩阵
 
 能力编号：`C07`

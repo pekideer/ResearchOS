@@ -134,11 +134,20 @@ def ensure_python_ocr_packages(install: bool, dry_run: bool) -> None:
     if not install:
         raise SystemExit("ERROR: Python OCR packages are missing. Re-run without --no-install or install tools/requirements/ocr.txt manually.")
     requirements = RESEARCHOS_ROOT / "tools" / "requirements" / "ocr.txt"
-    command = [sys.executable, "-m", "pip", "install", "-r", str(requirements)]
+    command = [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "-r",
+        str(requirements),
+        "--disable-pip-version-check",
+        "--only-binary=:all:",
+        "--no-cache-dir",
+    ]
     if dry_run:
         print("DRY-RUN: " + " ".join(command))
         return
-    run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"])
     run(command)
     still_missing = missing_python_modules()
     if still_missing:
@@ -169,6 +178,8 @@ def install_tesseract_with_winget(dry_run: bool) -> None:
         "--id",
         "UB-Mannheim.TesseractOCR",
         "-e",
+        "--silent",
+        "--disable-interactivity",
         "--accept-package-agreements",
         "--accept-source-agreements",
     ]
@@ -266,7 +277,7 @@ def ensure_tesseract(install: bool, languages: list[str], proxy: str | None, dry
 def run_ocr_needed(args: argparse.Namespace) -> None:
     command = [
         sys.executable,
-        str(RESEARCHOS_ROOT / "tools" / "zotero_library_index.py"),
+        str(RESEARCHOS_ROOT / "tools" / "zotero" / "zotero_library_index.py"),
         "--db",
         str(args.db),
         "ocr-needed",

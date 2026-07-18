@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlencode, urlparse
-from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 
 DEFAULT_API_BASE = "http://localhost:23119/api"
@@ -36,7 +36,7 @@ def load_config() -> tuple[str, str]:
 def zotero_request(url: str, params: dict[str, Any] | None = None, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> str:
     full_url = url + ("?" + urlencode(params) if params else "")
     request = Request(full_url, headers={"Zotero-API-Version": "3"})
-    with urlopen(request, timeout=timeout) as response:
+    with build_opener(ProxyHandler({})).open(request, timeout=timeout) as response:
         return response.read().decode("utf-8", errors="replace")
 
 

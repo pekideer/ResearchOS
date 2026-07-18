@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zotero 阅读卡流水线"
+  short_description: "从自然语言触发条目摄取、语义识别、读书卡及受控同步"
+  default_prompt: "Use $zotero-reading-card-pipeline to generate reading cards with semantic affiliation review and prepare an approved Zotero sync."

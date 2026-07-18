@@ -30,12 +30,13 @@
 | 低层机器留存 | 机器 CSV/JSON、试运行计划和执行记录进入 `.researchos/outputs/machine/` |
 | 外部写入证据 | 审批、执行前后、回滚和审计材料进入 `.researchos/outputs/archive/` |
 | 集中读书卡 | `corpus/reading-cards/cards/` 使用 `RC-###_ZoteroKey_短题名.md` 和简短 YAML 头部 |
+| 读书卡流水线 | `tools/reading_cards/zotero_library_pipeline.py` 统一处理全库、增量和显式 item key；单位候选必须经过语义证据包、预检、受控本地写入和严格审计 |
 | 期刊等级 | `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中的 `journal_rankings` 词典表作为映射来源 |
 | Zotero governance | 用户入口为 `tools/zotero/zotero_ai_governance.py`；只读、治理和受控写入已归入同一主题目录 |
 | Tools 结构 | 按 `zotero/`、`reading_cards/`、`project/`、`runtime/` 分组；顶层仅保留跨主题基础模块 |
 | Templates 结构 | 按 `annotations/`、`ideas/`、`literature/`、`prisma/`、`gap-to-topic/`、`writing/`、`paper-memory/`、`project-state/` 分组；模板名与实际输出名一致 |
 | 高风险写入 | 通过 `tools/zotero/write/` 和 Zotero Web API 审批流程执行 |
-| skill 边界 | 保留 20 个独立 skill；项目地图同时承担明确请求的上下文恢复与汇报导航 |
+| skill 边界 | 保留 22 个独立 skill；项目地图同时承担明确请求的上下文恢复与汇报导航，`zotero-reading-card-pipeline` 承担 Zotero 条目到语义读书卡的组合流程 |
 | 上下文状态 | `active_project.yml` 定位，manifest 保存稳定事实，`run_state.json` 保存当前快照，`run-log.jsonl` 只追加最小历史 |
 | 根规则负担 | `AGENTS.md` 保留最高规则，`TRIGGERS.md` 使用紧凑路由表，详细边界按需读取 |
 | 首次运行 | 先做只读就绪检查；普通科研任务不要求预装 Python 或配置 Zotero |

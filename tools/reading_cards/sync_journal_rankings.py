@@ -25,7 +25,10 @@ RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
 if str(RESEARCHOS_ROOT) not in sys.path:
     sys.path.insert(0, str(RESEARCHOS_ROOT))
 
-from card_common import RANK_ORDER, format_publication_tags, known, metadata_heading_pattern, normalized_publication_tags, parse_metadata, parse_publication_tags, yaml_scalar
+try:
+    from .card_common import RANK_ORDER, format_publication_tags, known, metadata_heading_pattern, normalized_publication_tags, parse_metadata, parse_publication_tags, yaml_scalar
+except ImportError:  # Direct script execution keeps the script directory on sys.path.
+    from card_common import RANK_ORDER, format_publication_tags, known, metadata_heading_pattern, normalized_publication_tags, parse_metadata, parse_publication_tags, yaml_scalar
 from tools.researchos_outputs import CORPUS_ZOTERO_LIBRARY_DB
 
 
@@ -49,6 +52,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--journal-rankings-db", help="Defaults to the ResearchOS Zotero parent SQLite under corpus/.")
     parser.add_argument("--provider-config", help="Defaults to <researchos-root>/.researchos/providers/easyscholar.yml")
     parser.add_argument("--no-api", action="store_true", help="Only use the SQLite journal ranking dictionary and existing card-derived mappings.")
+    parser.add_argument(
+        "--include-library-items",
+        action="store_true",
+        help="Seed and resolve the dictionary from every active journalArticle in the parent SQLite, not only existing cards.",
+    )
+    parser.add_argument("--library-limit", type=int, help="Optional canary limit for unique library journals.")
+    parser.add_argument(
+        "--dictionary-only",
+        action="store_true",
+        help="Only seed/query the journal dictionary; do not read or update reading cards. Useful for a bounded API canary.",
+    )
     parser.add_argument("--report-csv")
     parser.add_argument("--dry-run", action="store_true")
     return parser
@@ -104,6 +118,62 @@ def split_frontmatter(text: str) -> tuple[dict[str, str], str]:
         key, value = line.split(":", 1)
         data[key.strip()] = value.strip().strip("'\"")
     return data, text
+
+
+def canonical_project_links(value: str) -> str:
+    """Collapse legacy repeatedly escaped project_links into stable JSON."""
+    current: Any = value.strip().strip("'\"")
+    for _ in range(24):
+        if isinstance(current, list):
+            return json.dumps(current, ensure_ascii=False, separators=(",", ":"))
+        if not isinstance(current, str):
+            return ""
+        text = current.strip().strip("'\"")
+        if not text:
+            return ""
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            try:
+                parsed = json.loads(f'"{text}"')
+            except json.JSONDecodeError:
+                return ""
+        if parsed == current:
+            return ""
+        current = parsed
+    return ""
+
+
+def normalize_project_links_frontmatter(text: str) -> str:
+    """Repair only project_links while preserving every other header line."""
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        return text
+    closing = next((index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---"), None)
+    if closing is None:
+        return text
+    for index in range(1, closing):
+        raw = lines[index]
+        if not re.match(r"^\s*project_links\s*:", raw):
+            continue
+        value = raw.split(":", 1)[1].strip()
+        canonical = canonical_project_links(value)
+        if not canonical:
+            return text
+        newline = "\r\n" if raw.endswith("\r\n") else "\n"
+        lines[index] = f"project_links: {canonical}{newline}"
+        return "".join(lines)
+    return text
+
+
+def original_frontmatter_block(text: str) -> str:
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        return ""
+    closing = next((index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---"), None)
+    if closing is None:
+        return ""
+    return "".join(lines[: closing + 1]).rstrip("\r\n") + "\n\n"
 
 
 def raw_zotero_key(value: Any) -> str:
@@ -285,6 +355,7 @@ def remember_ranking(
     status: str,
     publication_tags: str,
     source_query: str = "",
+    source: str = "cards",
 ) -> None:
     normalized = normalize_journal_name(journal_name)
     if not normalized:
@@ -294,8 +365,30 @@ def remember_ranking(
     if status == "ok" and not known(publication_tags):
         return
     record = table_record(journal_name, status, publication_tags, source_query)
-    record["source"] = "cards" if (source_query or journal_name) == journal_name else "easyscholar"
+    record["source"] = source
     table[normalized] = record
+
+
+def load_library_publications(path: Path) -> list[str]:
+    """Return unique active journal titles from the local parent document."""
+    if not path.exists():
+        return []
+    con = sqlite3.connect(path)
+    try:
+        rows = con.execute(
+            """
+            SELECT publication
+            FROM items
+            WHERE zotero_deleted = 0
+              AND item_type = 'journalArticle'
+              AND TRIM(COALESCE(publication, '')) != ''
+            GROUP BY LOWER(TRIM(publication))
+            ORDER BY LOWER(TRIM(publication))
+            """
+        ).fetchall()
+        return [str(row[0]).strip() for row in rows if str(row[0] or "").strip()]
+    finally:
+        con.close()
 
 
 def write_ranking_table(path: Path, table: dict[str, dict[str, str]]) -> None:
@@ -467,14 +560,21 @@ def compact_card_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
     return output
 
 
-def display_publication_tags(publication_tags: str) -> str:
+def display_publication_tags(publication_tags: str, status: str = "") -> str:
     ranks = parse_publication_tags(publication_tags)
     parts = [ranks[field] for field in RANK_ORDER if known(ranks.get(field))]
-    return " ".join(parts) if parts else "?"
+    if parts:
+        return " ".join(parts)
+    return {
+        "no_match": "未收录",
+        "unqueried": "待查询",
+        "error": "查询失败，待重试",
+        "no_query": "不适用",
+    }.get(status, "待核查")
 
 
-def set_visible_journal_ranking(body: str, publication_tags: str) -> str:
-    replacement = f"- **期刊等级：** {display_publication_tags(publication_tags)}"
+def set_visible_journal_ranking(body: str, publication_tags: str, status: str = "") -> str:
+    replacement = f"- **期刊等级：** {display_publication_tags(publication_tags, status)}"
     pattern = re.compile(r"(?m)^- \*\*期刊等级：\*\* .*$")
     if pattern.search(body):
         return pattern.sub(replacement, body, count=1)
@@ -530,7 +630,7 @@ def main() -> int:
     priority = priority if isinstance(priority, list) else []
     api_enabled = bool(endpoint and secret_key and not args.no_api)
 
-    cards = find_cards(cards_root)
+    cards = [] if args.dictionary_only else find_cards(cards_root)
     ranking_table_path = researchos_root / "corpus" / "reading-cards" / "indexes" / "easyscholar-journal-ranking-table.csv"
     cache_json = researchos_root / "corpus" / "reading-cards" / "indexes" / "easyscholar-journal-ranking-cache.json"
     if project_root:
@@ -553,8 +653,44 @@ def main() -> int:
     delay = 60 / rate_limit if rate_limit > 0 else 0
     last_request = 0.0
 
+    library_publications = load_library_publications(journal_rankings_db) if args.include_library_items else []
+    if args.library_limit is not None:
+        library_publications = library_publications[: args.library_limit]
+    library_table_hits = 0
+    library_api_requests = 0
+    for publication in library_publications:
+        _query, cached_status, _cached_tags = cached_ranking(ranking_table, [publication])
+        if cached_status:
+            library_table_hits += 1
+            continue
+        if not api_enabled:
+            remember_ranking(ranking_table, publication, "unqueried", "", publication, source="library")
+            continue
+        try:
+            wait = delay - (time.monotonic() - last_request)
+            if wait > 0:
+                time.sleep(wait)
+            api_requests += 1
+            library_api_requests += 1
+            response = fetch_rank(endpoint, secret_key, publication, timeout)
+            last_request = time.monotonic()
+            tags, merged_rank = format_rank(response)
+            status = "ok" if tags else "no_match"
+            cache[publication] = {
+                "code": response.get("code") if isinstance(response, dict) else "",
+                "msg": response.get("msg") if isinstance(response, dict) else "",
+                "rank_fields": merged_rank,
+            }
+            remember_ranking(ranking_table, publication, status, tags, publication, source="easyscholar")
+        except Exception as exc:  # noqa: BLE001 - retain a retryable dictionary state.
+            error = str(exc).replace(secret_key, "<REDACTED_KEY>")
+            cache[publication] = {"error": error}
+            remember_ranking(ranking_table, publication, "error", "", publication, source="easyscholar")
+
     for card in cards:
-        original = card.read_text(encoding="utf-8-sig")
+        raw_original = card.read_text(encoding="utf-8-sig")
+        original = normalize_project_links_frontmatter(raw_original)
+        preserved_frontmatter = original_frontmatter_block(original)
         frontmatter, body = split_frontmatter(original)
         metadata = {key: decode_yaml_string(value) for key, value in parse_metadata(body).items()}
         metadata.update(frontmatter)
@@ -587,7 +723,7 @@ def main() -> int:
                         "rank_fields": merged_rank,
                     }
                     status = "ok" if tags else "no_match"
-                    remember_ranking(ranking_table, candidate, status, tags, candidate)
+                    remember_ranking(ranking_table, candidate, status, tags, candidate, source="easyscholar")
                     if tags:
                         break
                 except Exception as exc:  # noqa: BLE001 - report per-card API failure without leaking key.
@@ -595,7 +731,7 @@ def main() -> int:
                     error = str(exc).replace(secret_key, "<REDACTED_KEY>")
                     cache[candidate] = {"error": error}
         else:
-            status = "no_match"
+            status = "unqueried" if candidates else "no_query"
         if tags:
             metadata["publication_tags"] = tags
             metadata["journal_ranking_source"] = "EasyScholar"
@@ -608,15 +744,18 @@ def main() -> int:
             metadata["journal_ranking_source"] = "EasyScholar"
             metadata["journal_ranking_status"] = status
         metadata = compact_card_metadata(metadata)
-        body = set_visible_journal_ranking(body, tags)
+        body = set_visible_journal_ranking(body, tags, status)
         updated_body = set_metadata_fields(
             body,
             metadata,
             ["publication_tags", "journal_ranking_source", "journal_ranking_status"],
         )
-        restored_frontmatter = frontmatter_from_metadata(frontmatter, metadata)
-        updated = render_frontmatter(restored_frontmatter) + updated_body.lstrip("\n").rstrip() + "\n"
-        if updated != original:
+        if preserved_frontmatter:
+            updated = preserved_frontmatter + updated_body.lstrip("\n").rstrip() + "\n"
+        else:
+            restored_frontmatter = frontmatter_from_metadata(frontmatter, metadata)
+            updated = render_frontmatter(restored_frontmatter) + updated_body.lstrip("\n").rstrip() + "\n"
+        if updated != raw_original:
             changed += 1
             if not args.dry_run:
                 card.write_text(updated, encoding="utf-8")
@@ -654,6 +793,9 @@ def main() -> int:
     print(f"cards_changed: {changed}")
     print(f"ranking_table_hits: {table_hits}")
     print(f"api_requests: {api_requests}")
+    print(f"library_journals: {len(library_publications)}")
+    print(f"library_table_hits: {library_table_hits}")
+    print(f"library_api_requests: {library_api_requests}")
     print(f"api_enabled: {api_enabled}")
     print(f"journal_rankings_db: {journal_rankings_db}")
     print(f"dry_run: {args.dry_run}")

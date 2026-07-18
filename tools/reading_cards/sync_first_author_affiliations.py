@@ -22,7 +22,10 @@ RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
 if str(RESEARCHOS_ROOT) not in sys.path:
     sys.path.insert(0, str(RESEARCHOS_ROOT))
 
-from card_common import known, metadata_heading_pattern, parse_metadata, raw_item_key, yaml_scalar
+try:
+    from .card_common import known, metadata_heading_pattern, parse_metadata, raw_item_key, yaml_scalar
+except ImportError:  # Direct script execution keeps the script directory on sys.path.
+    from card_common import known, metadata_heading_pattern, parse_metadata, raw_item_key, yaml_scalar
 from tools.zotero.zotero_local_api import fetch_json as fetch_zotero_json, resolve_pdf_file_url
 
 

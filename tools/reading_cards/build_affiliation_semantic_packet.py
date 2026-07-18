@@ -137,7 +137,7 @@ def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path], proj
         "Rules:",
         "- Output `first_author_affiliation` as `一级单位, 国家`.",
         "- Preserve supporting evidence in `first_author_affiliation_raw`.",
-        "- Use `ok`, `needs_check`, or `not_found` for status.",
+        "- Use `semantic_confirmed`, `semantic_needs_check`, `semantic_not_found`, or `source_unavailable` for status.",
         "- Do not infer missing country or institution from general knowledge.",
         "- Do not read Zotero or PDFs before checking this packet/cache.",
         "",
@@ -170,7 +170,8 @@ def markdown_packet(records: list[dict[str, Any]], cache_roots: list[Path], proj
                 'first_author_affiliation: "一级单位, 国家"',
                 'first_author_affiliation_raw: "..."',
                 'first_author_affiliation_source: "fulltext_cache pages 1-2 semantic extraction"',
-                'first_author_affiliation_status: "ok|needs_check|not_found"',
+                'first_author_affiliation_status: "semantic_confirmed|semantic_needs_check|semantic_not_found|source_unavailable"',
+                'pages_checked: [1, 2]',
                 "```",
                 "",
             ]
