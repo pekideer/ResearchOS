@@ -63,6 +63,8 @@
 | `tools/runtime/build_local_python_env.ps1` | `07-runtime-ocr-local-env.md` |
 | `tools/runtime/local_runtime.py` | `09-local-runtime-lifecycle.md` |
 | `tools/runtime/terminal_roles.py` | `09-local-runtime-lifecycle.md` |
+| `tools/runtime/corpus_snapshot.py` | `09-local-runtime-lifecycle.md` |
+| `tools/runtime/project_handoff.py` | `09-local-runtime-lifecycle.md` |
 
 ## 4. 当前治理要求
 
