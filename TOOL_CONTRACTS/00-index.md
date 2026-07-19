@@ -14,6 +14,7 @@
 | `06-researchos-governance.md` | ResearchOS 自身规则、输出边界、命名和审计 |
 | `07-runtime-ocr-local-env.md` | 本机运行环境、OCR 和依赖配置 |
 | `08-zotero-reading-card-annotation-sync.md` | Zotero annotation 回流、读书卡生成区和经审批的条目子笔记发布 |
+| `09-local-runtime-lifecycle.md` | 本地 `.researchos/` 初始化、审计、保留期和显式清理 |
 
 ## 2. 工具角色分层
 
@@ -60,6 +61,8 @@
 | `tools/project/create_project_workspace.py` | `05-project-workspace.md` |
 | `tools/researchos_outputs.py` | `06-researchos-governance.md` |
 | `tools/runtime/build_local_python_env.ps1` | `07-runtime-ocr-local-env.md` |
+| `tools/runtime/local_runtime.py` | `09-local-runtime-lifecycle.md` |
+| `tools/runtime/terminal_roles.py` | `09-local-runtime-lifecycle.md` |
 
 ## 4. 当前治理要求
 

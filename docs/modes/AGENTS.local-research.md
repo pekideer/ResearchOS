@@ -45,7 +45,7 @@ run-log.jsonl            只追加最小运行历史
 4. `.research/project_overview_and_plan.md`
 5. `.research/material_index.md`
 
-随后根据本轮任务按需读取：文献任务读阅读计划、读书卡指针和矩阵；论文任务读用户指定稿件和必要 `.paper/` 索引；实验任务读实验矩阵和数据字典。不要为了恢复上下文读取全部全文。
+若存在 `.research/handoff.yml`，在读取 manifest 后、执行任何项目写入前读取它；它负责说明当前项目写入端、交接状态、状态修订号、框架 commit 和共享语料快照。随后根据本轮任务按需读取：文献任务读阅读计划、读书卡指针和矩阵；论文任务读用户指定稿件和必要 `.paper/` 索引；实验任务读实验矩阵和数据字典。不要为了恢复上下文读取全部全文。
 
 ### 3. 处理冲突
 
@@ -83,6 +83,8 @@ run-log.jsonl            只追加最小运行历史
 - 只在切换当前项目时更新 `active_project.yml`。
 - `run_state.json` 可覆盖，表示最新快照。
 - `run-log.jsonl` 只追加，不改写历史；纠错时追加新记录并引用原 `run_id`。
+- 项目写入权按 `.research/handoff.yml` 交接；未持有写入权的终端保持项目只读。简单只读恢复不创建或抢占写入权。
+- `.research/` 不保存 tmp、cache、debug、preview、render 或其他可重建过程材料；这些材料进入本地 Agent Core 的 `.researchos/`。
 
 最小字段和隐私规则见 `templates/project-state/run-state.json`、`templates/project-state/run-record.json`。
 

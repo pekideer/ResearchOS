@@ -37,6 +37,7 @@
 | `TOOL_CONTRACTS/08-zotero-reading-card-annotation-sync.md` | Zotero annotation 只读回流、读书卡受控更新和经审批的子笔记发布 |
 | `TOOL_CONTRACTS/06-researchos-governance.md` | ResearchOS 自身规则、输出边界、命名、Obsidian 打开方式和审计 |
 | `TOOL_CONTRACTS/07-runtime-ocr-local-env.md` | 本机运行环境、OCR 和依赖配置 |
+| `TOOL_CONTRACTS/09-local-runtime-lifecycle.md` | 本地 `.researchos/` 初始化、审计、保留期和显式清理门禁 |
 
 ## 4. 全局边界
 

@@ -4,7 +4,7 @@
 
 ResearchOS 是 Codex 的科研助理运行框架，不是具体课题仓库，也不是以开发智能体代码为目标的工程项目。普通科研任务优先由模型完成理解、推理、写作和审查；工具只补足本地语料获取、PDF/OCR、Zotero、批量结构化和外部系统连接。
 
-ResearchOS 根目录只保存通用规则、skills、流程、质量标准、模板、契约、`docs/` 人读说明、`corpus/` 共享事实源和框架治理记录。具体读书卡、矩阵、研究报告、论文、审稿回复和项目过程文件写入用户指定项目工作区。
+ResearchOS Agent Core 由本地 Git 工作区保存通用规则、skills、流程、质量标准、模板、契约、`docs/` 人读说明和框架治理记录；`corpus/` 是指向同步盘共享事实源的稳定入口。具体读书卡、矩阵、研究报告、论文、审稿回复和项目过程文件写入用户指定项目工作区。本地 Agent Core 的 `.researchos/` 只保存被 Git 忽略、可按规则清理的本机运行材料，不得成为项目状态、正式成果或唯一审计证据的唯一副本。
 
 ## 必须遵守
 
@@ -16,6 +16,8 @@ ResearchOS 根目录只保存通用规则、skills、流程、质量标准、模
 - 未经单独批准，不写入 Zotero，不执行文件迁移、删除、批量改名或外部 API 写入。
 - 同步文件和项目成果使用相对路径、`{PROJECT_ROOT}`、`{RESEARCHOS_ROOT}` 或 `root_key + project_relative_path`；本机绝对路径只允许出现在机器私有配置和机器内部记录中。
 - 公开仓库不得包含真实课题材料、Zotero 数据库、规范化全文、PDF、API key、本机路径或个人缓存。
+- 每个项目使用 `.research/` 保存跨端恢复所需的持久状态；禁止把 tmp、cache、debug、preview、render 等可重建过程材料写入项目 `.research/`。
+- 跨端写入按框架维护端、共享语料发布端、项目活动写入端和 Zotero 写入端分域授权；一种角色不自动取得另一种写入权。
 
 详细语言、科研诚信、隐私和 Zotero 边界分别见：
 
@@ -24,6 +26,7 @@ ResearchOS 根目录只保存通用规则、skills、流程、质量标准、模
 - `PRIVACY.md`
 - `POLICIES/ZOTERO_READONLY_POLICY.md`
 - `POLICIES/ZOTERO_WRITE_POLICY.md`
+- `docs/governance/cross-device-storage-and-role-architecture.md`
 
 ## 任务分层
 
@@ -87,8 +90,8 @@ EVALS.md           评测，不定义规则
 
 - 系统级人读说明和治理报告：`docs/`
 - 共享事实源和集中读书卡：`corpus/`
-- 机器运行留存：`.researchos/outputs/machine/`
-- 外部写入审批和回滚证据：`.researchos/outputs/archive/`
+- 本机运行材料与尚未晋升的详细执行证据：本地 `.researchos/`
+- 项目持久状态、项目审批和精简审计：项目 `.research/`
 - 具体科研成果：用户指定项目工作区
 - 未归属人工材料：与 `00_ResearchOS/` 平级的 `0.Inbox/`
 

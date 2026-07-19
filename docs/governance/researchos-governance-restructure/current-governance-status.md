@@ -17,8 +17,8 @@
 | 工具契约 | `TOOL_CONTRACTS.md`、`TOOL_CONTRACTS/` | 定义工具边界和高风险审批规则 |
 | 当前状态 | `PROJECT_STATE.md` | 记录当前阶段和下一步 |
 | 共享事实源 | `corpus/` | 保存 Zotero 父文档、规范化全文、集中读书卡和索引 |
-| 低层机器留存 | `.researchos/outputs/machine/` | 保存试运行计划、机器 CSV/JSON 和执行记录 |
-| 外部写入审计留存 | `.researchos/outputs/archive/` | 保存 Zotero 等外部写入审批、回滚和执行证据 |
+| 本机运行区 | `.researchos/` | 保存试运行计划、机器 CSV/JSON、缓存、日志和待晋升详细证据；不作为唯一持久副本 |
+| 项目持久状态 | 项目 `.research/` | 保存 manifest、状态、交接、决策、审批和精简审计 |
 
 ## 2. 当前结构
 
@@ -27,8 +27,8 @@
 | 共享事实源 | `corpus/` 是 Zotero 父文档、规范化全文、集中读书卡和索引入口 |
 | 人读文档 | 系统级人读说明和报告进入 `docs/` |
 | 项目成果 | 读书卡、综述矩阵、研究报告、论文草稿和审稿回复进入用户指定项目工作区 |
-| 低层机器留存 | 机器 CSV/JSON、试运行计划和执行记录进入 `.researchos/outputs/machine/` |
-| 外部写入证据 | 审批、执行前后、回滚和审计材料进入 `.researchos/outputs/archive/` |
+| 本机运行材料 | 机器 CSV/JSON、试运行计划、详细执行记录、缓存和日志进入本地 `.researchos/` |
+| 外部写入证据 | 详细证据先在本地暂存；项目专属审批、执行结论和精简回滚凭据晋升到项目 `.research/` |
 | 集中读书卡 | `corpus/reading-cards/cards/` 使用 `RC-###_ZoteroKey_短题名.md` 和简短 YAML 头部 |
 | 读书卡流水线 | `tools/reading_cards/zotero_library_pipeline.py` 统一处理全库、增量和显式 item key；代码只准备首页证据，单位由当前 agent 语义判断并经过预检、受控本地写入和严格审计 |
 | 期刊等级 | `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中的 `journal_rankings` 词典表作为映射来源 |
@@ -38,6 +38,8 @@
 | 高风险写入 | 通过 `tools/zotero/write/` 和 Zotero Web API 审批流程执行 |
 | skill 边界 | 保留 22 个独立 skill；项目地图同时承担明确请求的上下文恢复与汇报导航，`zotero-reading-card-pipeline` 承担 Zotero 条目到语义读书卡的组合流程 |
 | 上下文状态 | `active_project.yml` 定位，manifest 保存稳定事实，`run_state.json` 保存当前快照，`run-log.jsonl` 只追加最小历史 |
+| 跨端存储 | Agent Core 通过 Git 拉齐；同步盘 `corpus/` 保存共享事实源；项目 `.research/` 保存持久状态；本地 `.researchos/` 保存可清理运行材料 |
+| 分域权限 | Framework Maintainer、Corpus Publisher、Project Writer、Zotero Writer 分别授权；项目写入权允许显式交接 |
 | 根规则负担 | `AGENTS.md` 保留最高规则，`TRIGGERS.md` 使用紧凑路由表，详细边界按需读取 |
 | 首次运行 | 先做只读就绪检查；普通科研任务不要求预装 Python 或配置 Zotero |
 | OCR 安装门禁 | 默认只检查并停止；只有用户明确批准且传入 `--install` 时才安装依赖 |
@@ -54,10 +56,10 @@
 
 ## 4. 下一步建议
 
-下一步优先做真实科研请求的行为闭环验证。
+下一步优先完成跨端存储与角色架构的金丝雀实现，再继续真实科研请求的行为闭环验证。
 
 建议顺序：
 
-1. 对 `C01-C12` 使用新会话真实请求验证主 skill 选择和输出边界。
-2. 验证新建/既有项目的唯一恢复链、冲突处理和最小日志。
-3. 对验证中暴露的缺口只做最小修复，暂缓扩展新 skill。
+1. 固化本地运行区结构、项目 `handoff.yml` 模板和分域角色检查。
+2. 选择一个项目执行原端交出、新端只读恢复、显式接管的金丝雀。
+3. 金丝雀通过后再迁移现有项目 `.research/` 中的缓存、预览和备份；迁移前不删除旧文件。

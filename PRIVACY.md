@@ -27,8 +27,11 @@ ResearchOS 可以管理具体科研项目，但公开仓库只能保存通用科
 - 本机路径映射：`%USERPROFILE%\.researchos\machine_config.json`。
 - 当前课题指针：`%USERPROFILE%\.researchos\active_project.yml` 或仓库本地 `.researchos\active_project.yml`。
 - 项目登记表：`%USERPROFILE%\.researchos\project_registry.yml` 或仓库本地 `.researchos\project_registry.yml`。
+- 本地 Agent 运行材料：Agent Core 根目录下被 Git 忽略的 `.researchos/`；其中内容不得作为唯一项目状态或唯一正式审计副本。
 - 具体课题上下文：课题目录下的 `.research/`。
 - 具体课题成果：课题目录下的 `01-reading-cards/`、`02-literature-matrix/`、`03-manuscript/`、`.paper/`。
+
+项目 `.research/` 只能保存跨端恢复所需的 manifest、状态、交接、决策、审批和精简审计；不得保存 tmp、cache、debug、preview、render、个人绝对路径、密钥或可重建的过程材料。具体边界见 `docs/governance/cross-device-storage-and-role-architecture.md`。
 
 ## 发布前最小检查
 

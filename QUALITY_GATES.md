@@ -273,14 +273,17 @@
 
 - 是否只执行 `docs/modes/AGENTS.local-research.md` 的唯一恢复链。
 - `active_project.yml`、`project_manifest.yml`、`run_state.json`、`run-log.jsonl` 是否各守其责。
+- 若存在 `handoff.yml`，执行项目写入的终端是否持有当前项目写入权，状态修订号、框架 commit 和语料快照是否一致。
 - 是否先读轻量恢复包，再按任务读取材料，避免无差别加载全文。
 - 冲突是否按用户本轮说明、当前项目文件、manifest、当前快照、历史记录的顺序处理。
 - 运行日志是否只记录必要元数据和项目相对路径。
 - 简单问答和无状态变化的只读查看是否没有制造日志噪声。
+- 项目 `.research/` 是否只保存 manifest、状态、交接、决策、审批和精简审计，没有 tmp、cache、debug、preview、render 等过程材料。
+- 本地 `.researchos/` 中的详细证据是否在清理前已晋升必要的跨端摘要，且没有成为唯一项目状态或唯一正式审计副本。
 
 ### 通过标准
 
-- 项目定位唯一、恢复摘要可解释；需要留痕的任务有最新快照和一条可回溯记录，且不含完整对话、正文、密钥、Zotero 数据库/PDF 路径或本机绝对项目路径。
+- 项目定位唯一、恢复摘要可解释；需要留痕的任务有最新快照和一条可回溯记录；项目写入权可解释；持久状态不含完整对话、正文、密钥、Zotero 数据库/PDF 路径、本机绝对项目路径或可重建过程材料。
 
 ### 失败时处理
 
@@ -356,12 +359,12 @@
 - 同步盘、人读报告、矩阵、读书卡索引、项目交接和项目成果文件中的路径是否全部采用项目相对路径、`{PROJECT_ROOT}/...`、`{RESEARCHOS_ROOT}/...` 或 `root_key + project_relative_path`；除机器内部运行配置外，出现 `C:\`、`D:\`、`E:\`、`file:///`、`OneDrive -` 等本机绝对路径即为不通过。
 - 读书卡治理是否以 `corpus/reading-cards/cards/` 为集中主库，避免再生成迁移备份目录。
 - Zotero 项目文献集覆盖层是否停留在试运行计划，未写入 Zotero。
-- `.researchos/outputs/machine/` 是否只保留机器运行产物、试运行计划和执行记录；`.researchos/outputs/archive/` 是否只保留外部写入审计证据。
+- 本地 `.researchos/` 是否只保留机器运行产物、缓存、日志和待晋升详细证据；长期需要的项目审批与精简审计是否已经进入项目 `.research/`。
 - 治理收束后，是否同步更新 `AGENTS.md`、`README.md`、`RUNBOOKS/`、质量检查和工具契约中的当前入口。
 
 ### 通过标准
 
-- 当前治理入口、状态文档和相关规则指向 `docs/governance/researchos-governance-restructure/current-governance-status.md` 及当前 `docs/`、`corpus/`、`.researchos/outputs/` 边界。
+- 当前治理入口、状态文档和相关规则指向 `docs/governance/researchos-governance-restructure/current-governance-status.md` 及当前 Agent Core、`corpus/`、项目 `.research/`、本地 `.researchos/` 四层边界。
 - 治理过程未写入 Zotero、未移动 PDF；如涉及外部写入，必须先进入审批流程。
 
 ### 失败时处理

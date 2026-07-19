@@ -50,14 +50,15 @@ corpus/
   machine/   # 机器运行产物
 ```
 
-`.researchos/outputs/machine/` 和 `.researchos/outputs/archive/` 是工具低层运行留存区。日常任务的人读结果进入 `docs/`、项目工作区或平级 `0.Inbox/`。
+`.researchos/outputs/machine/` 和 `.researchos/outputs/archive/` 是本地工具的兼容运行与详细证据暂存区，不跨端，也不能保存唯一正式证据。日常任务的人读结果进入 `docs/`、项目工作区或平级 `0.Inbox/`；项目专属持久状态、审批和精简审计进入项目 `.research/`。
 
 ## 2. 分类规则
 
 - `docs/`：给人阅读、复核、决策的说明、指南、治理过程、能力映射和系统级报告。
 - `corpus/`：给项目工作区和 LLM 使用的共享事实源，包括 SQLite、规范化全文、集中读书卡和索引。
-- `.researchos/outputs/archive/`：外部写入审批证据、执行前/执行后和回滚材料。
-- `.researchos/outputs/machine/`：机器运行产物、试运行计划和执行记录。
+- `.researchos/outputs/archive/`：本地外部写入详细证据暂存，任务收束前受保护，晋升必要摘要后可按策略清理。
+- `.researchos/outputs/machine/`：本地机器运行产物、试运行计划和执行记录，可再生成内容不进入项目持久状态。
+- 项目 `.research/`：manifest、状态、交接、决策、已批准计划和数据最小化后的最终审计。
 
 项目级课题目录继续使用既有编号结构：
 
@@ -72,7 +73,7 @@ corpus/
 - `07-审稿回复/`：审稿意见、回复表和修改记录。
 - `08-写作材料/`：写作计划、提纲、草稿素材和导师反馈。
 - `10-批注/`：人工批注、处理记录和批注归档。
-- `.research/fulltext_cache/`：机器全文缓存，不是人工主入口。
+- `.research/fulltext_cache/`：旧项目兼容缓存，目标架构中应迁入本地 Agent Core 的 `.researchos/cache/`；完成盘点和校验前不删除。
 
 ## 3. 编号规则
 
@@ -88,6 +89,8 @@ corpus/
 - `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 与 `corpus/fulltext/zotero-library-normalized/` 是后续 Zotero 文献管理、阅读、综述、AI 分类和治理任务的共享事实源。
 - 同步盘 SQLite 采用单写多读：同一时间只允许一个终端执行写入型 `sync` 或 `watch`。
 - `zotero_library_index.py` 使用 `zotero_library.sqlite.writer.lock` 做 advisory writer lock；只有确认无其他终端写入时才可使用 `--force-lock`。
+- Agent Core、共享 corpus、具体项目和 Zotero 分别授权写入；Framework Maintainer、Corpus Publisher、Project Writer、Zotero Writer 角色互不自动继承。
+- 项目同一时刻只允许一个 Project Writer；写入权通过项目 `.research/handoff.yml` 显式交接。
 
 ## 5. 当前默认映射
 
@@ -117,9 +120,10 @@ corpus/
 ## 6. 维护规则
 
 - 新增根级产物前，先判断面向人、共享事实源、机器留存还是外部写入审计。
-- 面向人的系统级文档进入 `docs/`；具体项目文档进入项目目录；共享事实源进入 `corpus/`；外部写入审计证据才进入 `.researchos/outputs/archive/`。
+- 面向人的系统级文档进入 `docs/`；具体项目文档进入项目目录；共享事实源进入 `corpus/`；外部写入详细证据先进入本地 `.researchos/`，项目专属长期摘要晋升到项目 `.research/`。
 - 具体项目名称、项目级分类计划和项目级 Zotero 覆盖层不得写入 ResearchOS 通用机器目录。
 - `.researchos/outputs/machine/M-002-library-governance/` 只作为 Zotero 文献库治理的运行时机器目录，不是事实源；旧批处理请求、CSV/JSON 中间产物和写入试运行计划没有当前任务引用时应删除，必要时从 `corpus/` 和 `docs/reports/library-governance/` 再生成。
+- 本地 `.researchos/` 清理前必须确认不存在唯一项目状态、唯一正式审计、未完成外部写入或未关闭回滚事项。
 - 未归属材料放入与 `00_ResearchOS/` 平级的 `0.Inbox/`。
 - 机器 CSV/JSON 中可保留 raw Zotero key；人工 Markdown/HTML/YAML 中必须使用可点击 Zotero 链接。
 - PDF 文件、真实 API key、Python 环境、本机构建产物和人工主文档分别进入对应安全位置或项目工作区。
