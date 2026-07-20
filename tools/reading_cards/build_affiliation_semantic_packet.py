@@ -10,10 +10,16 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
+RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
+if str(RESEARCHOS_ROOT) not in sys.path:
+    sys.path.insert(0, str(RESEARCHOS_ROOT))
+
 from card_common import known, parse_metadata, raw_item_key
+from tools.runtime.project_write_guard import add_project_write_guard_args, require_from_args
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -30,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-chars-per-card", type=int, default=4500)
     parser.add_argument("--output")
     parser.add_argument("--jsonl-output")
+    add_project_write_guard_args(parser)
     return parser
 
 
@@ -38,8 +45,10 @@ def default_cards_root(researchos_root: Path) -> Path:
 
 
 def default_cache_roots(project_root: Path, cards_root: Path) -> list[Path]:
-    base = project_root / ".research" / "fulltext_cache"
-    return [base]
+    return [
+        project_root / "02-证据材料" / "全文缓存",
+        project_root / ".research" / "fulltext_cache",  # legacy read-only compatibility
+    ]
 
 
 def find_cache_file(cache_roots: list[Path], item_key: str) -> Path | None:
@@ -188,9 +197,10 @@ def main() -> int:
     output = (
         Path(args.output).resolve()
         if args.output
-        else project_root / ".research" / "first-author-affiliation-semantic-packet.md"
+        else project_root / "02-证据材料" / "语料包" / "first-author-affiliation-semantic-packet.md"
     )
     jsonl_output = Path(args.jsonl_output).resolve() if args.jsonl_output else output.with_suffix(".jsonl")
+    require_from_args(args, [output, jsonl_output])
 
     records = [
         build_record(card, cache_roots, project_root, researchos_root, args.max_pages, args.max_chars_per_card)

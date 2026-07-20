@@ -23,7 +23,8 @@
 | 记录碎片想法、建立 IDEA、初步潜力判断 | C04 | `idea-to-research-potential` | 0 | 点子潜力 |
 | 父文档缺失/过期、Local API 排障、定位 PDF | C05 | `zotero-literature-access` | 1 | 来源、Zotero 父文档 |
 | 单篇论文精读、仅生成本地读书卡 | C06 | `paper-deep-reading` | 1、1A | 证据、来源、输出 |
-| 为某个/多个/新增/全库 Zotero 条目抽取全文、识别第一作者单位、生成或更新读书卡；以及“生成某条阅读卡并同步到 Zotero”这类组合请求 | C05、C06、C11 | `zotero-reading-card-pipeline` | 1C、1B | 证据、Zotero 父文档、输出、写入 |
+| 为某个或多个明确 Zotero 条目抽取全文、识别第一作者单位、生成或更新读书卡 | C05、C06、C11 | `zotero-reading-card-pipeline` | 1C、1B | 证据、Zotero 父文档、输出、写入 |
+| 检查 Zotero 库增减并把新增条目完整推进到精读卡、中文单位、父条目 note 互斥、collection 与 tags 计划；每日完整增量治理 | C05、C06、C11 | `zotero-incremental-curator` | 1D、1B、0A | 证据、Zotero 父文档、collection/tags 语义、输出、写入 |
 | 仅把已有读书卡发布为 Zotero 笔记、仅同步 PDF 高亮/批注并回流读书卡 | C06、C11 | `zotero-reading-card-annotation-sync` | 1B | 证据、Zotero 父文档、写入 |
 | 关键词、检索式、数据库路线、候选发现 | C07 | `literature-search-map` | 2A | 来源、输出 |
 | 多篇文献比较、综述矩阵、研究缺口线索 | C07 | `literature-matrix` | 2 | 证据、来源 |
@@ -42,6 +43,7 @@
 | 为明确课题生成 Zotero 项目文献集覆盖层计划 | C11 | `project-collection-overlay` | 0A | Zotero 写入 |
 | 创建或审计课题输出目录 | C12 | `research-project-workspace` | 课题输出目录规范 | 命名、输出 |
 | 代码/功能闭环审计 | C12 | `WORKFLOWS.md` 工作流 0C | 0C | 代码与功能闭环 |
+| 发布共享 corpus、检查项目写入权、跨端写入接力 | C12 | `WORKFLOWS.md` 工作流 0D | 0D | corpus 发布与项目写入 |
 | 文件命名、目录编号和命名冲突 | C12 | `RUNBOOKS/naming-governance.md` | 专题手册 | 命名 |
 | Obsidian、双链和人读入口 | C12 | `RUNBOOKS/obsidian-zotero-codex-governance.md` | 专题手册 | 输出、命名 |
 

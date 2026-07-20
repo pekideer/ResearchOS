@@ -14,6 +14,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
+if str(RESEARCHOS_ROOT) not in sys.path:
+    sys.path.insert(0, str(RESEARCHOS_ROOT))
+
+from tools.runtime.project_handoff import apply_plan as apply_handoff_plan, bootstrap_plan
+from tools.runtime.project_write_guard import require_project_write_access
+from tools.runtime.terminal_roles import default_config_path
+
 
 CENTRALIZED_READING_CARDS = "centralized-links"
 BASE_STANDARD_DIRS = [
@@ -137,6 +145,9 @@ def build_parser() -> argparse.ArgumentParser:
             "centralized:00_ResearchOS/corpus/reading-cards/cards/."
         ),
     )
+    parser.add_argument("--agent-root", type=Path, help="ResearchOS Agent Core root used for project write ownership.")
+    parser.add_argument("--corpus-root", type=Path, help="Shared corpus root used for project write ownership.")
+    parser.add_argument("--role-config", type=Path, help="Private terminal role configuration.")
     return parser
 
 
@@ -264,7 +275,7 @@ status:
 safety:
   api_keys_stored_here: false
   zotero_write_allowed: false
-  notes: "不要在 .research/ 中保存 API key、Zotero 数据库或 PDF 文件；.research/fulltext_cache/ 可保存项目内部文本缓存，kit export 必须剔除。"
+  notes: "不要在 .research/ 中保存 API key、Zotero 数据库、PDF、缓存或预览；项目内部派生文本写入 02-证据材料/全文缓存/。"
 """
 
 
@@ -336,7 +347,7 @@ def scaffold_files(
         root / "03-文献矩阵" / "02-阅读计划" / "LM-002_reading-plan.md": "# 阅读计划\n\n待填写。\n",
         root / "03-文献矩阵" / "06-矩阵缺口与技术路线" / "LM-006_gap-analysis-and-technical-route.md": "# 矩阵缺口与技术路线\n\n待填写。\n",
         root / "03-文献矩阵" / "07-团队追踪" / "LM-007_team-tracking.md": "# 团队追踪\n\n待填写。\n",
-        root / "09-计算工作区" / "README.md": "# 计算工作区\n\n用于保存本课题可复现分析脚本、配置、图表和日志；不要保存 API key、Zotero 数据库或 PDF 文件。长文本请优先复用 `.research/fulltext_cache/`。\n",
+        root / "09-计算工作区" / "README.md": "# 计算工作区\n\n用于保存本课题可复现分析脚本、配置、图表和日志；不要保存 API key、Zotero 数据库或 PDF 文件。项目局部长文本请复用 `02-证据材料/全文缓存/`。\n",
     }
 
     planned_or_created: list[Path] = []
@@ -444,6 +455,10 @@ def main() -> int:
         return 2
 
     root = root.expanduser()
+    agent_root = (args.agent_root or researchos_root).resolve()
+    corpus_root = (args.corpus_root or (agent_root / "corpus")).resolve()
+    role_config = (args.role_config or default_config_path()).resolve()
+    initializing = not (root / ".research" / "project_manifest.yml").is_file()
 
     if args.audit:
         return audit_workspace(root, args.registry_reading_cards)
@@ -451,6 +466,15 @@ def main() -> int:
     if root.exists() and not root.is_dir():
         print(f"ERROR: 指定路径已存在，但不是目录：{root}")
         return 2
+
+    if root.exists() and not args.dry_run and not initializing:
+        require_project_write_access(
+            root,
+            agent_root=agent_root,
+            corpus_root=corpus_root,
+            role_config=role_config,
+            targets=[root],
+        )
 
     if not root.exists():
         if args.dry_run:
@@ -491,6 +515,16 @@ def main() -> int:
         args.reading_cards_mode,
         args.centralized_reading_cards_dir,
     )
+    if initializing and not args.dry_run:
+        handoff = bootstrap_plan(
+            root,
+            agent_root,
+            corpus_root,
+            role_config,
+            "项目工作区初始化完成",
+            "由当前活动写入端继续项目任务",
+        )
+        apply_handoff_plan(root, handoff)
 
     print("\nResearchOS 课题输出目录")
     print(f"researchos_root: {researchos_root}")

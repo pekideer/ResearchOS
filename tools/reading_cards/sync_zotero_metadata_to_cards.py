@@ -19,6 +19,7 @@ if str(RESEARCHOS_ROOT) not in sys.path:
 
 from card_common import metadata_heading_pattern, parse_metadata, yaml_scalar
 from tools.zotero.zotero_local_api import fetch_json as fetch_zotero_json, year_from_date
+from tools.runtime.project_write_guard import add_project_write_guard_args, refuse_direct_shared_corpus_write, require_project_write_access
 
 
 UNKNOWN = {"", "?", "[]", "none", "null", "未填写"}
@@ -169,6 +170,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--dry-run", action="store_true")
+    add_project_write_guard_args(parser)
     return parser
 
 
@@ -493,9 +495,20 @@ def main() -> int:
     args = build_parser().parse_args()
     project_root = Path(args.project_root).resolve()
     researchos_root = Path(args.researchos_root).resolve()
-    cards_root = Path(args.cards_root).resolve() if args.cards_root else researchos_root / "corpus" / "reading-cards" / "cards"
+    cards_root = Path(args.cards_root).resolve() if args.cards_root else researchos_root / ".researchos" / "outputs" / "machine" / "M-006-zotero-ingestion-pipeline" / "staging" / "reading-cards" / "cards"
     if not cards_root.exists():
         raise ValueError(f"cards root not found: {cards_root}")
+
+    report_path = project_root / "03-文献矩阵" / "03-文献管理元数据" / "zotero-metadata-card-sync-report.csv"
+    if not args.dry_run:
+        require_project_write_access(
+            project_root,
+            agent_root=args.agent_root,
+            corpus_root=args.corpus_root,
+            role_config=args.role_config,
+            targets=[report_path],
+        )
+        refuse_direct_shared_corpus_write(researchos_root, [cards_root])
 
     changed = 0
     rows: list[dict[str, Any]] = []
@@ -545,7 +558,6 @@ def main() -> int:
             }
         )
 
-    report_path = project_root / "03-文献矩阵" / "03-文献管理元数据" / "zotero-metadata-card-sync-report.csv"
     if not args.dry_run:
         report_path.parent.mkdir(parents=True, exist_ok=True)
         import csv

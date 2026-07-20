@@ -27,9 +27,11 @@ if str(RESEARCHOS_ROOT) not in sys.path:
 
 from tools.reading_cards.card_common import (
     affiliation_publish_blockers,
+    chinese_affiliation_display_blockers,
     content_sha256,
     parse_metadata,
     reading_card_identity,
+    researchos_reading_card_notes,
 )
 from tools.researchos_outputs import (
     A003_READING_CARD_NOTE_PUBLISH,
@@ -366,12 +368,18 @@ def build_plan(
         raise SystemExit("Target item is missing or is not a top-level bibliographic item")
     children = fetch_paged(config, f"items/{item_key}/children", opener)
     matches = existing_generated_notes(children, card_id)
+    parent_generated_notes = researchos_reading_card_notes(children)
     mapping = mapped_note_state(db_path, card_id)
-    blockers = affiliation_publish_blockers(parse_metadata(body))
+    metadata = parse_metadata(body)
+    blockers = affiliation_publish_blockers(metadata)
+    blockers.extend(chinese_affiliation_display_blockers(metadata))
     action = "create"
     existing_note: dict[str, Any] | None = None
-    if len(matches) > 1:
-        blockers.append("multiple_generated_notes")
+    if len(parent_generated_notes) > 1:
+        blockers.append("multiple_parent_reading_card_notes")
+        action = "blocked"
+    elif len(parent_generated_notes) == 1 and not matches:
+        blockers.append("parent_reading_card_note_identity_conflict")
         action = "blocked"
     elif len(matches) == 1:
         existing_note = matches[0]

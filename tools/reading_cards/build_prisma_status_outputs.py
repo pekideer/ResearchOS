@@ -17,7 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
+if str(RESEARCHOS_ROOT) not in sys.path:
+    sys.path.insert(0, str(RESEARCHOS_ROOT))
+
 from card_common import parse_metadata
+from tools.runtime.project_write_guard import add_project_write_guard_args, require_discovered_project_write
 
 
 READ_STATUS_TAGS = {
@@ -88,6 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Return a non-zero exit code when validation reminders are generated.",
     )
+    add_project_write_guard_args(parser)
     return parser
 
 
@@ -317,6 +323,12 @@ def main() -> int:
         Path(args.reading_card_root).expanduser().resolve()
         if args.reading_card_root
         else records_path.parent
+    )
+    require_discovered_project_write(
+        [output_dir],
+        agent_root=args.agent_root,
+        corpus_root=args.corpus_root,
+        role_config=args.role_config,
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 

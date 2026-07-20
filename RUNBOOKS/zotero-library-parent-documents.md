@@ -73,7 +73,7 @@ python tools\runtime\ensure_ocr_needed.py
 ## 5. 冲突处理
 
 - `tools/zotero/zotero_local_api_cli.py` 只作为父文档维护或故障排查的底层工具，不作为普通阅读/治理默认入口。
-- 课题 `.research/fulltext_cache/` 仍可作为项目局部缓存，但其来源应优先由父文档派生；不得绕过已有父文档重复读取 PDF。
+- 新增项目局部文本进入 `02-证据材料/全文缓存/`；旧 `.research/fulltext_cache/` 仅只读兼容。其来源应优先由父文档派生，不得绕过已有父文档重复读取 PDF。
 - 人工报告可引用 规范化文本 路径和页数/字符范围，但不得把整篇全文复制进报告。
 - 不读取或修改 Zotero 原始 `zotero.sqlite`。
 - 不复制、移动、删除或重命名 Zotero PDF。

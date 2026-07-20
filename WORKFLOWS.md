@@ -84,6 +84,19 @@
 - 未闭环功能标明阻断点和最小修复方向。
 - 未经用户明确要求，不发生代码修复或批量改写。
 
+## 工作流 0D：共享 corpus 发布与项目写入
+
+能力编号：`C12`
+
+1. 所有摄取、OCR、全文规范化、集中读书卡和索引更新先进入本机 `M-006` staging；不得把 staging 完成报告为共享 corpus 已更新。
+2. 使用 `publish_corpus.py plan` 冻结允许区域、源哈希、目标基线、SQLite 健康状态和 `plan_hash`。计划阶段只读 corpus。
+3. 真实 corpus 必须先审批一个精确金丝雀；批准前不运行 `apply --apply`。Corpus Publisher 角色只是必要条件，不替代本次用户批准。
+4. apply 前重新校验计划和基线；逐文件同目录原子替换，release manifest 最后提交。verify 必须回读全部 manifest 文件；任一不符即视为未提交或混合版本。
+5. rollback 使用发布时生成的精确计划，并单独审批。禁止将回滚扩展为目录清理。
+6. 任一工具写项目文件前调用共用 `project_write_guard.py`；handoff 所有权或 Agent Core/corpus 锚点漂移时整体停止。
+
+完成标准：发布计划、角色、基线、提交清单、回读和回滚证据闭环；项目写入入口在首个写操作前 fail-closed。
+
 ## 工作流 0X：人工批注收件箱
 
 能力编号：`C03`
@@ -210,10 +223,10 @@
 1. 先查询 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite`。
 2. 搜索或确认候选 条目 key 后，用 `tools/zotero/build_zotero_library_context_packet.py` 构建题录和 规范化文本 上下文包。
 3. 优先读取 SQLite 中 `text_normalized_cache_path` 指向的规范化 PDF 文本；如路径因跨设备变化失效，按当前 `corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt` 回退。
-4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过 `tools/zotero/zotero_library_index.py sync` / `ocr-needed` / `normalize-text-cache` 更新父文档。
-5. 课题 `.research/fulltext_cache/` 可作为项目局部缓存，但应从父文档派生或能回溯到父文档。
+4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过工作流 1C 的本机 staging 调用 `sync` / `ocr-needed` / `normalize-text-cache`；验证后再进入 corpus 发布流程。
+5. 旧项目 `.research/fulltext_cache/` 仅可只读兼容；新增项目局部文本进入 `02-证据材料/全文缓存/`，并应从父文档派生或能回溯到父文档。
 7. 使用 `tools/reading_cards/build_affiliation_semantic_packet.py` 或同等缓存片段准备首页题录区证据，再用 `paper-deep-reading` 生成读书卡；读书卡写法按 `RUNBOOKS/reading-card-governance.md` 执行。
-8. 保存读书卡前先确认课题读书卡落点：默认保存到 `corpus/reading-cards/cards/`，并在课题目录保留项目指针、阅读总表或团队追踪链接。无课题目录时先要求确认项目路径。临时 PDF 文本抽取进入项目 `.research/fulltext_cache/` 或 `corpus/fulltext/`。
+8. 保存读书卡前先确认课题读书卡落点：默认先写本机 staging，发布后进入 `corpus/reading-cards/cards/`，并在课题目录保留项目指针、阅读总表或团队追踪链接。项目局部 PDF 文本进入 `02-证据材料/全文缓存/`；跨项目事实源先写本机 staging，再由 Corpus Publisher 发布到 `corpus/fulltext/`。
 9. 如需维护项目级阅读总表，运行 `tools/reading_cards/sync_reading_summary_table.py` 同步 `LM-004_reading-summary-table.html`。
 
 命令入口：
@@ -340,7 +353,7 @@
 9. 初筛卡默认不生成第 6 章“借鉴”，也不自动建立项目用途；项目关联确认后再按关联时间顺序追加 6.1.1、6.1.2 等三级目录。
 10. 增量模式以 `item version + pipeline version` 判定是否需要重跑；显式 `--item-key` 可触发单条同一流程。
 11. 完成本地卡后运行 `audit --strict`。只要仍有 `heuristic_candidate`、`existing_card_candidate`、旧 `not_found` 或 `not_processed`，不得报告单位识别完成。
-12. 本工作流本地阶段只写 ResearchOS 父文档、词典、文本缓存和集中读书卡。用户要求同步 Zotero 时，转入工作流 1B：先 live dry-run，再对具体批准计划执行金丝雀；本工作流本身不授权写 Zotero。
+12. `run` 只写本机 `.researchos/outputs/machine/M-006-zotero-ingestion-pipeline/staging/`；后续 `semantic-packet`、`semantic-apply` 和 `audit` 自动沿用该 staging。共享更新只能由 Corpus Publisher 通过 `publish_corpus.py` 的受控发布完成，其他工具直接写 `corpus/` 时 fail-closed。用户要求同步 Zotero 时，转入工作流 1B：先 live dry-run，再对具体批准计划执行金丝雀；本工作流本身不授权写 Zotero。
 
 命令入口：
 
@@ -359,7 +372,26 @@
 - 期刊字段无裸 `?`；单位只有 `semantic_confirmed` 或 `manual_confirmed` 可作为确定事实显示，其余状态明确说明语义未决、未找到或来源不可用。
 - 请求范围满足数量守恒，不存在未说明的候选或未处理条目；确定单位均有原始片段、页码、来源和证据哈希。
 - 现有人工读书卡正文未被模板覆盖；自动初筛卡没有项目借鉴章，也没有把摘要改写成已核实全文结论。
+- 默认 staging 运行已明确报告 `corpus_publication_required`；未完成 Corpus Publisher 发布和共享快照校验时，不报告共享父文档或集中主卡已更新。
 - 未写入 Zotero，未复制、移动、删除或重命名 Zotero PDF。
+
+## 工作流 1D：Zotero 增量完整治理
+
+能力编号：`C05`、`C06`、`C11`
+
+主 skill：`zotero-incremental-curator`
+
+目标：把“发现新增或变化”推进到可审计的完整语义资产，而不是停在初筛占位卡。
+
+1. 同步前后分别冻结 Local API 顶层条目 `key + version` 快照；意外变化时废弃旧语义结果并重新取证。
+2. 运行工作流 1C 的本机 staging 同步，随后按 DOI 与 item key 审计重键、活动/删除条目同 DOI、多卡同 key 和同 DOI 多活动卡；未完成 Corpus Publisher 发布时把共享语料状态标为待发布。
+3. 对本次范围逐个父条目审计 ResearchOS 读书卡 note 数。`>1` 时冻结 keeper/删除计划并停止发布；真实删除必须单独批准并逐条回读。
+4. 单位原文证据与显示值分开：当前 agent 识别作者对应关系和一级机构，显示值统一为 `中文一级机构，中文国家`；代码只验证格式和证据状态。
+5. 有全文的新条目必须使用 `paper-deep-reading` 完成 1–5、7 章并标记 `llm_fulltext_deep_reading/full_text_reviewed`；无全文时明确阻断，不把摘要卡报告为精读卡。
+6. 当前 agent 逐条判断 collection 与 tags，分别生成 dry-run。项目用途不明确时保持 triage，不用阅读状态推断用途。
+7. 运行 `audit --strict --curation-strict --item-key ...`，再为缺失/需更新的唯一读书卡 note 生成 live dry-run。真实 Zotero 写入仍走工作流 1B 或相应 metadata 写入审批、金丝雀和回读。
+
+验收：增减、重键、卡片互斥、精读状态、中文单位、collection、tags、note 与共享语料发布均有明确的完成/待审批/待发布/阻断状态；“占位卡已创建”不等于“精读完成”。
 
 ## 工作流 2：从多篇文献到 只追加 综述矩阵
 
@@ -368,7 +400,7 @@
 目标：把多篇读书卡转化为可比较的综述矩阵。
 
 1. 先检查是否已有 `literature-review-matrix.csv`。
-2. 收集同一课题下的读书卡、笔记、文末元数据或 Zotero 父文档元信息；若需要 PDF 全文，先用 `tools/zotero/build_zotero_library_context_packet.py` 或 `.research/fulltext_cache/` 生成证据包，PDF 重新抽取只作为父文档和缓存均缺失时的最后手段。
+2. 收集同一课题下的读书卡、笔记、文末元数据或 Zotero 父文档元信息；若需要 PDF 全文，先用 `tools/zotero/build_zotero_library_context_packet.py` 或 `02-证据材料/全文缓存/` 生成证据包；旧 `.research/fulltext_cache/` 只读兼容。PDF 重新抽取只作为父文档和缓存均缺失时的最后手段。
 3. 统一元信息字段：标题、作者、年份、DOI、条目 key。
 4. 使用 `literature-matrix` 比较研究对象、方法、数据、指标和结论。
 5. 只追加新增文献行，不覆盖已有人工确认字段。

@@ -52,7 +52,7 @@ class ProjectHandoffTests(unittest.TestCase):
             project, agent, corpus, config = setup_project(Path(tmpdir))
             plan = bootstrap_plan(project, agent, corpus, config, "done", "next")
             result = apply_plan(project, plan)
-            allowed = check_write(project, config)
+            allowed = check_write(project, agent, corpus, config)
             self.assertEqual(result["status"], "active")
             self.assertTrue(allowed["allowed"])
 
@@ -62,7 +62,7 @@ class ProjectHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             project, agent, corpus, config = setup_project(Path(tmpdir))
             apply_plan(project, bootstrap_plan(project, agent, corpus, config, "done", "next"))
-            plan = transition_plan("release", project, agent, corpus, config, "TARGET")
+            plan = transition_plan("release", project, agent, corpus, config, "TARGET", "released", "claim on target")
             result = apply_plan(project, plan)
             self.assertEqual(result["status"], "ready_for_transfer")
             self.assertIsNone(result["active_writer_terminal"])
@@ -73,7 +73,7 @@ class ProjectHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             project, agent, corpus, config = setup_project(Path(tmpdir))
             apply_plan(project, bootstrap_plan(project, agent, corpus, config, "done", "next"))
-            apply_plan(project, transition_plan("release", project, agent, corpus, config, "OTHER"))
+            apply_plan(project, transition_plan("release", project, agent, corpus, config, "OTHER", "released", "claim on other"))
             with self.assertRaises(ProjectHandoffError):
                 transition_plan("claim", project, agent, corpus, config)
 
@@ -83,13 +83,45 @@ class ProjectHandoffTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             project, agent, corpus, config = setup_project(Path(tmpdir))
             apply_plan(project, bootstrap_plan(project, agent, corpus, config, "done", "next"))
-            plan = transition_plan("release", project, agent, corpus, config)
+            plan = transition_plan("release", project, agent, corpus, config, None, "released", "claim next")
             handoff = project / ".research" / "handoff.yml"
             live = json.loads(handoff.read_text(encoding="utf-8"))
             live["next_action"] = "changed"
             handoff.write_text(json.dumps(live), encoding="utf-8")
             with self.assertRaises(ProjectHandoffError):
                 apply_plan(project, plan)
+
+    @patch("tools.runtime.project_handoff.socket.gethostname", return_value="TEST-TERMINAL")
+    @patch("tools.runtime.project_handoff.live_anchors")
+    def test_claim_rejects_framework_or_corpus_drift(self, anchors, _hostname) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project, agent, corpus, config = setup_project(Path(tmpdir))
+            anchors.return_value = (COMMIT, SNAPSHOT)
+            apply_plan(project, bootstrap_plan(project, agent, corpus, config, "done", "next"))
+            apply_plan(project, transition_plan("release", project, agent, corpus, config, "TEST-TERMINAL", "released", "claim"))
+            anchors.return_value = ("c" * 40, {"snapshot_id": "corpus-drifted000000", "content_hash": "d" * 64})
+            with self.assertRaises(ProjectHandoffError):
+                transition_plan("claim", project, agent, corpus, config)
+
+    @patch("tools.runtime.project_handoff.socket.gethostname", return_value="TEST-TERMINAL")
+    @patch("tools.runtime.project_handoff.live_anchors")
+    def test_check_write_rejects_stale_live_anchors(self, anchors, _hostname) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project, agent, corpus, config = setup_project(Path(tmpdir))
+            anchors.return_value = (COMMIT, SNAPSHOT)
+            apply_plan(project, bootstrap_plan(project, agent, corpus, config, "done", "next"))
+            anchors.return_value = (COMMIT, {"snapshot_id": "corpus-drifted000000", "content_hash": "d" * 64})
+            with self.assertRaises(ProjectHandoffError):
+                check_write(project, agent, corpus, config)
+
+    @patch("tools.runtime.project_handoff.socket.gethostname", return_value="TEST-TERMINAL")
+    @patch("tools.runtime.project_handoff.live_anchors", return_value=(COMMIT, SNAPSHOT))
+    def test_release_requires_current_progress_fields(self, _anchors, _hostname) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project, agent, corpus, config = setup_project(Path(tmpdir))
+            apply_plan(project, bootstrap_plan(project, agent, corpus, config, "done", "next"))
+            with self.assertRaises(ProjectHandoffError):
+                transition_plan("release", project, agent, corpus, config)
 
 
 if __name__ == "__main__":

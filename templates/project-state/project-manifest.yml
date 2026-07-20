@@ -52,4 +52,4 @@ status:
 safety:
   api_keys_stored_here: false
   zotero_write_allowed: false
-  notes: "不要在 .research/ 中保存 API key、Zotero 数据库或 PDF 文件；.research/fulltext_cache/ 可保存项目内部文本缓存，kit export 必须剔除。"
+  notes: "不要在 .research/ 中保存 API key、Zotero 数据库、PDF、缓存或预览；项目内部派生文本写入 02-证据材料/全文缓存/。"

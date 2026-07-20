@@ -22,6 +22,7 @@ if str(RESEARCHOS_ROOT) not in sys.path:
     sys.path.insert(0, str(RESEARCHOS_ROOT))
 
 from tools.researchos_outputs import CORPUS_FULLTEXT_ROOT, find_researchos_root
+from tools.runtime.project_write_guard import add_project_write_guard_args, require_project_write_access
 from tools.zotero.zotero_local_api import (
     creators_to_text,
     fetch_children,
@@ -138,11 +139,11 @@ def safe_stem(path: Path) -> str:
 
 def default_output_path(pdf_path: Path) -> Path:
     root = find_researchos_root()
-    return root / CORPUS_FULLTEXT_ROOT / "manual-extracts" / f"{safe_stem(pdf_path)}.txt"
+    return root / ".researchos" / "outputs" / "machine" / "M-006-zotero-ingestion-pipeline" / "staging" / "corpus" / "fulltext" / "manual-extracts" / f"{safe_stem(pdf_path)}.txt"
 
 
 def cache_output_path(project_root: Path, item_key: str, cache_subdir: str) -> Path:
-    base = project_root / ".research" / "fulltext_cache"
+    base = project_root / "02-证据材料" / "全文缓存"
     if cache_subdir in {"", "."}:
         return base / f"{item_key.upper()}.txt"
     return base / cache_subdir / f"{item_key.upper()}.txt"
@@ -289,6 +290,17 @@ def command_extract_pdf(args: argparse.Namespace) -> int:
     if args.project_root and args.item_key:
         cache_path = cache_output_path(Path(args.project_root).resolve(), args.item_key, args.cache_subdir)
     output_path = Path(args.output) if args.output else (cache_path if cache_path else default_output_path(pdf_path))
+    if args.project_root:
+        project_root = Path(args.project_root).resolve()
+        project_targets = [path for path in (output_path, cache_path) if path is not None and (path if path.is_absolute() else Path.cwd() / path).resolve().is_relative_to(project_root)]
+        if project_targets:
+            require_project_write_access(
+                project_root,
+                agent_root=args.agent_root,
+                corpus_root=args.corpus_root,
+                role_config=args.role_config,
+                targets=project_targets,
+            )
     if output_path.exists() and not args.overwrite:
         if cache_path and output_path.resolve() == cache_path.resolve() and not args.refresh_cache:
             text = cache_path.read_text(encoding="utf-8-sig", errors="replace")
@@ -375,6 +387,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract_parser.add_argument("--cache-subdir", default=".")
     extract_parser.add_argument("--refresh-cache", action="store_true")
     extract_parser.add_argument("--overwrite", action="store_true")
+    add_project_write_guard_args(extract_parser)
     extract_parser.set_defaults(func=command_extract_pdf)
 
     return parser

@@ -1,6 +1,6 @@
 # ResearchOS 当前治理状态
 
-- 更新时间：2026-07-19
+- 更新时间：2026-07-20
 - 维护方式：本文件是 ResearchOS 治理的当前状态入口。
 - 当前目标：让 `00_ResearchOS` 稳定承担 Codex 科研助理运行框架。
 
@@ -30,16 +30,16 @@
 | 本机运行材料 | 机器 CSV/JSON、试运行计划、详细执行记录、缓存和日志进入本地 `.researchos/` |
 | 外部写入证据 | 详细证据先在本地暂存；项目专属审批、执行结论和精简回滚凭据晋升到项目 `.research/` |
 | 集中读书卡 | `corpus/reading-cards/cards/` 使用 `RC-###_ZoteroKey_短题名.md` 和简短 YAML 头部 |
-| 读书卡流水线 | `tools/reading_cards/zotero_library_pipeline.py` 统一处理全库、增量和显式 item key；代码只准备首页证据，单位由当前 agent 语义判断并经过预检、受控本地写入和严格审计 |
+| 读书卡流水线 | `tools/reading_cards/zotero_library_pipeline.py` 统一处理全库、增量和显式 item key；默认写本机 `M-006` staging，后续语义处理和审计沿用同一资产集，共享 corpus 发布需单独完成 |
 | 期刊等级 | `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中的 `journal_rankings` 词典表作为映射来源 |
 | Zotero governance | 用户入口为 `tools/zotero/zotero_ai_governance.py`；代码只准备 agent 语料并校验结构化结果，不调用语言模型 API，不以关键词替代语义分类 |
 | Tools 结构 | 按 `zotero/`、`reading_cards/`、`project/`、`runtime/` 分组；顶层仅保留跨主题基础模块 |
 | Templates 结构 | 按 `annotations/`、`ideas/`、`literature/`、`prisma/`、`gap-to-topic/`、`writing/`、`paper-memory/`、`project-state/` 分组；模板名与实际输出名一致 |
 | 高风险写入 | 通过 `tools/zotero/write/` 和 Zotero Web API 审批流程执行 |
-| skill 边界 | 保留 22 个独立 skill；项目地图同时承担明确请求的上下文恢复与汇报导航，`zotero-reading-card-pipeline` 承担 Zotero 条目到语义读书卡的组合流程 |
+| skill 边界 | 保留 23 个独立 skill；`zotero-reading-card-pipeline` 处理明确条目，`zotero-incremental-curator` 编排每日增量完整治理，项目地图承担明确请求的上下文恢复与汇报导航 |
 | 上下文状态 | `active_project.yml` 定位，manifest 保存稳定事实，`run_state.json` 保存当前快照，`run-log.jsonl` 只追加最小历史 |
 | 跨端存储 | Agent Core 通过 Git 拉齐；同步盘 `corpus/` 保存共享事实源；项目 `.research/` 保存持久状态；本地 `.researchos/` 保存可清理运行材料 |
-| 分域权限 | Framework Maintainer、Corpus Publisher、Project Writer、Zotero Writer 分别授权；项目写入权允许显式交接 |
+| 分域权限 | Framework Maintainer、Corpus Publisher、Project Writer、Zotero Writer 分别授权；本地角色、pre-push guard、corpus 快照和项目 handoff 已实现，远端权限和全部写入入口集成仍需外部保障 |
 | 根规则负担 | `AGENTS.md` 保留最高规则，`TRIGGERS.md` 使用紧凑路由表，详细边界按需读取 |
 | 首次运行 | 先做只读就绪检查；普通科研任务不要求预装 Python 或配置 Zotero |
 | OCR 安装门禁 | 默认只检查并停止；只有用户明确批准且传入 `--install` 时才安装依赖 |
@@ -56,10 +56,10 @@
 
 ## 4. 下一步建议
 
-下一步优先完成跨端存储与角色架构的金丝雀实现，再继续真实科研请求的行为闭环验证。
+下一步优先完成共享 corpus 原子发布闭环与真实项目换端金丝雀，再继续扩大写入入口的 handoff 门禁集成。
 
 建议顺序：
 
-1. 固化本地运行区结构、项目 `handoff.yml` 模板和分域角色检查。
-2. 选择一个项目执行原端交出、新端只读恢复、显式接管的金丝雀。
-3. 金丝雀通过后再迁移现有项目 `.research/` 中的缓存、预览和备份；迁移前不删除旧文件。
+1. 为 `M-006` staging 增加 Corpus Publisher 角色校验、原子发布、发布后快照和失败回滚契约。
+2. 选择一个项目执行原端交出、新端只读恢复、显式接管的金丝雀，并验证 commit/corpus 漂移会阻断。
+3. 金丝雀通过后再把 `check-write` 集成到实际项目写入入口，并迁移现有项目 `.research/` 中的缓存、预览和备份；迁移前不删除旧文件。

@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -29,24 +30,29 @@ from tools.reading_cards.card_common import (  # noqa: E402
     AFFILIATION_FINAL_STATUSES,
     RANK_ORDER,
     affiliation_publish_blockers,
+    chinese_affiliation_display_blockers,
     content_sha256,
     known,
+    normalize_doi,
     normalized_affiliation_status,
     parse_frontmatter,
     parse_metadata,
     parse_publication_tags,
     reading_card_identity,
     reading_card_project_links,
+    researchos_reading_card_notes,
     yaml_scalar,
 )
 from tools.reading_cards.sync_journal_rankings import normalize_journal_name, set_metadata  # noqa: E402
 from tools.researchos_outputs import (  # noqa: E402
     CORPUS_READING_CARDS_ROOT,
+    CORPUS_ZOTERO_FULLTEXT,
     CORPUS_ZOTERO_FULLTEXT_NORMALIZED,
     CORPUS_ZOTERO_LIBRARY_DB,
     M006_ZOTERO_INGESTION_PIPELINE,
 )
 from tools.zotero.zotero_library_index import ZoteroClient, acquire_writer_lock, release_writer_lock  # noqa: E402
+from tools.runtime.project_write_guard import refuse_direct_shared_corpus_write  # noqa: E402
 
 
 CARDS_ROOT = CORPUS_READING_CARDS_ROOT / "cards"
@@ -154,6 +160,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--researchos-root", type=Path, default=RESEARCHOS_ROOT)
     parser.add_argument("--db", type=Path)
+    parser.add_argument("--work-db", type=Path, help="Machine-local SQLite working database for run.")
+    parser.add_argument("--cards-root", type=Path)
+    parser.add_argument("--index-path", type=Path)
+    parser.add_argument("--work-cards-root", type=Path, help="Machine-local reading-card working directory for run.")
+    parser.add_argument("--work-index-path", type=Path, help="Machine-local reading-card master index for run.")
+    parser.add_argument("--fulltext-cache-root", type=Path, help="Shared/source extracted-text root used by read commands.")
+    parser.add_argument("--normalized-cache-root", type=Path, help="Shared/source normalized-text root used by read commands.")
+    parser.add_argument("--work-fulltext-cache-root", type=Path, help="Machine-local extracted-text root for run.")
+    parser.add_argument("--work-normalized-cache-root", type=Path, help="Machine-local normalized-text root for run.")
+    parser.add_argument("--lock-dir", type=Path, help="Machine-local directory for SQLite writer locks.")
     sub = parser.add_subparsers(dest="command", required=True)
 
     process = sub.add_parser("process", help="Build affiliations, cards, index and pipeline state.")
@@ -166,6 +182,11 @@ def build_parser() -> argparse.ArgumentParser:
     audit = sub.add_parser("audit", help="Report pipeline coverage without writes.")
     audit.add_argument("--item-key", action="append", default=[])
     audit.add_argument("--strict", action="store_true", help="Fail while cards or affiliation semantic review remain incomplete.")
+    audit.add_argument("--curation-strict", action="store_true", help="Also enforce deep-card identity, Chinese affiliation and parent-note mutual exclusion.")
+
+    snapshot = sub.add_parser("snapshot", help="Capture or compare a read-only Local API top-item key/version snapshot.")
+    snapshot.add_argument("--output", type=Path)
+    snapshot.add_argument("--compare", type=Path)
 
     packet = sub.add_parser("semantic-packet", help="Build a bounded page-1..3 evidence packet for model/human review.")
     packet.add_argument("--scope", choices=["pending", "all"], default="pending")
@@ -182,7 +203,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply_semantic.add_argument("--max-chars-per-item", type=int, default=12000)
     apply_semantic.add_argument("--force-lock", action="store_true")
 
-    run = sub.add_parser("run", help="Run incremental Zotero sync, normalization, dictionaries and cards.")
+    run = sub.add_parser("run", help="Run incremental Zotero sync, normalization, dictionaries and cards in machine-local staging by default.")
     run.add_argument("--scope", choices=["all", "new"], default="new")
     run.add_argument("--item-key", action="append", default=[])
     run.add_argument("--no-journal-api", action="store_true")
@@ -191,12 +212,133 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def resolve_paths(args: argparse.Namespace) -> tuple[Path, Path, Path, Path]:
-    root = args.researchos_root.resolve()
-    db = args.db.resolve() if args.db else (root / CORPUS_ZOTERO_LIBRARY_DB).resolve()
-    cards_root = (root / CARDS_ROOT).resolve()
-    index_path = (root / INDEX_PATH).resolve()
+def resolve_source_paths(args: argparse.Namespace) -> tuple[Path, Path, Path, Path]:
+    root = args.researchos_root.absolute()
+    db = args.db.absolute() if args.db else (root / CORPUS_ZOTERO_LIBRARY_DB).absolute()
+    cards_root = args.cards_root.absolute() if args.cards_root else (root / CARDS_ROOT).absolute()
+    index_path = args.index_path.absolute() if args.index_path else (root / INDEX_PATH).absolute()
     return root, db, cards_root, index_path
+
+
+def resolve_paths(args: argparse.Namespace) -> tuple[Path, Path, Path, Path]:
+    """Resolve the active local asset set used by non-run commands.
+
+    Once a default staging set exists, audit and semantic commands must keep
+    operating on that same set instead of silently falling back to the shared
+    corpus. Explicit paths always win.
+    """
+    root, source_db, source_cards_root, source_index_path = resolve_source_paths(args)
+    staged_db = default_work_db(root)
+    staged_cards_root = default_work_cards_root(root)
+    staged_index_path = default_work_index_path(root)
+    staging_present = staged_db.exists() or staged_cards_root.exists() or staged_index_path.parent.exists()
+    if staging_present and not (staged_db.exists() and staged_cards_root.exists()):
+        raise RuntimeError("Default machine-local staging is incomplete; repair or remove the bounded staging set before continuing.")
+    db = source_db if args.db or not staged_db.exists() else staged_db
+    cards_root = source_cards_root if args.cards_root or not staged_cards_root.exists() else staged_cards_root
+    index_path = source_index_path if args.index_path or not staged_index_path.parent.exists() else staged_index_path
+    return root, db, cards_root, index_path
+
+
+def resolve_lock_dir(args: argparse.Namespace, root: Path) -> Path:
+    return args.lock_dir.absolute() if args.lock_dir else (root / M006_ZOTERO_INGESTION_PIPELINE / "locks").absolute()
+
+
+def default_work_db(root: Path) -> Path:
+    return (root / M006_ZOTERO_INGESTION_PIPELINE / "staging" / "zotero_library.sqlite").absolute()
+
+
+def default_work_cards_root(root: Path) -> Path:
+    return (root / M006_ZOTERO_INGESTION_PIPELINE / "staging" / "reading-cards" / "cards").absolute()
+
+
+def default_work_index_path(root: Path) -> Path:
+    return (root / M006_ZOTERO_INGESTION_PIPELINE / "staging" / "reading-cards" / "indexes" / "reading-card-master-index.md").absolute()
+
+
+def source_text_roots(args: argparse.Namespace, root: Path) -> tuple[Path, Path]:
+    explicit_fulltext = getattr(args, "fulltext_cache_root", None)
+    explicit_normalized = getattr(args, "normalized_cache_root", None)
+    fulltext = explicit_fulltext.absolute() if explicit_fulltext else (root / CORPUS_ZOTERO_FULLTEXT).absolute()
+    normalized = explicit_normalized.absolute() if explicit_normalized else (root / CORPUS_ZOTERO_FULLTEXT_NORMALIZED).absolute()
+    return fulltext, normalized
+
+
+def work_text_roots(args: argparse.Namespace, root: Path) -> tuple[Path, Path]:
+    staging = root / M006_ZOTERO_INGESTION_PIPELINE / "staging" / "corpus" / "fulltext"
+    explicit_fulltext = getattr(args, "work_fulltext_cache_root", None)
+    explicit_normalized = getattr(args, "work_normalized_cache_root", None)
+    fulltext = explicit_fulltext.absolute() if explicit_fulltext else (staging / "zotero-library").absolute()
+    normalized = explicit_normalized.absolute() if explicit_normalized else (staging / "zotero-library-normalized").absolute()
+    return fulltext, normalized
+
+
+def active_normalized_root(args: argparse.Namespace, root: Path) -> Path:
+    _source_fulltext, source_normalized = source_text_roots(args, root)
+    _work_fulltext, work_normalized = work_text_roots(args, root)
+    return source_normalized if getattr(args, "normalized_cache_root", None) or not work_normalized.exists() else work_normalized
+
+
+def prepare_run_db(args: argparse.Namespace, source_db: Path, root: Path) -> tuple[Path, bool]:
+    if args.db:
+        return source_db, False
+    work_db = args.work_db.absolute() if args.work_db else default_work_db(root)
+    if work_db == source_db:
+        return work_db, False
+    if work_db.exists():
+        return work_db, False
+    work_db.parent.mkdir(parents=True, exist_ok=True)
+    if not source_db.exists():
+        return work_db, False
+    temp_db = work_db.with_suffix(work_db.suffix + ".tmp")
+    temp_db.unlink(missing_ok=True)
+    with closing(sqlite3.connect(source_db.as_uri() + "?mode=ro", uri=True)) as source_conn:
+        with closing(sqlite3.connect(temp_db)) as target_conn:
+            source_conn.backup(target_conn)
+    temp_db.replace(work_db)
+    return work_db, True
+
+
+def seed_work_cards(source_cards_root: Path, work_cards_root: Path) -> bool:
+    work_cards_root.mkdir(parents=True, exist_ok=True)
+    if not source_cards_root.exists():
+        return False
+    staged_item_keys: set[str] = set()
+    for staged in sorted(work_cards_root.glob("*.md")):
+        _card_id, item_key = reading_card_identity(
+            staged.read_text(encoding="utf-8-sig", errors="replace"),
+            staged,
+        )
+        if item_key:
+            staged_item_keys.add(item_key.upper())
+    copied = False
+    for source in sorted(source_cards_root.glob("*.md")):
+        target = work_cards_root / source.name
+        _card_id, item_key = reading_card_identity(
+            source.read_text(encoding="utf-8-sig", errors="replace"),
+            source,
+        )
+        if target.exists() or (item_key and item_key.upper() in staged_item_keys):
+            continue
+        shutil.copyfile(source, target)
+        if item_key:
+            staged_item_keys.add(item_key.upper())
+        copied = True
+    return copied
+
+
+def prepare_run_card_paths(
+    args: argparse.Namespace,
+    source_cards_root: Path,
+    source_index_path: Path,
+    root: Path,
+) -> tuple[Path, Path, bool]:
+    if args.cards_root or args.index_path:
+        return source_cards_root, source_index_path, False
+    work_cards_root = args.work_cards_root.absolute() if args.work_cards_root else default_work_cards_root(root)
+    work_index_path = args.work_index_path.absolute() if args.work_index_path else default_work_index_path(root)
+    seeded_cards = seed_work_cards(source_cards_root, work_cards_root)
+    return work_cards_root, work_index_path, seeded_cards
 
 
 def ensure_pipeline_schema(conn: sqlite3.Connection) -> None:
@@ -266,6 +408,25 @@ def load_existing_cards(cards_root: Path) -> dict[str, dict[str, Any]]:
         if current is None or int(card_number(card_id)) < int(card_number(str(current["card_id"]))):
             output[item_key] = record
     return output
+
+
+def load_all_card_records(cards_root: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    if not cards_root.exists():
+        return records
+    for path in sorted(cards_root.glob("*.md")):
+        text = path.read_text(encoding="utf-8-sig", errors="replace")
+        card_id, item_key = reading_card_identity(text, path)
+        if not item_key:
+            continue
+        records.append({
+            "path": path,
+            "card_id": card_id,
+            "item_key": item_key,
+            "metadata": parse_metadata(text),
+            "frontmatter": parse_frontmatter(text),
+        })
+    return records
 
 
 def card_number(card_id: str) -> int:
@@ -374,12 +535,12 @@ def extract_marked_pages(text: str, max_pages: int) -> str:
     return "\n\n".join(chunks)
 
 
-def resolve_normalized_text_path(root: Path, item_key: str, stored_path: str) -> Path | None:
+def resolve_normalized_text_path(root: Path, item_key: str, stored_path: str, normalized_root: Path | None = None) -> Path | None:
     candidates: list[Path] = []
     if stored_path:
         stored = Path(stored_path)
         candidates.append(stored if stored.is_absolute() else root / stored)
-    normalized_root = root / CORPUS_ZOTERO_FULLTEXT_NORMALIZED
+    normalized_root = normalized_root or (root / CORPUS_ZOTERO_FULLTEXT_NORMALIZED)
     if normalized_root.exists():
         candidates.extend(sorted(normalized_root.glob(f"{item_key}__*.txt")))
         candidates.append(normalized_root / f"{item_key}.txt")
@@ -395,10 +556,11 @@ def semantic_evidence(
     item: sqlite3.Row,
     max_pages: int,
     max_chars: int,
+    normalized_root: Path | None = None,
 ) -> dict[str, Any]:
     item_key = str(item["item_key"])
     text_status, stored_path, error = first_text_record(conn, item_key)
-    path = resolve_normalized_text_path(root, item_key, stored_path)
+    path = resolve_normalized_text_path(root, item_key, stored_path, normalized_root)
     front_text = ""
     if text_status == "ok" and path:
         raw = path.read_text(encoding="utf-8-sig", errors="replace")
@@ -442,6 +604,7 @@ def semantic_packet_items(conn: sqlite3.Connection, args: argparse.Namespace) ->
 
 def semantic_packet_command(args: argparse.Namespace) -> int:
     root, db, cards_root, _index_path = resolve_paths(args)
+    normalized_root = active_normalized_root(args, root)
     if args.batch_size < 1 or args.max_pages < 1 or args.max_chars_per_item < 500:
         raise SystemExit("semantic-packet limits must be positive and max chars must be at least 500")
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
@@ -453,7 +616,7 @@ def semantic_packet_command(args: argparse.Namespace) -> int:
         items = semantic_packet_items(conn, args)
         records: list[dict[str, Any]] = []
         for item in items:
-            evidence = semantic_evidence(conn, root, item, args.max_pages, args.max_chars_per_item)
+            evidence = semantic_evidence(conn, root, item, args.max_pages, args.max_chars_per_item, normalized_root)
             current = cards.get(str(item["item_key"]))
             records.append({
                 **evidence,
@@ -577,6 +740,9 @@ def apply_semantic_to_card(card: dict[str, Any], result: dict[str, Any], record:
 
 def semantic_apply_command(args: argparse.Namespace) -> int:
     root, db, cards_root, index_path = resolve_paths(args)
+    if args.write_local:
+        refuse_direct_shared_corpus_write(root, [db, cards_root, index_path])
+    normalized_root = active_normalized_root(args, root)
     results_path = args.results.resolve()
     results = read_jsonl(results_path)
     cards = load_existing_cards(cards_root)
@@ -590,7 +756,7 @@ def semantic_apply_command(args: argparse.Namespace) -> int:
                 raise SystemExit(f"Semantic result targets a missing or inactive item: {item_key or '?'}")
             if int(result.get("item_version") or -1) != int(item["version"] or 0):
                 raise SystemExit(f"Semantic result item version is stale: {item_key}")
-            evidence = semantic_evidence(conn, root, item, args.max_pages, args.max_chars_per_item)
+            evidence = semantic_evidence(conn, root, item, args.max_pages, args.max_chars_per_item, normalized_root)
             if str(result.get("input_hash") or "") != evidence["input_hash"]:
                 raise SystemExit(f"Semantic result evidence hash is stale: {item_key}")
             try:
@@ -608,10 +774,11 @@ def semantic_apply_command(args: argparse.Namespace) -> int:
     if not args.write_local:
         print(json.dumps({"validated": len(validated), "write_local": False, "results": portable_path(results_path)}, ensure_ascii=False, indent=2))
         return 0
+    lock_dir = resolve_lock_dir(args, root)
     lock_path: Path | None = None
     timestamp = now_iso()
     try:
-        lock_path = acquire_writer_lock(db, 1800, args.force_lock)
+        lock_path = acquire_writer_lock(db, 1800, args.force_lock, lock_dir)
         with rollback_file_writes() as file_rollback:
             with closing(sqlite3.connect(db, timeout=30)) as conn:
                 ensure_pipeline_schema(conn)
@@ -629,7 +796,7 @@ def semantic_apply_command(args: argparse.Namespace) -> int:
                 rebuild_affiliation_frequencies(conn)
                 refreshed = load_existing_cards(cards_root)
                 rebuild_card_registry(conn, refreshed, root, timestamp)
-                affiliation_index = root / AFFILIATION_INDEX_PATH
+                affiliation_index = index_path.parent / AFFILIATION_INDEX_PATH.name
                 file_rollback.protect(affiliation_index)
                 export_affiliation_dictionary(conn, affiliation_index)
                 file_rollback.protect(index_path)
@@ -1024,6 +1191,8 @@ def export_affiliation_dictionary(conn: sqlite3.Connection, path: Path) -> None:
 
 def process_assets(args: argparse.Namespace) -> int:
     root, db, cards_root, index_path = resolve_paths(args)
+    if not args.dry_run:
+        refuse_direct_shared_corpus_write(root, [db, cards_root, index_path])
     if not db.exists():
         print(f"ERROR: database not found: {db}", file=sys.stderr)
         return 2
@@ -1034,9 +1203,10 @@ def process_assets(args: argparse.Namespace) -> int:
     lock_path: Path | None = None
     file_rollback = FileWriteRollback()
     stats = {"selected": 0, "created": 0, "enriched": 0, "deleted_preserved": 0, "affiliation_pending": 0}
+    lock_dir = resolve_lock_dir(args, root)
     try:
         if not args.dry_run:
-            lock_path = acquire_writer_lock(db, 1800, args.force_lock)
+            lock_path = acquire_writer_lock(db, 1800, args.force_lock, lock_dir)
         with closing(sqlite3.connect(db, timeout=30)) as conn:
             conn.row_factory = sqlite3.Row
             if not args.dry_run:
@@ -1099,7 +1269,7 @@ def process_assets(args: argparse.Namespace) -> int:
                 rebuild_affiliation_frequencies(conn)
                 refreshed = load_existing_cards(cards_root)
                 rebuild_card_registry(conn, refreshed, root, timestamp)
-                affiliation_index = root / AFFILIATION_INDEX_PATH
+                affiliation_index = index_path.parent / AFFILIATION_INDEX_PATH.name
                 file_rollback.protect(affiliation_index)
                 export_affiliation_dictionary(conn, affiliation_index)
                 file_rollback.protect(index_path)
@@ -1142,6 +1312,119 @@ def strict_audit_failures(
     }
 
 
+def curation_local_failures(
+    scope_keys: set[str],
+    all_active_keys: set[str],
+    item_doi_by_key: dict[str, str],
+    deleted_keys: set[str],
+    text_status_by_key: dict[str, str],
+    card_records: list[dict[str, Any]],
+) -> dict[str, int]:
+    """Return deterministic blockers; semantic interpretation stays with the agent."""
+    cards_by_key: dict[str, list[dict[str, Any]]] = {}
+    for record in card_records:
+        cards_by_key.setdefault(str(record["item_key"]).upper(), []).append(record)
+    duplicate_by_key = sum(
+        max(0, len(cards_by_key.get(key, [])) - 1)
+        for key in scope_keys
+    )
+    scoped_dois = {
+        item_doi_by_key.get(key, "")
+        for key in scope_keys
+        if item_doi_by_key.get(key, "")
+    }
+    active_cards_by_doi: dict[str, list[str]] = {}
+    for key in all_active_keys:
+        doi = item_doi_by_key.get(key, "")
+        if doi in scoped_dois and key in cards_by_key:
+            active_cards_by_doi.setdefault(doi, []).append(key)
+    duplicate_active_doi = sum(1 for keys in active_cards_by_doi.values() if len(set(keys)) > 1)
+    deleted_doi_conflicts = sum(
+        1 for key in deleted_keys
+        if key in cards_by_key and item_doi_by_key.get(key) in scoped_dois
+    )
+    deep_incomplete = 0
+    affiliation_format_invalid = 0
+    for key in scope_keys:
+        rows = cards_by_key.get(key, [])
+        if not rows:
+            continue
+        record = rows[0]
+        frontmatter = record["frontmatter"]
+        metadata = record["metadata"]
+        if text_status_by_key.get(key) == "ok" and (
+            frontmatter.get("generation_mode") != "llm_fulltext_deep_reading"
+            or frontmatter.get("fulltext_status") != "full_text_reviewed"
+        ):
+            deep_incomplete += 1
+        if chinese_affiliation_display_blockers(metadata):
+            affiliation_format_invalid += 1
+    return {
+        "duplicate_cards_by_item_key": duplicate_by_key,
+        "active_doi_with_multiple_cards": duplicate_active_doi,
+        "deleted_card_doi_conflicts": deleted_doi_conflicts,
+        "fulltext_available_but_not_deep_read": deep_incomplete,
+        "confirmed_affiliation_not_chinese_form": affiliation_format_invalid,
+    }
+
+
+def local_parent_note_counts(item_keys: set[str]) -> dict[str, int]:
+    client = ZoteroClient("http://127.0.0.1:23119/api", "0")
+    notes = client.fetch_paged("items", {"itemType": "note", "sort": "dateModified", "direction": "desc"})
+    counts = {key: 0 for key in item_keys}
+    for note in researchos_reading_card_notes(notes):
+        parent_key = str((note.get("data") or {}).get("parentItem") or "").upper()
+        if parent_key in counts:
+            counts[parent_key] += 1
+    return counts
+
+
+def top_item_snapshot_payload(records: list[dict[str, Any]]) -> dict[str, Any]:
+    items = sorted(
+        ({
+            "key": str(row.get("key") or (row.get("data") or {}).get("key") or "").upper(),
+            "version": int(row.get("version") or (row.get("data") or {}).get("version") or 0),
+        } for row in records),
+        key=lambda row: row["key"],
+    )
+    items = [row for row in items if row["key"]]
+    digest = hashlib.sha256(json.dumps(items, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+    return {"schema_version": 1, "generated_at": now_iso(), "count": len(items), "sha256": digest, "items": items}
+
+
+def compare_top_item_snapshots(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    old = {row["key"]: int(row["version"]) for row in before.get("items", [])}
+    new = {row["key"]: int(row["version"]) for row in after.get("items", [])}
+    return {
+        "added": sorted(set(new).difference(old)),
+        "removed": sorted(set(old).difference(new)),
+        "version_changed": sorted(key for key in set(old).intersection(new) if old[key] != new[key]),
+        "stable": old == new,
+    }
+
+
+def snapshot_command(args: argparse.Namespace) -> int:
+    client = ZoteroClient("http://127.0.0.1:23119/api", "0")
+    records = client.fetch_paged("items/top", {"sort": "dateModified", "direction": "desc"})
+    payload = top_item_snapshot_payload(records)
+    if args.compare:
+        before = json.loads(args.compare.read_text(encoding="utf-8-sig"))
+        payload["comparison"] = compare_top_item_snapshots(before, payload)
+    text = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(text, encoding="utf-8")
+        summary = {key: payload[key] for key in ("schema_version", "generated_at", "count", "sha256")}
+        if "comparison" in payload:
+            summary["comparison"] = payload["comparison"]
+        summary["output"] = portable_path(args.output)
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+    else:
+        print(text, end="")
+    comparison = payload.get("comparison")
+    return 2 if comparison and not comparison["stable"] else 0
+
+
 def audit_assets(args: argparse.Namespace) -> int:
     _root, db, cards_root, _index_path = resolve_paths(args)
     existing = load_existing_cards(cards_root)
@@ -1171,6 +1454,8 @@ def audit_assets(args: argparse.Namespace) -> int:
         ).fetchall() if table_exists(conn, "item_affiliations") else []
         journals = conn.execute("SELECT status,COUNT(*) FROM journal_rankings GROUP BY status ORDER BY status").fetchall()
         text = conn.execute("SELECT status,COUNT(*) FROM pdf_texts GROUP BY status ORDER BY status").fetchall()
+        item_rows = conn.execute("SELECT item_key,COALESCE(doi,''),COALESCE(zotero_deleted,0) FROM items").fetchall()
+        text_rows = conn.execute("SELECT item_key,status FROM pdf_texts").fetchall() if table_exists(conn, "pdf_texts") else []
     print("ResearchOS Zotero library pipeline audit")
     print(f"active_items: {active}")
     print(f"soft_deleted_items: {deleted}")
@@ -1187,7 +1472,7 @@ def audit_assets(args: argparse.Namespace) -> int:
     for status in affiliation_status_by_key.values():
         affiliation_counts[status] = affiliation_counts.get(status, 0) + 1
     print("affiliation_status: " + json.dumps(affiliation_counts, ensure_ascii=False))
-    if not args.strict:
+    if not args.strict and not args.curation_strict:
         return 0
     strict_failures = strict_audit_failures(
         active_keys,
@@ -1196,7 +1481,33 @@ def audit_assets(args: argparse.Namespace) -> int:
         set(existing),
     )
     print("strict_failures: " + json.dumps(strict_failures, ensure_ascii=False))
-    return 2 if any(strict_failures.values()) else 0
+    failed = any(strict_failures.values())
+    if args.curation_strict:
+        item_doi_by_key = {str(key): normalize_doi(doi) for key, doi, _deleted in item_rows}
+        all_active_keys = {str(key) for key, _doi, deleted_flag in item_rows if not int(deleted_flag)}
+        deleted_keys = {str(key) for key, _doi, deleted_flag in item_rows if int(deleted_flag)}
+        text_status_by_key = {str(key): str(status or "") for key, status in text_rows}
+        curation_failures = curation_local_failures(
+            active_keys,
+            all_active_keys,
+            item_doi_by_key,
+            deleted_keys,
+            text_status_by_key,
+            load_all_card_records(cards_root),
+        )
+        note_counts = local_parent_note_counts(active_keys)
+        curation_failures["parent_reading_card_note_missing"] = sum(1 for count in note_counts.values() if count == 0)
+        curation_failures["parent_reading_card_note_multiple"] = sum(1 for count in note_counts.values() if count > 1)
+        note_summary = {
+            "missing": sum(1 for count in note_counts.values() if count == 0),
+            "unique": sum(1 for count in note_counts.values() if count == 1),
+            "multiple": sum(1 for count in note_counts.values() if count > 1),
+            "multiple_item_keys": sorted(key for key, count in note_counts.items() if count > 1),
+        }
+        print("parent_reading_card_note_summary: " + json.dumps(note_summary, ensure_ascii=False))
+        print("curation_failures: " + json.dumps(curation_failures, ensure_ascii=False))
+        failed = failed or any(curation_failures.values())
+    return 2 if failed else 0
 
 
 def run_step(command: list[str], cwd: Path, env: dict[str, str] | None = None) -> None:
@@ -1204,7 +1515,7 @@ def run_step(command: list[str], cwd: Path, env: dict[str, str] | None = None) -
     subprocess.run(command, cwd=cwd, env=env, check=True)
 
 
-def reconcile_soft_deleted_items(db: Path) -> tuple[int, int]:
+def reconcile_soft_deleted_items(db: Path, lock_dir: Path) -> tuple[int, int]:
     """Mirror current Local API visibility using a guarded temporary key table."""
     client = ZoteroClient("http://127.0.0.1:23119/api", "0")
     records = client.fetch_paged("items/top", {"sort": "dateModified", "direction": "desc"})
@@ -1218,7 +1529,7 @@ def reconcile_soft_deleted_items(db: Path) -> tuple[int, int]:
         raise RuntimeError("Local API full pagination returned an empty top-level key set; soft-delete reconciliation aborted.")
     lock_path: Path | None = None
     try:
-        lock_path = acquire_writer_lock(db, 1800, False)
+        lock_path = acquire_writer_lock(db, 1800, False, lock_dir)
         with closing(sqlite3.connect(db, timeout=30)) as conn:
             conn.execute("CREATE TEMP TABLE visible_zotero_keys(item_key TEXT PRIMARY KEY)")
             conn.executemany("INSERT INTO visible_zotero_keys(item_key) VALUES(?)", [(key,) for key in sorted(keys)])
@@ -1239,26 +1550,87 @@ def reconcile_soft_deleted_items(db: Path) -> tuple[int, int]:
 
 
 def run_pipeline(args: argparse.Namespace) -> int:
-    root, db, _cards_root, _index_path = resolve_paths(args)
+    root, source_db, source_cards_root, source_index_path = resolve_source_paths(args)
+    intended_db = source_db if args.db else (args.work_db.absolute() if args.work_db else default_work_db(root))
+    intended_cards = source_cards_root if args.cards_root else (args.work_cards_root.absolute() if args.work_cards_root else default_work_cards_root(root))
+    intended_index = source_index_path if args.index_path else (args.work_index_path.absolute() if args.work_index_path else default_work_index_path(root))
+    refuse_direct_shared_corpus_write(root, [intended_db, intended_cards, intended_index])
+    source_fulltext_root, source_normalized_root = source_text_roots(args, root)
+    work_fulltext_root, work_normalized_root = work_text_roots(args, root)
+    db, seeded_work_db = prepare_run_db(args, source_db, root)
+    cards_root, index_path, seeded_work_cards = prepare_run_card_paths(args, source_cards_root, source_index_path, root)
+    lock_dir = resolve_lock_dir(args, root)
     python = sys.executable
     network_env, proxy_source = machine_network_env(root)
     print(f"proxy_configuration_source: {proxy_source}")
     print("local_api_proxy_bypass: 127.0.0.1,localhost,::1")
+    print(f"pipeline_source_db: {portable_path(source_db)}")
+    print(f"pipeline_work_db: {portable_path(db)}")
+    print(f"pipeline_work_db_seeded: {seeded_work_db}")
+    print(f"pipeline_source_cards_root: {portable_path(source_cards_root)}")
+    print(f"pipeline_work_cards_root: {portable_path(cards_root)}")
+    print(f"pipeline_work_cards_seeded: {seeded_work_cards}")
+    print(f"pipeline_source_fulltext_root: {portable_path(source_fulltext_root)}")
+    print(f"pipeline_work_fulltext_root: {portable_path(work_fulltext_root)}")
+    print(f"pipeline_source_normalized_root: {portable_path(source_normalized_root)}")
+    print(f"pipeline_work_normalized_root: {portable_path(work_normalized_root)}")
+    shared_db_written = db == source_db
+    shared_cards_written = cards_root == source_cards_root and index_path == source_index_path
+    print(f"shared_corpus_db_written: {shared_db_written}")
+    print(f"shared_corpus_cards_written: {shared_cards_written}")
+    print(f"corpus_publication_required: {not (shared_db_written and shared_cards_written)}")
     if not args.skip_sync:
-        command = [python, "tools/zotero/zotero_library_index.py", "sync"]
+        command = [
+            python, "tools/zotero/zotero_library_index.py", "--db", str(db), "--lock-dir", str(lock_dir),
+            "sync", "--fulltext-cache-root", str(work_fulltext_root),
+        ]
         if args.scope == "new":
             command.append("--only-new-or-modified")
         run_step(command, root, network_env)
-        deleted, restored = reconcile_soft_deleted_items(db)
+        deleted, restored = reconcile_soft_deleted_items(db, lock_dir)
         print(f"soft_deleted_marked: {deleted}")
         print(f"soft_deleted_restored: {restored}")
-    run_step([python, "tools/runtime/ensure_ocr_needed.py"], root, network_env)
-    run_step([python, "tools/zotero/zotero_library_index.py", "normalize-text-cache", "--only-missing"], root, network_env)
-    journal = [python, "tools/reading_cards/sync_journal_rankings.py", "--include-library-items"]
+    run_step([
+        python, "tools/runtime/ensure_ocr_needed.py", "--db", str(db), "--lock-dir", str(lock_dir),
+        "--fulltext-cache-root", str(work_fulltext_root), "--normalized-cache-root", str(work_normalized_root),
+    ], root, network_env)
+    run_step([
+        python, "tools/zotero/zotero_library_index.py", "--db", str(db), "--lock-dir", str(lock_dir),
+        "normalize-text-cache", "--normalized-cache-root", str(work_normalized_root), "--only-missing",
+    ], root, network_env)
+    journal = [
+        python,
+        "tools/reading_cards/sync_journal_rankings.py",
+        "--researchos-root",
+        str(root),
+        "--cards-root",
+        str(cards_root),
+        "--journal-rankings-db",
+        str(db),
+        "--include-library-items",
+    ]
     if args.no_journal_api:
         journal.append("--no-api")
     run_step(journal, root, network_env)
-    process = [python, str(Path(__file__).resolve()), "--researchos-root", str(root), "--db", str(db), "process", "--scope", args.scope]
+    process = [
+        python,
+        str(Path(__file__).absolute()),
+        "--researchos-root",
+        str(root),
+        "--db",
+        str(db),
+        "--cards-root",
+        str(cards_root),
+        "--index-path",
+        str(index_path),
+        "--lock-dir",
+        str(lock_dir),
+        "--normalized-cache-root",
+        str(work_normalized_root),
+        "process",
+        "--scope",
+        args.scope,
+    ]
     for key in args.item_key:
         process.extend(["--item-key", key])
     if args.limit is not None:
@@ -1273,6 +1645,8 @@ def main() -> int:
         return process_assets(args)
     if args.command == "audit":
         return audit_assets(args)
+    if args.command == "snapshot":
+        return snapshot_command(args)
     if args.command == "semantic-packet":
         return semantic_packet_command(args)
     if args.command == "semantic-apply":

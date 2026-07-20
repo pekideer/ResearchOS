@@ -25,9 +25,11 @@ from tools.researchos_outputs import (
     CORPUS_READING_CARDS_ROOT,
     CORPUS_ZOTERO_LIBRARY_DB,
     M005_READING_CARD_ANNOTATION_SYNC,
+    M006_ZOTERO_INGESTION_PIPELINE,
     ensure_output_dirs,
     write_json,
 )
+from tools.runtime.project_write_guard import refuse_direct_shared_corpus_write
 
 
 START_MARKER = "<!-- researchos:zotero-annotations:start -->"
@@ -209,6 +211,8 @@ def run(args: argparse.Namespace) -> int:
     cards_root = Path(args.cards_root)
     if not cards_root.is_absolute():
         cards_root = root / cards_root
+    if args.write_cards:
+        refuse_direct_shared_corpus_write(root, [cards_root])
     item_keys = {str(value).strip().upper() for value in (args.item_key or [])}
     invalid_item_keys = sorted(key for key in item_keys if not re.fullmatch(r"[A-Z0-9]{8}", key))
     if invalid_item_keys:
@@ -263,7 +267,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root")
     parser.add_argument("--db", default=str(CORPUS_ZOTERO_LIBRARY_DB))
-    parser.add_argument("--cards-root", default=str(CORPUS_READING_CARDS_ROOT / "cards"))
+    parser.add_argument(
+        "--cards-root",
+        default=str(M006_ZOTERO_INGESTION_PIPELINE / "staging" / "reading-cards" / "cards"),
+    )
     parser.add_argument("--item-key", action="append")
     parser.add_argument("--write-cards", action="store_true")
     return parser

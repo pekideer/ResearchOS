@@ -35,7 +35,9 @@ from tools.researchos_outputs import (
     CORPUS_ZOTERO_FULLTEXT,
     CORPUS_ZOTERO_FULLTEXT_NORMALIZED,
     CORPUS_ZOTERO_LIBRARY_DB,
+    M006_ZOTERO_INGESTION_PIPELINE,
 )
+from tools.runtime.project_write_guard import refuse_direct_shared_corpus_write
 
 
 DEFAULT_DB = CORPUS_ZOTERO_LIBRARY_DB
@@ -285,6 +287,8 @@ def run_ocr_needed(args: argparse.Namespace) -> None:
         str(args.fulltext_cache_root),
         "--normalized-cache-root",
         str(args.normalized_cache_root),
+        "--lock-dir",
+        str(args.lock_dir),
         "--pdf-timeout",
         str(args.pdf_timeout),
         "--ocr-language",
@@ -306,6 +310,10 @@ def run_ocr_needed(args: argparse.Namespace) -> None:
     if args.dry_run:
         print("DRY-RUN: " + " ".join(command))
         return
+    refuse_direct_shared_corpus_write(
+        RESEARCHOS_ROOT,
+        [args.db, args.fulltext_cache_root, args.normalized_cache_root],
+    )
     run(command)
 
 
@@ -314,6 +322,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--fulltext-cache-root", type=Path, default=DEFAULT_FULLTEXT_CACHE_ROOT)
     parser.add_argument("--normalized-cache-root", type=Path, default=DEFAULT_NORMALIZED_CACHE_ROOT)
+    parser.add_argument("--lock-dir", type=Path, default=RESEARCHOS_ROOT / M006_ZOTERO_INGESTION_PIPELINE / "locks")
     parser.add_argument("--limit", type=int, default=None, help="Optional number of needs_ocr PDFs to process.")
     parser.add_argument("--max-source-pages", type=int, default=DEFAULT_OCR_MAX_SOURCE_PAGES, help="Skip needs_ocr PDFs whose known source page count is above this threshold; use 0 to disable.")
     parser.add_argument("--skip-item-types", default=",".join(DEFAULT_OCR_SKIP_ITEM_TYPES), help="Comma-separated Zotero item types to skip for OCR, default book,thesis.")

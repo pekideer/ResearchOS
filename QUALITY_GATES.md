@@ -111,7 +111,7 @@
 - 文献题录、DOI、作者、期刊、会议、年份是否来自用户材料、Zotero 或可核查来源。
 - PDF 文本是否说明来源和页数范围。
 - 使用 Zotero 条目、PDF 或大段全文前，是否先检查并优先使用 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 和 `corpus/fulltext/zotero-library-normalized/`。
-- 父文档缺失或过期时，是否说明原因；若只需更新 文献集 树、项目归属和少量元数据，优先使用 `tools/zotero/zotero_fast_collection_sync.py`；若需补齐附件状态、规范化文本或 OCR 状态，再通过 `tools/zotero/zotero_library_index.py` 更新 SQLite 与文本缓存。项目级 `.research/fulltext_cache/` 应从父文档派生或作为局部缓存复用。
+- 父文档缺失或过期时，是否说明原因；若只需更新 文献集 树、项目归属和少量元数据，优先使用 `tools/zotero/zotero_fast_collection_sync.py`；若需补齐附件状态、规范化文本或 OCR 状态，再通过本机 staging 更新 SQLite 与文本缓存。项目级新增文本进入 `02-证据材料/全文缓存/`；旧 `.research/fulltext_cache/` 仅只读复用。
 - 检索日志是否说明数据库、检索式、筛选条件、检索日期和导出数量。
 - 是否避免编造文献、DOI、作者、期刊、会议、数据、图表、引用或审稿意见。
 
@@ -523,6 +523,36 @@
 - 将旧名称作为迁移来源保留，不覆盖历史审计证据。
 - 重新生成逐条试运行计划并请求审批。
 
+## Zotero 增量完整治理检查
+
+适用能力编号：`C05`、`C06`、`C11`
+
+### 适用场景
+
+- 检查 Zotero 条目增减、重键、精读卡完成度、父条目 note 互斥、单位、collection、tags 与共享语料发布状态。
+
+### 检查项
+
+- 同步前后是否保存并比较顶层条目 `key + version` 快照，语义结果是否绑定稳定版本。
+- 是否按 item key 和规范化 DOI 识别重键、活动/删除条目同 DOI、同 key 多卡与同 DOI 多活动卡。
+- 每个父条目下 ResearchOS 读书卡 note 是否为 0 或 1；多条时是否停止发布并生成精确 keeper/删除计划。
+- 有规范化全文的新条目是否真正完成 `llm_fulltext_deep_reading/full_text_reviewed`，而非停在 `auto_initial_screening`。
+- 已确认单位是否同时保留原文证据，并显示为 `中文一级机构，中文国家`；转换是否由当前 agent 语义完成。
+- collection membership 与 tags 是否分开判断；项目用途是否来自明确语义证据而非阅读状态或关键词脚本。
+- note、collection 和 tags 的真实写入是否分别有批准计划、金丝雀、回读和最终审计。
+- 默认本机 staging 是否与共享 `corpus/` 明确区分；未经过 Corpus Publisher 发布和共享快照校验时，是否保持“待发布”而非报告集中主库已更新。
+
+### 通过标准
+
+- 本次范围内增减、重键、卡片互斥、精读状态、中文单位、collection、tags、note 与共享语料发布均有明确的完成、待审批、待发布或阻断状态。
+
+### 失败时处理
+
+- item version 或快照发生变化时废弃旧语义结果并重新取证。
+- DOI、卡片身份或父条目 note 互斥失败时停止相关条目的发布，生成精确冲突计划。
+- 未完成全文精读或中文单位确认时保持阻断状态，不把占位卡报告为完成。
+- 真实写入前重新生成逐条冻结计划并请求审批。
+
 ## 语言检查
 
 适用能力编号：`C10`，以及所有面向用户输出的能力
@@ -611,3 +641,21 @@
 - 将功能标为“未闭环”或“需要进一步验证”。
 - 列出阻断点和最小修复建议。
 - 不直接执行修复；用户明确要求修复后，再按问题等级逐项处理。
+
+## corpus 发布与项目写入检查
+
+适用能力编号：`C12`
+
+### 检查项
+
+- 摄取、OCR、规范化全文、SQLite、读书卡和索引是否全部先写本机 staging。
+- 发布计划是否只包含允许区域、无隐式删除，并冻结源哈希、目标基线和 `plan_hash`。
+- apply 是否同时具备 Corpus Publisher 角色、本次明确批准和显式 `--apply`。
+- SQLite 是否通过 `PRAGMA quick_check`，release manifest 是否最后提交，verify 是否逐文件回读。
+- rollback 是否精确匹配已发布哈希，且删除新增文件前有单独批准。
+- 项目写入口是否在首个写操作前校验活动 Project Writer、framework commit 和 corpus 快照，目标是否位于唯一项目根内。
+
+### 通过标准
+
+- 未获真实金丝雀批准时只有计划和本地测试，没有共享 corpus 写入。
+- 任一角色、所有权、基线、哈希、SQLite 或路径检查失败时，在写入前整体停止。

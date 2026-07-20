@@ -15,6 +15,7 @@
 | `07-runtime-ocr-local-env.md` | 本机运行环境、OCR 和依赖配置 |
 | `08-zotero-reading-card-annotation-sync.md` | Zotero annotation 回流、读书卡生成区和经审批的条目子笔记发布 |
 | `09-local-runtime-lifecycle.md` | 本地 `.researchos/` 初始化、审计、保留期和显式清理 |
+| `10-corpus-publication-and-project-write.md` | Corpus Publisher 原子发布、提交清单、回滚和项目 `check-write` 集成 |
 
 ## 2. 工具角色分层
 
@@ -65,6 +66,8 @@
 | `tools/runtime/terminal_roles.py` | `09-local-runtime-lifecycle.md` |
 | `tools/runtime/corpus_snapshot.py` | `09-local-runtime-lifecycle.md` |
 | `tools/runtime/project_handoff.py` | `09-local-runtime-lifecycle.md` |
+| `tools/runtime/project_write_guard.py` | `10-corpus-publication-and-project-write.md` |
+| `tools/runtime/publish_corpus.py` | `10-corpus-publication-and-project-write.md` |
 
 ## 4. 当前治理要求
 

@@ -5,7 +5,7 @@
 ## 输入
 
 - Zotero 题录：标题、作者、年份、期刊、DOI、条目 key。
-- PDF 第 1 页文本，必要时加第 2 页文本；优先来自课题目录 `.research/fulltext_cache/<cards-root-name>/ITEMKEY.txt`，缓存存在时不得为了单位识别重新读取 Zotero/PDF。
+- PDF 第 1 页文本，必要时加第 2 页文本；优先来自课题目录 `02-证据材料/全文缓存/<cards-root-name>/ITEMKEY.txt`，旧 `.research/fulltext_cache/` 仅只读兼容；缓存存在时不得为了单位识别重新读取 Zotero/PDF。
 - 已有读书卡元数据，可作为参考但不得覆盖 PDF 明确信息。
 
 ## 任务

@@ -1,9 +1,16 @@
 import argparse
 import json
 import re
+import sys
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
+
+RESEARCHOS_ROOT = Path(__file__).resolve().parents[2]
+if str(RESEARCHOS_ROOT) not in sys.path:
+    sys.path.insert(0, str(RESEARCHOS_ROOT))
+
+from tools.runtime.project_write_guard import add_project_write_guard_args, require_from_args
 
 
 WORD_NS = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
@@ -71,14 +78,16 @@ def main() -> None:
     parser.add_argument("--project-root", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--max-pdf-pages", type=int, default=80)
-    parser.add_argument("--fulltext-cache-dir", help="Defaults to <project-root>/.research/fulltext_cache/materials.")
+    parser.add_argument("--fulltext-cache-dir", help="Defaults to <project-root>/02-证据材料/全文缓存/materials.")
     parser.add_argument("--refresh-cache", action="store_true")
+    add_project_write_guard_args(parser)
     args = parser.parse_args()
 
     project_root = Path(args.project_root)
     output_dir = Path(args.output_dir)
-    fulltext_cache_dir = Path(args.fulltext_cache_dir) if args.fulltext_cache_dir else project_root / ".research" / "fulltext_cache" / "materials"
+    fulltext_cache_dir = Path(args.fulltext_cache_dir) if args.fulltext_cache_dir else project_root / "02-证据材料" / "全文缓存" / "materials"
     text_dir = output_dir / "material_text"
+    require_from_args(args, [output_dir, fulltext_cache_dir])
     text_dir.mkdir(parents=True, exist_ok=True)
 
     records = []

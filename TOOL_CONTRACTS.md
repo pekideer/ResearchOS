@@ -38,6 +38,7 @@
 | `TOOL_CONTRACTS/06-researchos-governance.md` | ResearchOS 自身规则、输出边界、命名、Obsidian 打开方式和审计 |
 | `TOOL_CONTRACTS/07-runtime-ocr-local-env.md` | 本机运行环境、OCR 和依赖配置 |
 | `TOOL_CONTRACTS/09-local-runtime-lifecycle.md` | 本地 `.researchos/` 初始化、审计、保留期和显式清理门禁 |
+| `TOOL_CONTRACTS/10-corpus-publication-and-project-write.md` | 共享 corpus 受控发布、回滚和项目写入门禁 |
 
 ## 4. 全局边界
 

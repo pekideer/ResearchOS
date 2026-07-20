@@ -81,7 +81,7 @@ HTML 中显示 Zotero 条目 key 时必须使用：
 
 1. 先查 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 与 `corpus/fulltext/zotero-library-normalized/`。
 2. 如果父文档 规范化文本 存在，只截取 第 1-2 页，必要时 第 3 页，供语义识别；不得再回头读取 Zotero/PDF 来做同一项单位识别。
-3. 如果课题目录 `.research/fulltext_cache/ITEMKEY.txt` 已由父文档派生，也可复用该缓存。
+3. 如果课题目录 `02-证据材料/全文缓存/ITEMKEY.txt` 已由父文档派生，也可复用；旧 `.research/fulltext_cache/` 仅只读兼容。
 4. 只有父文档和 全文缓存 均缺失时，才允许通过 Zotero Local API 只读定位 PDF 并抽取首页文本，并应优先回写父文档维护链路或可回溯的 缓存。
 5. 如果既无父文档文本、全文缓存 又无 PDF，必须标注 `needs_check` 或 `not_found`，不得凭机构常识补全。
 
@@ -204,7 +204,7 @@ python tools\reading_cards\build_affiliation_semantic_packet.py --project-root "
 
 行为：
 
-- 默认读取由父文档派生的 `<project-root>/.research/fulltext_cache/ITEMKEY.txt`；没有项目缓存时，应先用父文档上下文包准备材料。
+- 默认读取由父文档派生的 `<project-root>/02-证据材料/全文缓存/ITEMKEY.txt`；旧 `.research/fulltext_cache/` 仅只读兼容。没有项目缓存时，应先用父文档上下文包准备材料。
 - 只输出 第 1-3 页 的紧凑证据包和 JSONL，不读取 Zotero，不读取 PDF，不写读书卡。
 - 证据包只作为临时语义判断材料，不作为长期项目成果保存；完成判断后，主结果应写入集中读书卡文末元数据。
 - 跨文献第一作者机构索引长期保存到 `corpus/indexes/first-author-affiliations.csv`。

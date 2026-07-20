@@ -108,7 +108,8 @@ corpus/
 | Zotero PDF 全文文本缓存 | 机器 | `corpus/fulltext/zotero-library/ITEMKEY__ATTACHMENTKEY.txt` |
 | Zotero PDF AI 规范化文本缓存 | 机器 | `corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt` |
 | Zotero 父文档上下文包 | 人工/机器留存 | `docs/reports/library-governance/zotero-library-context-packet.md` 与 `.researchos/outputs/machine/M-002-library-governance/zotero-library-context-packet.jsonl` |
-| 临时 PDF 文本抽取 | 机器 | 项目 `.research/fulltext_cache/`；无项目时进入 `corpus/fulltext/` |
+| 项目 PDF 派生文本 | 项目证据 | 项目 `02-证据材料/全文缓存/`；旧 `.research/fulltext_cache/` 只读兼容 |
+| 跨项目 PDF 文本抽取 | 机器/共享 | 先进入本机 `M-006` staging，经 Corpus Publisher 发布后进入 `corpus/fulltext/` |
 | Zotero 新条目监控报告 | 人工 | `docs/reports/zotero-new-item-monitor/new-items-report.md` |
 | Zotero 新条目监控状态和试运行计划 | 机器留存 | `.researchos/outputs/machine/M-004-zotero-new-item-monitor/` |
 | Zotero 全库/增量摄取流水线日志 | 机器留存 | `.researchos/outputs/machine/M-006-zotero-ingestion-pipeline/` |

@@ -140,6 +140,52 @@ def affiliation_publish_blockers(metadata: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def normalize_doi(value: Any) -> str:
+    """Return a comparison-safe DOI without changing its semantic identity."""
+    normalized = str(value or "").strip().lower()
+    normalized = re.sub(r"^doi\s*:\s*", "", normalized)
+    normalized = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", normalized)
+    return normalized.strip()
+
+
+def chinese_affiliation_display_blockers(metadata: dict[str, Any]) -> list[str]:
+    """Validate the publishable display form without performing translation.
+
+    Semantic conversion remains an agent task.  This deterministic gate only
+    accepts ``中文一级机构，中文国家`` for confirmed affiliations.
+    """
+    status = normalized_affiliation_status(metadata)
+    if status not in {"semantic_confirmed", "manual_confirmed"}:
+        return []
+    value = str(metadata.get("first_author_affiliation") or "").strip()
+    if value.count("，") != 1:
+        return ["affiliation_display_not_chinese_institution_country"]
+    institution, country = (part.strip() for part in value.split("，", 1))
+    if not institution or not country:
+        return ["affiliation_display_not_chinese_institution_country"]
+    if re.search(r"[A-Za-z]", value) or not re.search(r"[\u3400-\u9fff]", institution) or not re.search(r"[\u3400-\u9fff]", country):
+        return ["affiliation_display_not_chinese_institution_country"]
+    return []
+
+
+def researchos_reading_card_notes(children: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return every ResearchOS reading-card note under one Zotero parent."""
+    matches: list[dict[str, Any]] = []
+    for row in children:
+        data = row.get("data", {}) or {}
+        if data.get("itemType") != "note":
+            continue
+        tags = {
+            str(tag.get("tag") or "")
+            for tag in (data.get("tags") or [])
+            if isinstance(tag, dict)
+        }
+        note_html = str(data.get("note") or "")
+        if "rs:reading-card" in tags or "ResearchOS card id:" in note_html or "ResearchOS 读书卡｜" in note_html:
+            matches.append(row)
+    return matches
+
+
 def yaml_scalar(value: Any) -> str:
     if value is None:
         return '""'

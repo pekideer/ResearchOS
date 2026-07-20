@@ -13,7 +13,7 @@
 
 终端角色工具读取 `%USERPROFILE%/.researchos/terminal_role.json`，对 Framework Maintainer、Corpus Publisher 和 Zotero Writer 权限分别进行本地预检；Project Writer 由项目交接协议管理。
 
-共享语料快照工具只读计算 corpus 内容哈希，不修改 SQLite、全文或读书卡。项目交接工具把 corpus 快照、Agent Core commit、终端身份和项目状态修订号写入项目 `.research/handoff.yml`；默认只输出计划，bootstrap、release 和 claim 均需显式 `--apply`。
+共享语料快照工具只读计算 corpus 内容哈希，不修改 SQLite、全文或读书卡。项目交接工具把 corpus 快照、Agent Core commit、终端身份和项目状态修订号写入项目 `.research/handoff.yml`；默认只输出计划，bootstrap、release 和 claim 均需显式 `--apply`。release 必须写入最新 `last_completed` 与 `next_action`；claim 和 check-write 必须与交出时的 framework commit、corpus snapshot ID 和 content hash 一致。
 
 ## 3. 允许行为
 
@@ -46,3 +46,4 @@
 4. 第一轮部署只初始化和审计，不应用清理计划。
 5. follower 的 Git 只读权限必须由远端凭据和分支保护最终保证；本地 hook 只防止误推送，不能替代服务端权限。
 6. 项目交接文件使用 JSON-compatible YAML；任何转换前都核对项目 identity、live state、终端 identity、framework commit 和 corpus snapshot。
+7. `claim` 或 `check-write` 发现 Agent Core commit、共享 corpus snapshot ID 或 content hash 漂移时必须停止；先完成 Git/同步盘对齐，再重新计划，不得在接管时静默覆盖锚点。

@@ -88,6 +88,41 @@ zotero_key: ITEM1234
         matches = existing_generated_notes(children, "RC-001")
         self.assertEqual([row["key"] for row in matches], ["NOTE1234"])
 
+    def test_preflight_blocks_second_reading_card_note_under_same_parent(self) -> None:
+        body = """---
+card_id: RC-002
+zotero_key: ITEM1234
+---
+# Card
+## 7. 元数据（折叠）
+```yaml
+item_key: ITEM1234
+first_author_affiliation: 浙江大学，中国
+first_author_affiliation_raw: Zhejiang University, China
+first_author_affiliation_status: semantic_confirmed
+first_author_affiliation_source: PDF 第 1 页语义识别
+```
+"""
+        children = [{
+            "key": "OLDNOTE1",
+            "data": {
+                "itemType": "note",
+                "note": f"<p>{note_marker('RC-001')}</p>",
+                "tags": [{"tag": "rs:reading-card"}],
+            },
+        }]
+        root = publisher.RESEARCHOS_ROOT
+        card = root / "card.md"
+        with (
+            patch.object(type(card), "read_text", return_value=body),
+            patch.object(publisher, "request", return_value=(200, {}, {"key": "ITEM1234", "data": {"itemType": "journalArticle"}})),
+            patch.object(publisher, "fetch_paged", return_value=children),
+            patch.object(publisher, "mapped_note_state", return_value=None),
+        ):
+            plan, _html, _parent, _children = publisher.build_plan(card, root, root / "test.sqlite", {}, object(), {"source": "test"})
+        self.assertEqual(plan["action"], "blocked")
+        self.assertIn("parent_reading_card_note_identity_conflict", plan["blocking_conditions"])
+
     def test_children_snapshot_hashes_note_bodies(self) -> None:
         children = [
             {"key": "NOTE1234", "version": 3, "data": {"itemType": "note", "note": "private human note"}},

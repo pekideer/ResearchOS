@@ -56,7 +56,7 @@ python tools\zotero\zotero_local_api_cli.py get-pdf --allow-local-api --key ITEM
 
 ### 5. Extract PDF text
 
-先检查父文档和课题 `.research/fulltext_cache/`。若父文档或 缓存 已存在，直接使用；只有缺失时才抽取 PDF 文本并写回父文档或 缓存。
+先检查父文档和课题 `02-证据材料/全文缓存/`；旧 `.research/fulltext_cache/` 仅只读兼容。若父文档或缓存已存在，直接使用；只有缺失时才抽取 PDF 文本，项目结果写入证据目录，共享结果先进入本机 staging。
 
 ```powershell
 python tools\zotero\zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEM_KEY --cache-subdir reading-cards --max-pages 5

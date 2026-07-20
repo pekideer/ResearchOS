@@ -95,6 +95,12 @@ def validate_handoff(value: dict[str, Any]) -> None:
         raise ProjectHandoffError("handoff framework_commit is invalid")
     if not str(value.get("corpus_snapshot_id") or "").startswith("corpus-"):
         raise ProjectHandoffError("handoff corpus_snapshot_id is invalid")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(value.get("corpus_content_hash") or "")):
+        raise ProjectHandoffError("handoff corpus_content_hash is invalid")
+    if not str(value.get("last_completed") or "").strip():
+        raise ProjectHandoffError("handoff last_completed is missing")
+    if not str(value.get("next_action") or "").strip():
+        raise ProjectHandoffError("handoff next_action is missing")
 
 
 def terminal_config(config_path: Path) -> dict[str, Any]:
@@ -107,6 +113,21 @@ def terminal_config(config_path: Path) -> dict[str, Any]:
 
 def live_anchors(agent_root: Path, corpus_root: Path) -> tuple[str, dict[str, object]]:
     return current_framework_commit(agent_root), compute_snapshot(corpus_root)
+
+
+def anchor_mismatches(
+    handoff: dict[str, Any],
+    framework_commit: str,
+    corpus_snapshot: dict[str, object],
+) -> list[str]:
+    mismatches: list[str] = []
+    if handoff["framework_commit"] != framework_commit:
+        mismatches.append("framework_commit")
+    if handoff["corpus_snapshot_id"] != corpus_snapshot.get("snapshot_id"):
+        mismatches.append("corpus_snapshot_id")
+    if handoff["corpus_content_hash"] != corpus_snapshot.get("content_hash"):
+        mismatches.append("corpus_content_hash")
+    return mismatches
 
 
 def bootstrap_plan(
@@ -149,6 +170,8 @@ def transition_plan(
     corpus_root: Path,
     config_path: Path,
     target_terminal: str | None = None,
+    last_completed: str | None = None,
+    next_action: str | None = None,
 ) -> dict[str, Any]:
     root, project_id = project_identity(project_root)
     handoff_path = root / ".research" / HANDOFF_NAME
@@ -158,15 +181,19 @@ def transition_plan(
     config = terminal_config(config_path)
     terminal = config["terminal_name"]
     commit, corpus = live_anchors(agent_root, corpus_root)
-    desired = dict(current)
-    desired["state_revision"] += 1
-    desired["framework_commit"] = commit
-    desired["corpus_snapshot_id"] = corpus["snapshot_id"]
-    desired["corpus_content_hash"] = corpus["content_hash"]
-    desired["updated_at"] = utc_now()
     if action == "release":
         if current["status"] != "active" or str(current["active_writer_terminal"]).casefold() != terminal.casefold():
             raise ProjectHandoffError("Only the active project writer can release this project")
+        if not str(last_completed or "").strip() or not str(next_action or "").strip():
+            raise ProjectHandoffError("Release requires last_completed and next_action")
+        desired = dict(current)
+        desired["state_revision"] += 1
+        desired["framework_commit"] = commit
+        desired["corpus_snapshot_id"] = corpus["snapshot_id"]
+        desired["corpus_content_hash"] = corpus["content_hash"]
+        desired["last_completed"] = str(last_completed).strip()
+        desired["next_action"] = str(next_action).strip()
+        desired["updated_at"] = utc_now()
         desired["status"] = "ready_for_transfer"
         desired["active_writer_terminal"] = None
         desired["released_by_terminal"] = terminal
@@ -177,9 +204,18 @@ def transition_plan(
         target = str(current.get("target_terminal") or "")
         if target and target.casefold() != terminal.casefold():
             raise ProjectHandoffError("Project was released to another terminal")
+        mismatches = anchor_mismatches(current, commit, corpus)
+        if mismatches:
+            raise ProjectHandoffError(
+                "Current Agent Core or shared corpus does not match the released handoff: "
+                + ", ".join(mismatches)
+            )
+        desired = dict(current)
+        desired["state_revision"] += 1
+        desired["updated_at"] = utc_now()
         desired["status"] = "active"
         desired["active_writer_terminal"] = terminal
-        desired["target_terminal"] = terminal
+        desired["target_terminal"] = None
     else:
         raise ProjectHandoffError("Unsupported project handoff action")
     validate_handoff(desired)
@@ -214,7 +250,12 @@ def apply_plan(project_root: Path, plan: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def check_write(project_root: Path, config_path: Path) -> dict[str, Any]:
+def check_write(
+    project_root: Path,
+    agent_root: Path,
+    corpus_root: Path,
+    config_path: Path,
+) -> dict[str, Any]:
     root, project_id = project_identity(project_root)
     handoff = load_handoff(root / ".research" / HANDOFF_NAME)
     config = terminal_config(config_path)
@@ -225,11 +266,20 @@ def check_write(project_root: Path, config_path: Path) -> dict[str, Any]:
     )
     if not allowed:
         raise ProjectHandoffError("Current terminal does not hold project write ownership")
+    commit, corpus = live_anchors(agent_root, corpus_root)
+    mismatches = anchor_mismatches(handoff, commit, corpus)
+    if mismatches:
+        raise ProjectHandoffError(
+            "Project write ownership is stale relative to the current Agent Core or shared corpus: "
+            + ", ".join(mismatches)
+        )
     return {
         "allowed": True,
         "project_id": project_id,
         "terminal_name": config["terminal_name"],
         "state_revision": handoff["state_revision"],
+        "framework_commit": commit,
+        "corpus_snapshot_id": corpus["snapshot_id"],
     }
 
 
@@ -246,6 +296,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     bootstrap.add_argument("--apply", action="store_true")
     release = subparsers.add_parser("release")
     release.add_argument("--target-terminal")
+    release.add_argument("--last-completed", required=True)
+    release.add_argument("--next-action", required=True)
     release.add_argument("--apply", action="store_true")
     claim = subparsers.add_parser("claim")
     claim.add_argument("--apply", action="store_true")
@@ -279,10 +331,12 @@ def main(argv: list[str] | None = None) -> int:
                 corpus_root,
                 config_path,
                 getattr(args, "target_terminal", None),
+                getattr(args, "last_completed", None),
+                getattr(args, "next_action", None),
             )
             result = apply_plan(project_root, plan) if args.apply else plan
         elif args.command == "check-write":
-            result = check_write(project_root, config_path)
+            result = check_write(project_root, agent_root, corpus_root, config_path)
         else:
             root, project_id = project_identity(project_root)
             result = load_handoff(root / ".research" / HANDOFF_NAME)

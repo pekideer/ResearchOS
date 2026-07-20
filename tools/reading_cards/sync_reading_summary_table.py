@@ -15,6 +15,8 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from tools.runtime.project_write_guard import add_project_write_guard_args, require_project_write_access
 from typing import Any
 
 try:
@@ -128,6 +130,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Return non-zero when warnings are generated.",
     )
+    add_project_write_guard_args(parser)
     return parser
 
 
@@ -1201,6 +1204,14 @@ def main() -> int:
     args = parser.parse_args()
     researchos_root = Path(args.researchos_root).resolve()
     project_root, cards_root, output, markdown_output, html_output, reminder_path = resolve_paths(args)
+    if project_root:
+        require_project_write_access(
+            project_root,
+            agent_root=args.agent_root,
+            corpus_root=args.corpus_root,
+            role_config=args.role_config,
+            targets=[output, markdown_output, html_output, reminder_path, html_output.parent / "分主题阅读总表"],
+        )
     if not cards_root.exists() or not cards_root.is_dir():
         raise ValueError(f"读书卡目录不存在：{cards_root}")
 

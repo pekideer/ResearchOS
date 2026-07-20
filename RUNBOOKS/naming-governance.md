@@ -158,7 +158,7 @@ ResearchOS 自身治理产物进入 `docs/governance/`。
 
 ```text
 03-文献矩阵/.internal/
-.research/fulltext_cache/
+02-证据材料/全文缓存/
 ```
 
 ## 5. 点子与项目指针

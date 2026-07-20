@@ -34,6 +34,7 @@ M006_ZOTERO_INGESTION_PIPELINE = MACHINE_ROOT / "M-006-zotero-ingestion-pipeline
 
 A001_LIBRARY_GOVERNANCE = ARCHIVE_ROOT / "A-001-library-governance"
 A003_READING_CARD_NOTE_PUBLISH = ARCHIVE_ROOT / "A-003-reading-card-note-publish"
+A004_CORPUS_PUBLICATION = ARCHIVE_ROOT / "A-004-corpus-publication"
 
 DOCS_LIBRARY_GOVERNANCE = REPORTS_ROOT / "library-governance"
 DOCS_RULE_AUDITS = REPORTS_ROOT / "rule-audits"

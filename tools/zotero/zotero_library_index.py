@@ -10,6 +10,7 @@ PDF files.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -36,7 +37,9 @@ from tools.researchos_outputs import (
     CORPUS_ZOTERO_FULLTEXT,
     CORPUS_ZOTERO_FULLTEXT_NORMALIZED,
     CORPUS_ZOTERO_LIBRARY_DB,
+    M006_ZOTERO_INGESTION_PIPELINE,
 )
+from tools.runtime.project_write_guard import refuse_direct_shared_corpus_write
 from tools.zotero.zotero_local_api import file_url_to_path, year_from_date
 
 
@@ -71,6 +74,7 @@ def default_local_root() -> Path:
 
 
 DEFAULT_DB = CORPUS_ZOTERO_LIBRARY_DB
+DEFAULT_WRITER_LOCK_DIR = RESEARCHOS_ROOT / M006_ZOTERO_INGESTION_PIPELINE / "locks"
 
 
 def utc_now() -> str:
@@ -119,8 +123,11 @@ def configure_tessdata_prefix() -> None:
         os.environ["TESSDATA_PREFIX"] = str(tessdata)
 
 
-def writer_lock_path(db_path: Path) -> Path:
-    return db_path.with_suffix(db_path.suffix + ".writer.lock")
+def writer_lock_path(db_path: Path, lock_dir: Path | None = None) -> Path:
+    lock_root = lock_dir or DEFAULT_WRITER_LOCK_DIR
+    resolved_db = db_path.resolve()
+    digest = hashlib.sha256(str(resolved_db).lower().encode("utf-8")).hexdigest()[:12]
+    return lock_root / f"{db_path.name}.{digest}.writer.lock"
 
 
 def owner_id() -> str:
@@ -135,9 +142,15 @@ def read_json_file(path: Path) -> dict[str, Any] | None:
         return None
 
 
-def acquire_writer_lock(db_path: Path, stale_after_seconds: int, force: bool = False) -> Path:
+def acquire_writer_lock(
+    db_path: Path,
+    stale_after_seconds: int,
+    force: bool = False,
+    lock_dir: Path | None = None,
+) -> Path:
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = writer_lock_path(db_path)
+    lock_path = writer_lock_path(db_path, lock_dir)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
     now_dt = utc_now_dt()
     payload = {
         "owner": owner_id(),
@@ -146,6 +159,7 @@ def acquire_writer_lock(db_path: Path, stale_after_seconds: int, force: bool = F
         "created_at": now_dt.isoformat(timespec="seconds"),
         "heartbeat_at": now_dt.isoformat(timespec="seconds"),
         "db": str(db_path),
+        "lock_dir": str(lock_path.parent),
     }
     while True:
         try:
@@ -1401,7 +1415,7 @@ def command_sync(args: argparse.Namespace) -> int:
     client = ZoteroClient(args.api_base, args.user_id)
     lock_path = None
     try:
-        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock)
+        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock, args.lock_dir)
         with closing(sqlite3.connect(args.db)) as conn:
             init_db(conn)
             recovered = recover_stale_runs(conn, args.stale_after, "sync-start")
@@ -1447,7 +1461,7 @@ def command_watch(args: argparse.Namespace) -> int:
     print(f"watching Zotero every {args.interval} seconds; db={args.db}")
     lock_path = None
     try:
-        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock)
+        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock, args.lock_dir)
         with closing(sqlite3.connect(args.db)) as conn:
             init_db(conn)
             recovered = recover_stale_runs(conn, args.stale_after, "watch-start")
@@ -1553,7 +1567,7 @@ def command_ocr_needed(args: argparse.Namespace) -> int:
         return 2
     lock_path = None
     try:
-        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock)
+        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock, args.lock_dir)
         with closing(sqlite3.connect(args.db)) as conn:
             init_db(conn)
             run_id = start_run(
@@ -1686,7 +1700,7 @@ def command_export_text_cache(args: argparse.Namespace) -> int:
         return 2
     lock_path = None
     try:
-        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock)
+        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock, args.lock_dir)
         with closing(sqlite3.connect(args.db)) as conn:
             init_db(conn)
             stats = materialize_pdf_text_cache(conn, args.fulltext_cache_root, args.overwrite)
@@ -1710,7 +1724,7 @@ def command_slim_db(args: argparse.Namespace) -> int:
     lock_path = None
     before_size = args.db.stat().st_size
     try:
-        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock)
+        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock, args.lock_dir)
         with closing(sqlite3.connect(args.db)) as conn:
             init_db(conn)
             inline_row = conn.execute(
@@ -1754,7 +1768,7 @@ def command_normalize_text_cache(args: argparse.Namespace) -> int:
     normalized_count = 0
     skipped = 0
     try:
-        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock)
+        lock_path = acquire_writer_lock(args.db, args.lock_stale_after, args.force_lock, args.lock_dir)
         with closing(sqlite3.connect(args.db)) as conn:
             init_db(conn)
             args.normalized_cache_root.mkdir(parents=True, exist_ok=True)
@@ -1913,6 +1927,7 @@ def command_ocr_check(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB, help="SQLite output database.")
+    parser.add_argument("--lock-dir", type=Path, default=DEFAULT_WRITER_LOCK_DIR, help="Machine-local directory for SQLite writer locks.")
     parser.add_argument("--api-base", default=DEFAULT_API_BASE, help="Zotero Local API base URL.")
     parser.add_argument("--user-id", default=DEFAULT_USER_ID, help="Zotero user ID for Local API, usually 0.")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -2026,6 +2041,14 @@ def main() -> int:
         parser.error("--limit must be >= 1")
     if getattr(args, "interval", 1) < 1:
         parser.error("--interval must be >= 1")
+    mutating = {"sync", "watch", "ocr-needed", "recover-runs", "export-text-cache", "slim-db", "normalize-text-cache"}
+    if args.command in mutating or (args.command == "summary" and getattr(args, "recover_stale", False)):
+        targets = [args.db]
+        for name in ("fulltext_cache_root", "normalized_cache_root"):
+            value = getattr(args, name, None)
+            if value:
+                targets.append(value)
+        refuse_direct_shared_corpus_write(RESEARCHOS_ROOT, targets)
     return args.func(args)
 
 

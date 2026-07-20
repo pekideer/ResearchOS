@@ -30,6 +30,7 @@ try:
 except ImportError:  # Direct script execution keeps the script directory on sys.path.
     from card_common import RANK_ORDER, format_publication_tags, known, metadata_heading_pattern, normalized_publication_tags, parse_metadata, parse_publication_tags, yaml_scalar
 from tools.researchos_outputs import CORPUS_ZOTERO_LIBRARY_DB
+from tools.runtime.project_write_guard import add_project_write_guard_args, refuse_direct_shared_corpus_write, require_project_write_access
 
 
 RANKING_TABLE_FIELDS = [
@@ -65,6 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--report-csv")
     parser.add_argument("--dry-run", action="store_true")
+    add_project_write_guard_args(parser)
     return parser
 
 
@@ -631,8 +633,8 @@ def main() -> int:
     api_enabled = bool(endpoint and secret_key and not args.no_api)
 
     cards = [] if args.dictionary_only else find_cards(cards_root)
-    ranking_table_path = researchos_root / "corpus" / "reading-cards" / "indexes" / "easyscholar-journal-ranking-table.csv"
-    cache_json = researchos_root / "corpus" / "reading-cards" / "indexes" / "easyscholar-journal-ranking-cache.json"
+    ranking_table_path = cards_root.parent / "indexes" / "easyscholar-journal-ranking-table.csv"
+    cache_json = cards_root.parent / "indexes" / "easyscholar-journal-ranking-cache.json"
     if project_root:
         report_csv = (
             Path(args.report_csv).resolve()
@@ -641,6 +643,19 @@ def main() -> int:
         )
     else:
         report_csv = Path(args.report_csv).resolve() if args.report_csv else None
+    if project_root and not args.dry_run:
+        require_project_write_access(
+            project_root,
+            agent_root=args.agent_root,
+            corpus_root=args.corpus_root,
+            role_config=args.role_config,
+            targets=[report_csv] if report_csv else [],
+        )
+    if not args.dry_run:
+        refuse_direct_shared_corpus_write(
+            researchos_root,
+            [journal_rankings_db, cards_root, ranking_table_path, cache_json],
+        )
     ranking_table = load_sqlite_ranking_table(journal_rankings_db)
     for normalized, row in load_ranking_table(ranking_table_path).items():
         ranking_table.setdefault(normalized, row)
