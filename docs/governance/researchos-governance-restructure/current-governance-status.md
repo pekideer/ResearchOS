@@ -32,7 +32,7 @@
 | 集中读书卡 | `corpus/reading-cards/cards/` 使用 `RC-###_ZoteroKey_短题名.md` 和简短 YAML 头部 |
 | 读书卡流水线 | `tools/reading_cards/zotero_library_pipeline.py` 统一处理全库、增量和显式 item key；默认写本机 `M-006` staging，后续语义处理和审计沿用同一资产集，共享 corpus 发布需单独完成 |
 | 期刊等级 | `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中的 `journal_rankings` 词典表作为映射来源 |
-| Zotero governance | 用户入口为 `tools/zotero/zotero_ai_governance.py`；代码只准备 agent 语料并校验结构化结果，不调用语言模型 API，不以关键词替代语义分类 |
+| Zotero governance | 用户入口为 `tools/zotero/zotero_ai_governance.py`；`content-tags` 与 `library-structure` 物理隔离证据/schema，代码只准备语料并校验结果 |
 | Tools 结构 | 按 `zotero/`、`reading_cards/`、`project/`、`runtime/` 分组；顶层仅保留跨主题基础模块 |
 | Templates 结构 | 按 `annotations/`、`ideas/`、`literature/`、`prisma/`、`gap-to-topic/`、`writing/`、`paper-memory/`、`project-state/` 分组；模板名与实际输出名一致 |
 | 高风险写入 | 通过 `tools/zotero/write/` 和 Zotero Web API 审批流程执行 |

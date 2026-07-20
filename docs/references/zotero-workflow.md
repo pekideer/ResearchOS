@@ -35,7 +35,7 @@ ResearchOS 是方法论与生成物工作区，负责：
 
 1. 先查询 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite`。
 2. 通过 条目 key、标题、作者、DOI 或关键词确认候选条目。
-3. 使用 `tools/zotero/build_zotero_library_context_packet.py` 构建题录、attachment 和 规范化文本 上下文包。
+3. 使用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 构建题录、attachment 和规范化文本内容上下文包；只有库结构治理才改用 `--profile library`。
 4. 优先读取 SQLite 中 `text_normalized_cache_path` 指向的文本。
 5. 如果 SQLite 中的绝对路径因跨设备同步失效，回退到当前工作区 `corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt`。
 6. 将父文档中的题录和 规范化文本 交给阅读、综述、AI 分类或治理 skill。

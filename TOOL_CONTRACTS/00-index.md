@@ -44,7 +44,9 @@
 | `tools/zotero/zotero_new_item_monitor.py` | `02-zotero-library-governance.md` |
 | `tools/zotero/write/zotero_web_api.py` | `03-zotero-web-api-write.md` |
 | `tools/zotero/write/execute_project_collection_overlay_write.py` | `03-zotero-web-api-write.md` |
-| `tools/zotero/write/execute_zotero_additive_write_plan.py` | `03-zotero-web-api-write.md` |
+| `tools/zotero/write/execute_zotero_item_mutation_plan.py` | `03-zotero-web-api-write.md` |
+| `tools/zotero/write/mutation_contract.py` | `03-zotero-web-api-write.md` |
+| `tools/zotero/write/mutation_executor.py` | `03-zotero-web-api-write.md` |
 | `tools/zotero/write/execute_zotero_deleted_collection_cleanup.py` | `03-zotero-web-api-write.md` |
 | `tools/zotero/write/README.md` | `03-zotero-web-api-write.md` |
 | `tools/reading_cards/configure_easyscholar_api.ps1` | `04-reading-cards-prisma.md` |
@@ -72,7 +74,7 @@
 ## 4. 当前治理要求
 
 - `tools/zotero/write/` 中的工具只能通过审批流程触发，并继续按高风险工具管理。
-- `zotero_ai_governance.py` 是 Zotero 文献库治理的主入口；它只准备 agent 语料并校验 agent 结果，不再调用代码内方向评分、关键词标签归并或文献集语义规划模块。
+- `zotero_ai_governance.py` 是 Zotero 文献库治理主入口；`content-tags` 与 `library-structure` 使用物理分离的证据和 schema，代码只准备语料并校验 agent 结果。
 - 自动审计如需启用，应以当前 `docs/`、`corpus/`、`tools/zotero/write/` 和活跃工具清单为基准。
 - 新工具先判断是否真的需要代码；已批准的新工具必须登记到本索引和对应专题文件。
 - 工具契约变更后，应同步检查 `WORKFLOWS.md`、`TRIGGERS.md`、`QUALITY_GATES.md` 和相关 `RUNBOOKS/`。

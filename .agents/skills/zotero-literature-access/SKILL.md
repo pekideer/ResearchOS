@@ -23,7 +23,7 @@ description: 当 ResearchOS Zotero 父文档缺失、过期或需要维护时，
 
 ## 工作流
 
-1. 先检查父文档：`tools/zotero/build_zotero_library_context_packet.py --item-key ITEM_KEY --include-text` 或按查询词读取 SQLite。
+1. 先检查父文档：`tools/zotero/build_zotero_library_context_packet.py --profile content --item-key ITEM_KEY --include-text` 或按查询词读取 SQLite。
 2. 父文档命中时，直接把父文档上下文包交给 `paper-deep-reading`、`literature-matrix` 或治理流程，不继续调用 Local API。
 3. 只有父文档缺失、过期、路径失效或明确需要增量同步时，运行 `python tools/zotero/zotero_local_api_cli.py ping --allow-local-api`，确认 Zotero Local API 可访问。
 4. 优先用 `tools/zotero/zotero_library_index.py sync` / `watch` 更新 SQLite 父文档和 PDF 文本缓存链接。

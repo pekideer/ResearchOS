@@ -221,7 +221,7 @@
 读书卡版式、元数据位置、引用显示、作者单位和期刊等级规则唯一以 `RUNBOOKS/reading-card-governance.md` 为准；本工作流只定义从 Zotero 父文档到单篇精读的执行顺序。
 
 1. 先查询 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite`。
-2. 搜索或确认候选 条目 key 后，用 `tools/zotero/build_zotero_library_context_packet.py` 构建题录和 规范化文本 上下文包。
+2. 搜索或确认候选条目 key 后，用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 构建题录和规范化文本内容上下文包。
 3. 优先读取 SQLite 中 `text_normalized_cache_path` 指向的规范化 PDF 文本；如路径因跨设备变化失效，按当前 `corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt` 回退。
 4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过工作流 1C 的本机 staging 调用 `sync` / `ocr-needed` / `normalize-text-cache`；验证后再进入 corpus 发布流程。
 5. 旧项目 `.research/fulltext_cache/` 仅可只读兼容；新增项目局部文本进入 `02-证据材料/全文缓存/`，并应从父文档派生或能回溯到父文档。
@@ -231,7 +231,7 @@
 
 命令入口：
 
-- 普通阅读优先使用 `tools/zotero/build_zotero_library_context_packet.py`、`tools/reading_cards/build_fulltext_cache_packet.py` 和 `tools/reading_cards/build_affiliation_semantic_packet.py`。
+- 普通阅读优先使用 `tools/zotero/build_zotero_library_context_packet.py --profile content`、`tools/reading_cards/build_fulltext_cache_packet.py` 和 `tools/reading_cards/build_affiliation_semantic_packet.py`。
 - 阅读总表同步使用 `tools/reading_cards/sync_reading_summary_table.py`。
 - 父文档缺失、过期或排障时，才使用 `zotero-literature-access` 的 Local API 工具；完整参数和禁止行为见 `TOOL_CONTRACTS/01-zotero-parent-documents.md`。
 
@@ -400,7 +400,7 @@
 目标：把多篇读书卡转化为可比较的综述矩阵。
 
 1. 先检查是否已有 `literature-review-matrix.csv`。
-2. 收集同一课题下的读书卡、笔记、文末元数据或 Zotero 父文档元信息；若需要 PDF 全文，先用 `tools/zotero/build_zotero_library_context_packet.py` 或 `02-证据材料/全文缓存/` 生成证据包；旧 `.research/fulltext_cache/` 只读兼容。PDF 重新抽取只作为父文档和缓存均缺失时的最后手段。
+2. 收集同一课题下的读书卡、笔记、文末元数据或 Zotero 父文档元信息；若需要 PDF 全文，先用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 或 `02-证据材料/全文缓存/` 生成证据包；旧 `.research/fulltext_cache/` 只读兼容。PDF 重新抽取只作为父文档和缓存均缺失时的最后手段。
 3. 统一元信息字段：标题、作者、年份、DOI、条目 key。
 4. 使用 `literature-matrix` 比较研究对象、方法、数据、指标和结论。
 5. 只追加新增文献行，不覆盖已有人工确认字段。
@@ -522,17 +522,17 @@
 3. 生成字段清单，判断哪些字段对科研、分类和治理有用。
 4. 读取文献集，建立文件夹层级路径。
 5. 读取 顶层条目，提取元信息、文献集、标签、期刊、年份、DOI 和 规范化文本 可用性。
-6. 使用 `prepare-corpus` 和 `build-agent-packet` 生成带条目 key、来源字段、题名、摘要和可用文本片段的语料包；代码不得调用模型 API，也不得依据关键词直接产出研究方向、方法或对象标签。
-7. 当前 ChatGPT/Codex agent 亲自读取语料包，使用 `zotero-library-governance` 完成研究语义分类、主题关系和治理建议，并输出结构化结果。
-8. `build-plan` 只校验 agent 结果的字段、命名空间和条目映射，生成只读 CSV/JSON 计划；确定性相似度只能作为召回候选，不得自动提升为主题结论或重复判定。
-9. 基于 agent 判断和校验后的矩阵输出 `zotero_governance_report.md` 和可审批的 `zotero_governance_plan.json`。
-10. 默认只生成治理建议和 计划，不写入 Zotero。
-11. 若用户明确要求写入 Zotero，必须转到 `POLICIES/ZOTERO_WRITE_POLICY.md`。
-12. 写入前必须执行试运行、人工确认、金丝雀测试、分批执行和回滚计划。
+6. 先选择互斥任务：`content-tags` 只处理文献自身内容标签，`library-structure` 只处理领域和文献集结构；同时需要时分两条管线运行。
+7. 内容标签语料必须物理排除当前 tags、collection、项目名称和项目用途；筛选范围只决定 item keys，不构成语义证据。文献库结构任务才可把当前状态放在独立 `current_state` 字段。
+8. 当前 ChatGPT/Codex agent 读取任务专属语料并输出结构化结果；`build-plan --task ...` 只校验该任务的字段、命名空间和条目映射。代码不得调用模型 API，也不得依据关键词直接产出语义结论。
+9. 内容标签 agent 结果表达“从文献内容可成立的完整目标集合”；随后才与当前 Zotero tags 做确定性对账。已有任意 `#` 标签不等于充分，机器 tags 和 `rs:*` 不计入内容标签充分性；`rs:*` 由集中读书卡状态单独确定。
+10. 基于 agent 判断和校验后的矩阵输出治理报告和可审批的只读语义计划。
+11. 默认不写入 Zotero；若用户明确要求写入，转到 `POLICIES/ZOTERO_WRITE_POLICY.md`。
+12. 写入前必须把语义结果、当前 tags/collection 状态及独立读书卡状态对账为冻结 item mutation plan：绑定来源包哈希，逐条冻结完整版本/tags/collection keys/预期写后状态；全批任一漂移时在任何 PATCH 前整体停止。
 
 命令入口：
 
-- 普通治理优先使用 `tools/zotero/build_zotero_library_context_packet.py` 和 `zotero-library-governance` skill。
+- 普通内容治理优先使用 `tools/zotero/build_zotero_library_context_packet.py --profile content`；库结构治理才使用 `--profile library`，并由 `zotero-library-governance` skill 路由到对应任务。
 - 父文档维护或排障时，才使用带 `--allow-local-api` 的 Local API 工具。
 - 完整参数、输出文件和禁止行为见 `TOOL_CONTRACTS/02-zotero-library-governance.md`；写入边界见 `TOOL_CONTRACTS/03-zotero-web-api-write.md`。
 

@@ -19,7 +19,7 @@
 
 ## 2. 读取顺序
 
-1. 已知 Zotero 条目 key 时，先用 `tools/zotero/build_zotero_library_context_packet.py` 从 SQLite 父文档和 规范化文本 构建上下文。
+1. 已知 Zotero 条目 key 时，先用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 从 SQLite 父文档和规范化文本构建不含当前 tags/collection 的内容上下文。
 2. 如果任务绑定具体课题，优先复用 `02-证据材料/全文缓存/ITEMKEY.txt`；旧 `.research/fulltext_cache/ITEMKEY.txt` 可只读复用，但不得继续写入。来源应能回溯到父文档。
 3. 如果任务是多篇读书卡、综述矩阵、论断审计、方法审查或文本精读，优先用父文档上下文包或 `tools/reading_cards/build_fulltext_cache_packet.py` 从 缓存 生成紧凑证据包。
 4. 如果只需要作者/单位题录区，优先读取父文档 规范化文本 或 缓存 的 第 1-2 页，必要时 第 3 页。
@@ -39,7 +39,7 @@
 通用长文本证据包：
 
 ```powershell
-python tools\zotero\build_zotero_library_context_packet.py --item-key ITEMKEY --include-text
+python tools\zotero\build_zotero_library_context_packet.py --profile content --item-key ITEMKEY --include-text
 python tools\reading_cards\build_fulltext_cache_packet.py --project-root "课题目录" --max-pages 5
 ```
 

@@ -42,8 +42,8 @@ corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt
 从父文档构建上下文包：
 
 ```powershell
-python tools\zotero\build_zotero_library_context_packet.py --item-key ITEMKEY --include-text
-python tools\zotero\build_zotero_library_context_packet.py --query "radiant cooling" --limit 20
+python tools\zotero\build_zotero_library_context_packet.py --profile content --item-key ITEMKEY --include-text
+python tools\zotero\build_zotero_library_context_packet.py --profile content --query "radiant cooling" --limit 20
 ```
 
 每日快同步：

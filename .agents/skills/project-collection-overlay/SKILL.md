@@ -18,7 +18,7 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
 
 ## 工作流
 
-1. 先用 `zotero-library-governance` 或 `tools/zotero/build_zotero_library_context_packet.py` 只读筛选候选条目，依据 文献集、标签、题名、摘要和 规范化文本。
+1. 先用 `zotero-library-governance` 的 `library-structure` 任务或 `tools/zotero/build_zotero_library_context_packet.py --profile library` 只读筛选候选条目。项目、文献集和现有标签只用于候选召回与项目用途判断，不得作为内容 `#tags` 的证据。
 2. 使用固定一级目录承载所有项目覆盖层。默认名称为 `00.科研项目`；除非用户明确要求修改，否则长期保持该一级目录名称。
 3. 在固定一级目录下，为具体课题创建项目目录。命名格式：`NN-<项目性质中文缩写>-<项目简称>`，例如 `01-纵向-光谱选择性材料位置效应`。`NN` 为两位序号；项目性质中文缩写可用：
    - `纵向`：纵向项目或依托纵向课题。
@@ -43,6 +43,8 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
 9. 如果用户要求写入 Zotero，必须转入 `POLICIES/ZOTERO_WRITE_POLICY.md` 和 `RUNBOOKS/zotero-web-api-write-canary.md`；不得直接写入。
 
 ## 状态与用途边界
+
+- 项目 collection 只表达“这篇文献怎样服务当前项目”，不表达文献自身的稳定主题、方法或对象；内容 `#tags` 必须由独立的 `content-tags` 证据包生成，项目覆盖层不得反向改写它们。
 
 - `00-待分配-triage` 是唯一临时入口，只表示尚未完成项目相关性与用途分配；完成机器分诊后即应退出，不要求用户先阅读全文。
 - `00-待分配-triage` 与 `01-07` 稳定用途子文献集严格互斥。真实写入必须先加入并核验全部目标用途子文献集，再移出 `00-待分配-triage`；任一目标加入失败时保留 `00` 原归属并停止，不得形成无归属条目。

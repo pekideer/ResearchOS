@@ -1,41 +1,17 @@
-# ResearchOS Zotero 写入工具入口
+# Zotero 写入工具
 
-本目录只存放需要单独审批的 Zotero Web API 写入与恢复工具。这里的工具不得由普通科研助理任务自动触发；目录名称描述功能，不降低其高风险等级。
+本目录全部是高风险外部写入入口，必须先读取 `POLICIES/ZOTERO_WRITE_POLICY.md` 与 `RUNBOOKS/zotero-web-api-write-canary.md`，并获得对具体计划的批准。
 
-## 使用边界
+| 工具 | 用途 |
+|---|---|
+| `execute_zotero_item_mutation_plan.py` | 通用 tags 与条目 collection membership 冻结计划的预检/执行 |
+| `mutation_contract.py` | 唯一 item mutation plan schema 和快照比较 |
+| `mutation_executor.py` | 全局预检、PATCH、回读、审计和 rollback |
+| `execute_project_collection_overlay_write.py` | 带项目用途互斥状态机的专用 overlay |
+| `execute_zotero_deleted_collection_cleanup.py` | 已删除 collection 引用的专用清理 |
+| `publish_reading_card_note.py` | 读书卡 note 的专用发布 |
+| `zotero_web_api.py` | 共享 Web API、代理和分页基础设施 |
 
-- Zotero 写入、Zotero 恢复、Zotero 清理、批量结构改写和外部 API 写入，必须先读取 `POLICIES/ZOTERO_WRITE_POLICY.md` 与 `RUNBOOKS/zotero-web-api-write-canary.md`。
-- 未完成试运行、人工确认、金丝雀测试、分批执行计划和回滚计划前，不得执行真实写入。
-- 不得把 API key、完整代理地址、代理账号密码写入文件、日志或报告。
-- 不得把本目录工具移回 `tools/` 根目录，也不得由普通只读 Zotero 工具隐式导入执行入口。
+通用 mutation plan 必须绑定 `source_packet_hash`，逐条冻结完整 `version/tags/collection_keys` 和完整预期写后状态。真实写入前验证整批；任一漂移时零 PATCH。旧 additive 入口已删除，不保留兼容 schema。
 
-## 当前工具
-
-| 工具 | 用途 | 默认状态 |
-|---|---|---|
-| `execute_project_collection_overlay_write.py` | 写入项目文献集覆盖层 | 需审批 |
-| `execute_zotero_additive_write_plan.py` | 执行显式限定的条目 collection/标签增减计划；保留历史文件名以兼容旧入口 | 需审批 |
-| `execute_zotero_deleted_collection_cleanup.py` | 清理已删除 collection 引用 | 需审批 |
-| `zotero_web_api.py` | 共享环境配置、脱敏代理、HTTP 请求和分页 helper | 仅供本目录工具调用 |
-| `publish_reading_card_note.py` | 生成读书卡 note 计划，并在具体批准后执行一条 create/update 金丝雀 | 默认 dry-run；写入需批准 |
-
-## 参数边界
-
-- `execute_project_collection_overlay_write.py` 必须由调用方显式提供具体项目参数。
-- `--assignments`、`--hierarchy`、`--runs-dir`、canary `--item-key` 和 `--target-path` 均必须显式传入。
-- 普通科研任务不能通过默认参数误触发具体项目写入。
-- `execute_zotero_additive_write_plan.py` 默认保留现有 collection 和标签；只有已审批 action 中显式列入 `remove_collections` 或 `remove_tags` 的值才允许移除。工具不删除条目、附件或 collection 本身。
-- `publish_reading_card_note.py` 默认只生成 live preflight；真实写入必须同时指定 `--write --canary --approved-plan`，计划必须位于原预检目录且 provenance 匹配，并且只允许一个 `card_id` 对应一条生成笔记。写后后置条件全部通过后才登记成功映射。
-
-## 输出边界
-
-- `execute_zotero_additive_write_plan.py` 和
-  `execute_zotero_deleted_collection_cleanup.py` 的输入计划来自
-  `.researchos/outputs/machine/M-002-library-governance/`，但 preflight、写入前后
-  快照、执行审计和回滚材料统一写入
-  `.researchos/outputs/archive/A-001-library-governance/`。
-- `execute_project_collection_overlay_write.py` 不提供默认输出目录；调用方必须通过
-  `--runs-dir` 显式指定具体项目的 `.internal/zotero-collection-overlay/` 或经批准的
-  ResearchOS 审计归档位置。
-- 不得把真实写入运行包重新写回 `outputs/machine/`。
-- 读书卡 note dry-run 进入 `.researchos/outputs/machine/M-005-reading-card-annotation-sync/`，真实金丝雀运行包进入 `.researchos/outputs/archive/A-003-reading-card-note-publish/`。
+所有模式均保存脱敏审计。真实写入运行包进入 `.researchos/outputs/archive/A-001-library-governance/zotero-item-mutation-runs/`；项目 overlay 和读书卡 note 使用各自显式目录。

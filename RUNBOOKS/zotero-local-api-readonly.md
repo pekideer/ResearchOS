@@ -17,7 +17,7 @@
 ### 0. 先检查父文档
 
 ```powershell
-python tools\zotero\build_zotero_library_context_packet.py --item-key ITEM_KEY --include-text
+python tools\zotero\build_zotero_library_context_packet.py --profile content --item-key ITEM_KEY --include-text
 ```
 
 若父文档命中，直接使用父文档和规范化文本。

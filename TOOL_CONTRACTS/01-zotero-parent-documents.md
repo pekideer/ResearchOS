@@ -29,6 +29,7 @@
 - 只读查询条目元数据、附件位置和 PDF 信息。
 - 抽取 PDF 文本并写入 ResearchOS 父文档或规范化全文缓存。
 - 生成供阅读、综述、选题、矩阵和治理使用的上下文包。
+- 普通内容理解默认生成 `--profile content` 包并排除当前 tags/collection；只有文献库结构治理才使用 `--profile library` 单列当前状态。
 - 标记扫描版、文本缺失或可能需要 OCR 的文件。
 - 维护 watcher 所需的本地同步状态。
 - 只读采集已有集中读书卡对应条目的 Zotero 原生 PDF annotation，并写入父文档镜像。

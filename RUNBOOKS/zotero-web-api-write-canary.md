@@ -81,6 +81,10 @@ $env:ZOTERO_API_BASE
 5. 生成 回滚计划。
 6. 用户确认。
 
+通用 tags/collection membership 变更使用 `execute_zotero_item_mutation_plan.py`。先对已批准计划执行不带 `--write` 的全局预检；计划必须绑定 `source_packet_hash`，每条 action 必须冻结完整 `version + tags + collection_keys` 和完整 `expected_after`。金丝雀仅通过 `--item-key` 选取已在同一批准计划中的一条，不能临时改写计划。
+
+批量执行前再次对全部入选 action 完成全局预检。只要任一条目的版本、tags、collection keys、collection path 映射或预期写后状态发生漂移，整批必须在任何 PATCH 前停止并重新生成计划；不得使用刚刚 GET 到的版本替代审批时版本继续写入。
+
 ## 单条读书卡笔记测试
 
 仅在用户批准具体 `approved-plan-candidate.json` 后执行：
@@ -108,6 +112,7 @@ $env:ZOTERO_API_BASE
 - `after.json`
 - `rollback_plan.json`
 - `write_audit.csv`
+- `plan_snapshot.json`、`preflight_blocks.json` 和 `summary.json`（含计划哈希与来源包哈希）
 
 ## 失败停止规则
 
