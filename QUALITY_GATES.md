@@ -83,6 +83,10 @@
 - 读书卡第 6 节是否按项目逐条写明项目名称/ID、对应问题、具体借鉴点、拟使用位置和证据边界，而不是笼统写“本课题”。
 - 同一文献关联多个项目时，是否为每个项目保留独立用途条目，并把跨项目通用观点另行归纳。
 - 全库自动初筛卡是否省略项目借鉴章，且没有把摘要或机器抽取片段写成已核实的创新、方法或结果。
+- 精读完成是否由统一读书卡契约判定，而不是只检查 `generation_mode` 和 `fulltext_status` 两个状态字段。
+- 全文精读卡是否同时保存可回溯文本来源、已读页码范围；v2 卡是否保存 `reviewed_sections` 和 `source_text_sha256` 回执。
+- 全文精读卡第 1–5、7 节是否存在且有实质内容；有关联项目时，第 6 节是否使用当前的 `6.1`、`6.2`、`6.3` 结构，每个 `project_links` 项目是否各有完整的 `6.1.n` 用途块。
+- 卡片是否不存在“新状态字段 + 旧正文/旧第 6 章”的混合版本；出现此类混合时必须判为契约失败并重新精读。
 - 作者单位是否只在 `semantic_confirmed` 或 `manual_confirmed` 时作为确定事实显示；`heuristic_candidate`、旧 `not_found` 和未完成语义审查的历史值不得冒充最终单位。
 - 已语义检查但仍不确定、确实未找到或材料不可用时，是否分别使用 `semantic_needs_check`、`semantic_not_found`、`source_unavailable`，并保存页码范围或失败原因。
 - 期刊等级是否使用“待查询”“未收录”“查询失败，待重试”“不适用”等明确状态，而不是裸 `?`。
@@ -539,13 +543,14 @@
 - 同步前后是否保存并比较顶层条目 `key + version` 快照，语义结果是否绑定稳定版本。
 - 是否按 item key 和规范化 DOI 识别重键、活动/删除条目同 DOI、同 key 多卡与同 DOI 多活动卡。
 - 每个父条目下 ResearchOS 读书卡 note 是否为 0 或 1；多条时是否停止发布并生成精确 keeper/删除计划。
-- 有规范化全文的新条目是否真正完成 `llm_fulltext_deep_reading/full_text_reviewed`，而非停在 `auto_initial_screening`。
+- 有规范化全文的新条目是否通过统一读书卡契约并得到 `deep_read_complete=true`，而非只写入 `llm_fulltext_deep_reading/full_text_reviewed` 两个状态或停在 `auto_initial_screening`。
 - 已确认单位是否同时保留原文证据，并显示为 `中文一级机构，中文国家`；转换是否由当前 agent 语义完成。
   - collection membership 与 tags 是否分开判断；项目用途是否来自明确语义证据而非阅读状态或关键词脚本。
   - 内容 `#tags` 是否只来自文献自身内容，且语料包物理排除项目、collection 和当前 tags；项目 collection 结果是否未反向改变内容标签。
   - 内容标签充分性是否按完整目标集合逐维度对账，而不是“已有任意 `#` 标签即跳过”；机器 tags 和 `rs:*` 是否未冒充内容标签。
   - `rs:*` 是否只由集中读书卡事实源确定，并在冻结计划中显式列出状态迁移。
 - note、collection 和 tags 的真实写入是否分别有批准计划、金丝雀、回读和最终审计。
+- reading-card note 的试运行计划与真实写入是否冻结并复核同一份读书卡契约回执；正文、来源或结构漂移时是否在写入前停止。
 - 默认本机 staging 是否与共享 `corpus/` 明确区分；未经过 Corpus Publisher 发布和共享快照校验时，是否保持“待发布”而非报告集中主库已更新。
 
 ### 通过标准

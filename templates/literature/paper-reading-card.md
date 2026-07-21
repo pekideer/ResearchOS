@@ -1,3 +1,18 @@
+---
+reading_card_schema: "researchos-reading-card/v2"
+card_id: "{{ card_id }}"
+zotero_key: "{{ item_key_raw }}"
+project_links: {{ project_links_json }}
+title: "{{ title }}"
+fulltext_status: "{{ fulltext_status }}"
+generation_mode: "{{ generation_mode }}"
+reading_depth: "{{ reading_depth }}"
+reviewed_sections: "{{ reviewed_sections }}"
+source_text_sha256: "{{ source_text_sha256 }}"
+source: "{{ text_source }}"
+normalized_at: "{{ normalized_at }}"
+---
+
 # [{{ title }}](zotero://select/library/items/{{ item_key_raw }})
 
 - **Zotero条目：** [{{ item_key_raw }}](zotero://select/library/items/{{ item_key_raw }})
@@ -71,7 +86,7 @@
 
 ### 6.1 项目关联与具体用途
 
-> 一条文献可以关联零个、一个或多个项目。每个项目必须单独建立一条记录，不得使用含义不明的“本课题”；`6.1.n` 按该条目项目关联的相对时间顺序编号，较早关联者在前。
+> 一条文献可以关联零个、一个或多个项目。每个项目必须单独建立一条记录，不得使用含义不明的“本课题”；`6.1.n` 按该条目项目关联的相对时间顺序编号，较早关联者在前。若 `project_links` 为空，删除下方 `6.1.1` 示例，不得保留空项目块。
 
 #### 6.1.1 {{ project_name }}（`{{ project_id }}`）
 
@@ -104,8 +119,16 @@
 <summary>Reading card metadata</summary>
 
 ```yaml
-item_key: "[ITEMKEY](zotero://select/library/items/ITEMKEY)"
-manual_ref_id: "?"
+item_key: "[{{ item_key_raw }}](zotero://select/library/items/{{ item_key_raw }})"
+card_id: "{{ card_id }}"
+zotero_key: "{{ item_key_raw }}"
+reading_card_schema: "researchos-reading-card/v2"
+generation_mode: "{{ generation_mode }}"
+fulltext_status: "{{ fulltext_status }}"
+reading_depth: "{{ reading_depth }}"
+reviewed_sections: "{{ reviewed_sections }}"
+source_text_sha256: "{{ source_text_sha256 }}"
+manual_ref_id: "{{ card_id }}"
 title: "?"
 title_zh: "?"
 authors: "?"
@@ -121,12 +144,14 @@ journal_ranking_source: "EasyScholar"
 abstract_note: "?"
 generated_at: "YYYY-MM-DDTHH:MM:SS+08:00"
 status: "todo"
+read_status: "{{ read_status }}"
 importance: "normal"
 planned_use: []
 topic_relevance: "?"
 tags: []
 rating_5: "?"
-source_text: "?"
+text_source: "{{ text_source }}"
+text_pages_read: "{{ text_pages_read }}"
 evidence_strength: "?"
 one_paragraph_review: "?"
 pdf_attachment_key: "?"
@@ -148,7 +173,6 @@ library_catalog: "?"
 url: "?"
 access_date: "?"
 citation_key: "?"
-extra: "?"
 zotero_tags: []
 zotero_collections: []
 zotero_relations: {}

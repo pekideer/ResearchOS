@@ -44,6 +44,11 @@ from tools.reading_cards.card_common import (  # noqa: E402
     yaml_scalar,
 )
 from tools.reading_cards.sync_journal_rankings import normalize_journal_name, set_metadata  # noqa: E402
+from tools.reading_cards.reading_card_contract import (  # noqa: E402
+    CONTRACT_SCHEMA,
+    INITIAL_MODE,
+    validate_reading_card,
+)
 from tools.researchos_outputs import (  # noqa: E402
     CORPUS_READING_CARDS_ROOT,
     CORPUS_ZOTERO_FULLTEXT,
@@ -58,7 +63,7 @@ from tools.runtime.project_write_guard import refuse_direct_shared_corpus_write 
 CARDS_ROOT = CORPUS_READING_CARDS_ROOT / "cards"
 INDEX_PATH = CORPUS_READING_CARDS_ROOT / "indexes" / "reading-card-master-index.md"
 AFFILIATION_INDEX_PATH = CORPUS_READING_CARDS_ROOT / "indexes" / "affiliation-dictionary.csv"
-PIPELINE_VERSION = "2"
+PIPELINE_VERSION = "3"
 MISSING_DISPLAY = {"", "?", "？", "未填写", "unknown", "none", "null"}
 SEMANTIC_RESULT_STATUSES = {
     "semantic_confirmed",
@@ -421,6 +426,7 @@ def load_all_card_records(cards_root: Path) -> list[dict[str, Any]]:
             continue
         records.append({
             "path": path,
+            "text": text,
             "card_id": card_id,
             "item_key": item_key,
             "metadata": parse_metadata(text),
@@ -999,6 +1005,9 @@ def render_card(item: sqlite3.Row, card_id: str, affiliation: dict[str, str], jo
         "zotero_item_type": str(item["item_type"] or ""),
         "zotero_key": str(item["item_key"]),
         "zotero_version": str(item["version"] or ""),
+        "reading_card_schema": CONTRACT_SCHEMA,
+        "reading_depth": "initial_screening",
+        "generation_mode": INITIAL_MODE,
     }
     metadata_lines = "\n".join(f"{key}: {yaml_scalar(value)}" for key, value in metadata.items() if known(value))
     abstract_section = abstract or "当前 Zotero 题录未记录摘要；需结合全文或外部题录补充。"
@@ -1008,6 +1017,7 @@ def render_card(item: sqlite3.Row, card_id: str, affiliation: dict[str, str], jo
         if evidence["attachment_key"] else "当前条目没有可用 PDF 子附件。"
     )
     return f'''---
+reading_card_schema: {yaml_scalar(CONTRACT_SCHEMA)}
 card_id: {yaml_scalar(card_id)}
 zotero_key: {yaml_scalar(str(item["item_key"]))}
 project_links: []
@@ -1015,7 +1025,8 @@ title: {yaml_scalar(title)}
 fulltext_status: {yaml_scalar(status)}
 source: "corpus/reading-cards/cards"
 normalized_at: {yaml_scalar(timestamp[:10])}
-generation_mode: "auto_initial_screening"
+reading_depth: "initial_screening"
+generation_mode: {yaml_scalar(INITIAL_MODE)}
 ---
 
 # [{title}](zotero://select/library/items/{item["item_key"]})
@@ -1344,18 +1355,18 @@ def curation_local_failures(
         if key in cards_by_key and item_doi_by_key.get(key) in scoped_dois
     )
     deep_incomplete = 0
+    contract_invalid = 0
     affiliation_format_invalid = 0
     for key in scope_keys:
         rows = cards_by_key.get(key, [])
         if not rows:
             continue
         record = rows[0]
-        frontmatter = record["frontmatter"]
         metadata = record["metadata"]
-        if text_status_by_key.get(key) == "ok" and (
-            frontmatter.get("generation_mode") != "llm_fulltext_deep_reading"
-            or frontmatter.get("fulltext_status") != "full_text_reviewed"
-        ):
+        validation = validate_reading_card(str(record.get("text") or ""), expected_item_key=key)
+        if not validation.valid:
+            contract_invalid += 1
+        if text_status_by_key.get(key) == "ok" and not validation.deep_read_complete:
             deep_incomplete += 1
         if chinese_affiliation_display_blockers(metadata):
             affiliation_format_invalid += 1
@@ -1364,6 +1375,7 @@ def curation_local_failures(
         "active_doi_with_multiple_cards": duplicate_active_doi,
         "deleted_card_doi_conflicts": deleted_doi_conflicts,
         "fulltext_available_but_not_deep_read": deep_incomplete,
+        "reading_card_contract_invalid": contract_invalid,
         "confirmed_affiliation_not_chinese_form": affiliation_format_invalid,
     }
 

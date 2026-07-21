@@ -36,6 +36,8 @@
 
 项目 overlay、deleted-collection cleanup 和 reading-card note 各有额外状态机，保留专用入口；它们不得冒充通用 item mutation plan，也不得绕过各自的审批、金丝雀和回读条件。
 
+reading-card note 使用专用计划 schema v2；计划必须冻结有效的统一读书卡契约回执，真实写入前重新校验本地卡片并比较回执哈希。卡片正文、来源、页码、项目用途结构或回执发生漂移时，计划失效并零写入。
+
 ## 安全边界
 
 - 仅 Zotero Web API 可写；Local API 永远只读。

@@ -71,8 +71,8 @@ ResearchOS 的能力按六个科研助理场景域理解；具体细目以“统
 | 项目上下文与汇报导航 | `project-map-builder` | 项目指针、manifest、运行状态和用户明确的导航请求 | 恢复摘要、当前位置、路线推进、下一步建议和需要确认事项 |
 | 命名规则治理 | `RUNBOOKS/naming-governance.md` | 对象类型、已有目录/文件、命名冲突或新增命名规则需求 | 统一命名规则、命名审查清单、目录/编号/文件名建议 |
 | 从 Zotero 或 PDF 准备阅读语料 | `zotero-literature-access`、`zotero-library-governance`、既有工具契约 | 条目 key、查询词、项目目录、父文档状态 | 可回溯上下文包、规范化文本、缺失材料说明；科研判断仍由 LLM 完成 |
-| 单篇论文精读 | `paper-deep-reading` | 论文文本、题录信息、页码范围 | 读书卡、可引用观点、局限性和需要核查内容 |
-| Zotero 条目到语义读书卡 | `zotero-reading-card-pipeline` | 一个或多个 item key、新增范围或全库范围、父文档和规范化文本 | 期刊状态、第一作者单位语义结果、集中初筛读书卡、严格覆盖审计和可选发布预检 |
+| 单篇论文精读 | `paper-deep-reading` | 单篇论文/专利文本、题录、页码和可选项目问题 | 结构化语义精读、合同有效的读书卡、可引用观点、局限和核查项 |
+| Zotero 条目到语义读书卡 | `zotero-reading-card-pipeline` | 一个或多个 item key、新增/全库范围、父文档和规范化文本 | 语料与单位语义批次、初筛骨架、委托单篇精读、统一合同审计和可选发布预检 |
 | Zotero 增量完整治理 | `zotero-incremental-curator` | 同步前后 key/version、父文档、规范化全文、集中读书卡、父条目 children | 增减与重键审计、全文精读卡、中文单位、note 互斥审计、collection/tags/note 冻结计划 |
 | Zotero 读书卡与标注闭环 | `zotero-reading-card-annotation-sync` | 集中读书卡、item key、Zotero 原生 annotation、批准的 note 计划 | Zotero 读书卡子笔记、annotation 镜像、受控标注区和金丝雀审计 |
 | 设计检索路线 | `literature-search-map` | 研究主题、对象、关键词 | 中英文关键词、检索式、数据库路线和引用追踪策略 |

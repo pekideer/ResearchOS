@@ -1,56 +1,41 @@
 ---
 name: zotero-reading-card-pipeline
-description: 对一个、多个、新增或全库 Zotero 条目连续完成父文档与 PDF 文本准备、期刊词典查询、第一作者单位语义识别、集中初筛读书卡生成/更新，并在用户明确批准后衔接 Zotero 笔记发布；当用户说“生成某个条目的阅读卡并同步到 Zotero”“处理新增文献”“全库生成读书卡”“识别单位并建卡”或同义自然语言时使用。
+description: 编排一个、多个、新增或全库 Zotero 条目的父文档、PDF/OCR、规范化文本、期刊词典、第一作者单位语义包、集中读书卡 staging 与统一契约审计；当用户说“生成某个条目的阅读卡并同步到 Zotero”“处理新增文献”“全库生成读书卡”“识别单位并建卡”或同义自然语言时使用。科研内容精读委托 `paper-deep-reading`，真实 Zotero note 发布委托 `zotero-reading-card-annotation-sync`。
 ---
 
-## 目标
+## 职责
 
-把自然语言中的 Zotero 条目处理请求闭环为“语料准备 → 模型语义判断 → 读书卡 → 审计 → 经审批的 Zotero 同步”，避免把 Python 启发式候选冒充模型确认结果。
+作为 Zotero 到读书卡的确定性编排器，负责范围、语料、批次、状态、staging、审计和发布移交；不在代码中替代模型判断研究问题、结论、创新或项目用途。
 
 ## 必须读取
 
 1. `RUNBOOKS/reading-card-governance.md`
-2. `WORKFLOWS.md` 工作流 1C；涉及 Zotero 笔记或 annotation 时再读工作流 1B
-3. `QUALITY_GATES.md` 的证据、来源、输出和 Zotero 检查
-4. 涉及真实 Zotero 写入时读取 `POLICIES/ZOTERO_WRITE_POLICY.md` 和 `RUNBOOKS/zotero-web-api-write-canary.md`
-
-## 范围判断
-
-- 从用户表达、item key、当前项目上下文或唯一题名匹配确定范围；不能唯一定位时才提问。
-- `全库`、`新增`、一个或多个 item key 使用同一流程，只改变 scope 和批次大小。
-- “生成读书卡并同步到 Zotero”包含本地处理和外部写入两个阶段；用户未明确批准真实写入时，只完成本地卡和发布预检。
+2. `WORKFLOWS.md` 工作流 1C；涉及 note/annotation 时再读 1B
+3. `QUALITY_GATES.md` 的证据、来源、输出、统一读书卡契约和 Zotero 检查
+4. 真实 Zotero 写入时读取 `POLICIES/ZOTERO_WRITE_POLICY.md` 与 `RUNBOOKS/zotero-web-api-write-canary.md`
 
 ## 执行顺序
 
-1. 优先读取 ResearchOS SQLite、规范化全文和既有集中读书卡；材料缺失时才运行 `tools/reading_cards/zotero_library_pipeline.py run` 补齐父文档、PDF 文本、OCR 状态和期刊词典。
-2. 运行 `semantic-packet` 为尚未语义处理的条目生成第 1–3 页证据包。代码只准备页段和来源，不提取或写入单位候选。
-3. 模型亲自阅读证据包，按 `templates/literature/first-page-bibliographic-extraction-prompt.md` 判断作者显示名、第一作者标号、单位标号、第一个一级单位和国家；首页是封面时继续检查第 2–3 页。
-4. 输出结构化 JSONL，并先用 `semantic-apply` 默认预检；通过后才用 `--write-local` 写 ResearchOS SQLite 和集中读书卡。
-5. 使用模型根据题录、摘要和可用全文生成或更新初筛读书卡 1–5、7 章。不得把摘要或片段写成已核实全文结论；默认不生成第 6 章。
-6. 运行 `audit --strict`。只要仍有 `heuristic_candidate`、旧 `not_found`、`existing_card_candidate` 或 `not_processed`，就不得报告单位识别完成。
-7. 用户要求同步 Zotero 时，转入 `zotero-reading-card-annotation-sync`：先生成 live dry-run 和预览，再按明确批准计划执行单条金丝雀；未批准不写。
-
-## 单位状态
-
-- `heuristic_candidate`：旧版机器候选迁移状态；新流水线不得生成，旧卡必须重新进入语义审查。
-- `semantic_confirmed`：模型基于指定页码、原始单位片段确认。
-- `manual_confirmed`：用户人工确认。
-- `semantic_needs_check`：模型已检查但作者—单位对应仍不确定。
-- `semantic_not_found`：模型已检查规定页数但未发现足够信息。
-- `source_unavailable`：缺 PDF、OCR 未完成或文本抽取失败。
-- `not_processed`：尚未进入语义阶段。
+1. 从用户表达、item key、当前项目或唯一题名确定范围；只有无法唯一定位时才提问。
+2. 优先复用 SQLite 父文档、规范化全文和集中主卡；缺材料时运行 `zotero_library_pipeline.py run`，所有写入先进入机器本地 staging。
+3. 对待处理条目运行 `semantic-packet`；当前 agent 读取第 1–3 页证据并判断第一作者、单位与国家，再用 `semantic-apply` 预检和受控写入 staging。
+4. 无卡条目可由流水线生成只陈述材料状态的 `auto_initial_screening` 骨架；骨架不作科研语义结论，也不生成未映射的第 6 节。
+5. 用户要求精读、范围内有可用全文或增量治理要求完成精读时，把单篇证据包逐条交给 `paper-deep-reading`；编排器不得自行改写第 1–6 节。
+6. 对每张卡调用统一 `reading_card_contract`；`audit --curation-strict` 使用完整正文、证据回执和第 6 节结构判断，不再以两个头部字段代表精读完成。
+7. 通过本地审计后说明 `corpus_publication_required`；共享 corpus 只由 Corpus Publisher 发布。
+8. 用户要求同步 Zotero 时转入 `zotero-reading-card-annotation-sync`。发布 dry-run 和真实写入会再次校验同一契约；未经具体批准不写。
 
 ## 保护规则
 
-- 现有人工/精读卡只更新受控题录、单位和元数据字段，不覆盖人工正文、annotation 生成区、项目关联或第 6 章。
-- 语义结果必须包含 item key、当前 item version、证据哈希、检查页码、原始片段、来源和状态；材料变化后拒绝旧结果。
-- 期刊等级只来自 SQLite 词典、EasyScholar 或人工确认，不由模型猜测。
-- 不读取或修改 `zotero.sqlite`，不修改 PDF，不自动写 Zotero。
-- 本 skill 不授权修改 ResearchOS 本身；发现能力缺口时遵守 `AGENTS.md` 的 ResearchOS 自修改门禁。
+- 现有人工/精读卡的科研正文只能由 `paper-deep-reading` 或人工审查更新；批处理工具仅维护确定性题录、单位、期刊、索引和状态字段。
+- 语义结果绑定 item version、证据哈希、检查页码、原始片段和来源；漂移时废弃旧结果。
+- `heuristic_candidate`、旧 `not_found`、`existing_card_candidate` 和 `not_processed` 不是已完成单位识别。
+- 初筛、局部阅读和全文精读是不同合同状态；占位卡、可用全文和两项精读标记都不能单独证明精读完成。
+- 不读取或修改 `zotero.sqlite`，不修改 PDF，不自动写 Zotero，不直接写共享 corpus。
 
 ## 完成条件
 
-- 请求范围内每个条目都有明确 PDF/文本、期刊、单位语义和读书卡状态。
-- 确定单位均有页码、原始证据和 `semantic_confirmed`/`manual_confirmed` 状态。
-- 语义未决或来源不可用均显式说明原因，不使用裸 `?`。
-- 严格审计数量守恒，且 Zotero 写入停在用户批准边界。
+- 范围内每个条目都有明确的父文档、PDF/文本、期刊、单位语义和读书卡合同状态。
+- 全文条目只有在 `paper-deep-reading` 完成且合同返回 `deep_read_complete=true` 后才记为精读。
+- `audit --strict --curation-strict` 数量守恒并列出所有阻断；staging 与共享发布状态分开报告。
+- Zotero 写入停在用户批准边界；如已批准，则按单条金丝雀、逐条回读和最终审计执行。

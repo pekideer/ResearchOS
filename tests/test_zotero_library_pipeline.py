@@ -25,6 +25,7 @@ from tools.reading_cards.zotero_library_pipeline import (
     top_item_snapshot_payload,
 )
 from tools.reading_cards.card_common import reading_card_project_links, yaml_scalar
+from tools.reading_cards.reading_card_contract import validate_reading_card
 from tools.reading_cards.sync_journal_rankings import normalize_project_links_frontmatter
 
 
@@ -68,6 +69,7 @@ class ZoteroLibraryPipelineTests(unittest.TestCase):
         self.assertEqual(failures["duplicate_cards_by_item_key"], 1)
         self.assertEqual(failures["deleted_card_doi_conflicts"], 1)
         self.assertEqual(failures["fulltext_available_but_not_deep_read"], 1)
+        self.assertEqual(failures["reading_card_contract_invalid"], 1)
         self.assertEqual(failures["confirmed_affiliation_not_chinese_form"], 1)
 
     def test_curation_gate_scopes_duplicate_cards_but_keeps_related_doi_conflicts(self) -> None:
@@ -398,6 +400,49 @@ class ZoteroLibraryPipelineTests(unittest.TestCase):
         self.assertIn("单位：** 待语义识别", card)
         self.assertNotIn("first_author_affiliation_candidate", card)
         self.assertNotIn("单位：** Test University", card)
+        validation = validate_reading_card(card, "ABCD1234")
+        self.assertTrue(validation.valid)
+        self.assertEqual(validation.profile, "initial")
+
+    def test_curation_gate_rejects_deep_flags_with_stale_body(self) -> None:
+        stale = """---
+card_id: RC-099
+zotero_key: ACTIVE01
+project_links: [{"project_id":"project-one","association_order":1}]
+generation_mode: llm_fulltext_deep_reading
+fulltext_status: full_text_reviewed
+---
+# Stale card
+## 1. 创新摘要
+旧卡。
+## 2. 背景
+旧卡。
+## 3. 研究内容
+旧卡。
+## 4. 研究结果
+旧卡。
+## 5. 判断
+旧卡。
+## 6. 对本课题的借鉴
+可供本课题参考。
+## 7. 元数据（折叠）
+```yaml
+item_key: ACTIVE01
+read_status: deep
+text_source: corpus/fulltext/ACTIVE01.txt
+text_pages_read: 1-10
+```
+"""
+        failures = curation_local_failures(
+            {"ACTIVE01"},
+            {"ACTIVE01"},
+            {"ACTIVE01": "10.1/test"},
+            set(),
+            {"ACTIVE01": "ok"},
+            [{"item_key": "ACTIVE01", "frontmatter": {}, "metadata": {}, "text": stale}],
+        )
+        self.assertEqual(failures["reading_card_contract_invalid"], 1)
+        self.assertEqual(failures["fulltext_available_but_not_deep_read"], 1)
 
     def test_semantic_result_preserves_country_in_display(self) -> None:
         result = {

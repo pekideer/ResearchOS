@@ -1,68 +1,49 @@
 ---
 name: paper-deep-reading
-description: 对单篇论文进行结构化精读，区分事实、推断、建议和需要核查的内容。
+description: 对单篇论文、会议论文、学位论文或专利全文进行结构化语义精读，区分事实、作者解释、读者推断、局限与可迁移价值，并按统一读书卡契约生成或深化正文；当用户要求“精读这篇文献”“按最新模板重做读书卡”“检查旧卡是否真完成精读”或提供单篇全文要求提炼时使用。它不负责批量 Zotero 同步、PDF/OCR 准备、期刊词典或 Zotero Web 写入。
 ---
 
-## 目标
+## 职责
 
-用于单篇论文精读，把论文从“读过”转化为可复查、可引用、可迁移的结构化认知。
+作为单篇文献的语义精读引擎，负责读书卡第 1–6 节的科研判断和第 7 节的语义回执。语料准备与批量编排交给 `zotero-reading-card-pipeline`；Zotero note 发布交给 `zotero-reading-card-annotation-sync`。
 
-## 输入
+## 必须读取
 
-- 论文题录信息：标题、作者、年份、期刊或会议、DOI。
-- 论文摘要、全文文本或关键章节；长文本优先来自 ResearchOS Zotero 父文档中的规范化 PDF 文本，默认通过 `tools/zotero/build_zotero_library_context_packet.py --profile content` 构建证据包。
-- PDF 首页或前两页的题录/作者/单位区文本，用于识别作者显示名和第一作者一级单位。
-- 可选：用户关心的问题、目标课题方向、需要重点关注的方法或结果。
-- 可选：PRISMA record ID、阅读状态、重要性和计划用途。
-- 读书卡版式、元数据位置、引用显示、作者单位和期刊等级规则唯一以 `RUNBOOKS/reading-card-governance.md` 为准。
+1. `RUNBOOKS/reading-card-governance.md`
+2. `templates/literature/paper-reading-card.md`
+3. `WORKFLOWS.md` 工作流 1
+4. `QUALITY_GATES.md` 的证据、来源、输出和读书卡契约检查
 
-## 工作流
+## 输入门禁
 
-1. 确认材料来源和完整性，标注是否来自全文、摘要或局部文本；如需读取 PDF/长文本，先查 ResearchOS Zotero 父文档和 规范化文本，父文档命中时不得重新读取 PDF。
-2. 若需要生成读书卡，先读取 `RUNBOOKS/reading-card-governance.md`，并按该手册处理版式、元数据、引用显示、作者单位和期刊等级。
-3. 提取论文的一句话定位。
-4. 识别研究问题、方法路线、数据/模型/实验条件和关键变量。
-5. 提取主要结论，并区分作者事实陈述、作者解释和读者推断。
-6. 判断创新性、局限性和可迁移价值。
-7. 列出可引用观点和不建议引用或需要核查的内容。
+- 确认题录身份、文本来源、页码范围和文本完整性；优先读取 Zotero 父文档与规范化文本。
+- 全文不可用时只能生成初筛或局部阅读结果，不得声明 `full_text_reviewed`。
+- 读取全文前记录来源文件的 SHA-256；材料变化后重新阅读，不复用旧回执。
+- 第一作者单位使用首页至第 3 页的语义结果；本 skill 不用正文主题或机构常识猜测单位。
 
-## 输出
+## 精读步骤
 
-- 一句话定位
-- 研究问题
-- 方法路线
-- 数据/模型/实验条件
-- 关键变量
-- 主要结论
-- 创新性判断
-- 局限性
-- 可迁移价值
-- 可引用观点
-- 不建议引用或需要核查的内容
-- 读书卡输出必须符合 `RUNBOOKS/reading-card-governance.md`
+1. 写出一句话定位和一段话综述，明确证据范围。
+2. 提取研究问题、方法路线、数据/模型/实验条件、变量和指标。
+3. 提取主要结论，分别标记事实、作者解释和读者推断；数值保留对象、基线、单位与页码。
+4. 以明确参照对象判断创新性；没有参照时写“暂不能判断”。
+5. 从设计、数据、方法和外推边界说明局限，不空泛批评。
+6. 填写跨项目可复用观点、引用风险和需要核查项。
+7. 仅在项目关联与用途已有明确证据时生成结构化第 6 节；每个 `project_links` 项目单列 `6.1.n`，完整填写任务、借鉴点、拟使用位置、证据、边界和状态。
+8. 写入统一回执：`generation_mode`、`fulltext_status`、`read_status`、`text_source`、`text_pages_read`、`source_text_sha256`、`reviewed_sections`。
+9. 调用 `tools.reading_cards.reading_card_contract.validate_reading_card` 校验；未通过不得把卡片报告为精读完成，也不得进入 Zotero 发布预检。
 
-## 质量规则
+## 输出契约
 
-- 不编造论文中没有的信息。
-- 引用观点必须能回溯到论文文本或题录信息。
-- 创新性判断必须说明参照对象；没有参照对象时标注“暂不能判断”。
-- 局限性应基于论文设计、数据、方法或论证边界，不空泛批评。
-- 结论必须区分事实、推断、建议和假设。
-- 读书卡正文和快捷入口必须遵守 `RUNBOOKS/reading-card-governance.md` 与 `POLICIES/OUTPUT_LANGUAGE_POLICY.md`。
-
-## 安全规则
-
-- 不编造文献、DOI、作者、期刊、会议、数据、图表或引用。
-- 不把摘要或局部文本中没有的信息写成全文结论。
-- 不把模型推断写成作者结论。
-- 父文档 规范化文本 或 全文缓存 已存在时，不为了同一阅读、综述或审计任务重复读取或上传 PDF 文本。
-- 对不确定信息标注“需要核查”。
+- 初筛：`auto_initial_screening`，不能标记 `full_text_reviewed` 或 `deep`。
+- 局部阅读：`llm_partial_fulltext_review`，明确页码和未覆盖内容。
+- 全文精读：`llm_fulltext_deep_reading` + `full_text_reviewed` + `read_status: deep`，且第 1–5、7 节具有实质内容。
+- 旧卡可按 v1 兼容结构校验；再次语义更新时升级为 `researchos-reading-card/v2` 并补齐来源哈希。
+- 第 6 节不是精读完成标志。存在时必须符合当前多项目结构；旧式平铺“借鉴”、含义不明的“本课题”或空项目块均为契约错误。
 
 ## 完成条件
 
-- 输出内容符合本 skill 的指定结构。
-- 读书卡版式和元数据满足 `RUNBOOKS/reading-card-governance.md`。
-- 明确区分事实、推断、建议和假设。
-- 不编造文献、DOI、数据、图表或引用。
-- 如使用 PDF 文本，说明文本来源和页数范围。
-- 如存在不确定信息，标注“需要核查”。
+- 结论可回溯到指定文本和页码，未编造题录、数据、图表或引用。
+- 事实、作者解释、推断、建议和需要核查项分离。
+- 合同校验 `valid=true`；全文精读还必须 `deep_read_complete=true`。
+- 只写本地或已批准的项目/语料 staging；本 skill 不授权 Zotero 或共享 corpus 写入。

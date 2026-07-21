@@ -52,6 +52,7 @@ first_author_affiliation_source: first-page regex
             )
         self.assertEqual(plan["action"], "blocked")
         self.assertIn("affiliation_semantic_review_incomplete:heuristic_candidate", plan["blocking_conditions"])
+        self.assertTrue(any(value.startswith("reading_card_contract:") for value in plan["blocking_conditions"]))
 
     def test_renderer_adds_stable_marker_and_readable_links(self) -> None:
         body = """---
@@ -167,7 +168,7 @@ first_author_affiliation_source: PDF 第 1 页语义识别
     def valid_update_plan(self):
         digest = "a" * 64
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "mode": "zotero_reading_card_note_canary",
             "generated_at": "2026-07-14T00:00:00+00:00",
             "plan_dir": ".researchos/outputs/machine/M-005-reading-card-annotation-sync/plan",
@@ -178,6 +179,10 @@ first_author_affiliation_source: PDF 第 1 页语义识别
             "source_hash": digest,
             "note_html_hash": digest,
             "note_content_hash": digest,
+            "reading_card_contract": {
+                "valid": True,
+                "receipt_hash": "b" * 64,
+            },
             "existing_note_key": "NOTE1234",
             "existing_note_version": 3,
             "existing_note_hash": digest,

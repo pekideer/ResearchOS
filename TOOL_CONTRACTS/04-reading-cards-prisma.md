@@ -8,6 +8,7 @@
 - `build_prisma_status_outputs.py`
 - `sync_reading_summary_table.py`
 - `card_common.py`
+- `reading_card_contract.py`
 - `sync_zotero_metadata_to_cards.py`
 - `sync_zotero_annotations_to_cards.py`
 - `zotero_library_pipeline.py`
@@ -26,6 +27,7 @@
 - 从父文档 annotation 镜像生成读书卡受控人工标注区。
 - 只读冻结并比较 Zotero Local API 顶层条目的 `key + version` 快照。
 - 在本机 staging 中运行增量同步、语义结果校验和严格治理审计。
+- 对读书卡声明、正文结构、项目用途和来源回执执行确定性一致性校验；不得据此生成科研语义结论。
 
 ## 4. 禁止行为
 
@@ -43,6 +45,8 @@
 - 集中主卡开头保留简短 YAML 头部。
 - Zotero 详细题录、期刊等级和 ResearchOS 同步元数据放入文末“元数据”部分。
 - 正文引用默认使用 `[第一作者姓(年份)](zotero://select/library/items/KEY)`。
+- `deep_read_complete` 只由统一契约产生：精读模式、全文状态、阅读状态、文本来源、页码范围、正文第 1–5/7 节和条件化第 6 节必须一致。
+- v2 精读卡还必须保存 `reviewed_sections` 和有效的 `source_text_sha256`；旧卡状态与旧正文混合时不得通过。
 
 ## 6. 验收标准
 
@@ -51,6 +55,7 @@
 - 期刊等级来源明确。
 - PRISMA 状态字段可解释。
 - 项目索引和集中主卡关系清楚。
+- 审计能识别只有精读状态、但正文仍为旧模板或旧第 6 章的混合卡。
 
 ## 7. 工具入口要求
 

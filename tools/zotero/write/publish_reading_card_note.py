@@ -33,6 +33,7 @@ from tools.reading_cards.card_common import (
     reading_card_identity,
     researchos_reading_card_notes,
 )
+from tools.reading_cards.reading_card_contract import validate_reading_card
 from tools.researchos_outputs import (
     A003_READING_CARD_NOTE_PUBLISH,
     CORPUS_READING_CARDS_ROOT,
@@ -362,6 +363,7 @@ def build_plan(
     card_id, item_key = reading_card_identity(body, card_path)
     if not card_id or not item_key:
         raise SystemExit("Reading card must provide card_id and Zotero item key")
+    contract = validate_reading_card(body, expected_item_key=item_key)
     note_html = markdown_to_zotero_html(body, card_id)
     status, _headers, parent_item = request(config, "GET", f"items/{item_key}", opener=opener)
     if status != 200 or (parent_item.get("data", {}) or {}).get("itemType") in {"note", "attachment", "annotation"}:
@@ -373,6 +375,7 @@ def build_plan(
     metadata = parse_metadata(body)
     blockers = affiliation_publish_blockers(metadata)
     blockers.extend(chinese_affiliation_display_blockers(metadata))
+    blockers.extend(f"reading_card_contract:{code}" for code in contract.issue_codes)
     action = "create"
     existing_note: dict[str, Any] | None = None
     if len(parent_generated_notes) > 1:
@@ -407,7 +410,7 @@ def build_plan(
         action = "blocked"
     relative_card = str(card_path.relative_to(root)).replace("\\", "/") if card_path.is_relative_to(root) else card_path.name
     plan = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": utc_now(),
         "mode": "zotero_reading_card_note_canary",
         "card_id": card_id,
@@ -417,6 +420,7 @@ def build_plan(
         "source_hash": content_sha256(body),
         "note_html_hash": sha256_text(note_html),
         "note_content_hash": note_content_hash(note_html),
+        "reading_card_contract": contract.to_dict(),
         "existing_note_key": existing_note.get("key") if existing_note else "",
         "existing_note_version": existing_note.get("version") if existing_note else None,
         "existing_note_hash": sha256_text(str((existing_note.get("data", {}) or {}).get("note") or "")) if existing_note else "",
@@ -519,7 +523,7 @@ def plan_command(args: argparse.Namespace) -> int:
 
 
 def validate_approved_plan(plan: dict[str, Any]) -> dict[str, Any]:
-    if plan.get("schema_version") != 1 or plan.get("mode") != "zotero_reading_card_note_canary":
+    if plan.get("schema_version") != 2 or plan.get("mode") != "zotero_reading_card_note_canary":
         raise SystemExit("Approved plan has an unsupported schema or mode")
     policy = plan.get("policy", {})
     required = (
@@ -541,6 +545,11 @@ def validate_approved_plan(plan: dict[str, Any]) -> dict[str, Any]:
     for field in ("source_hash", "note_html_hash", "note_content_hash"):
         if not re.fullmatch(r"[0-9a-f]{64}", str(plan.get(field) or "")):
             raise SystemExit(f"Approved plan has an invalid {field}")
+    contract = plan.get("reading_card_contract")
+    if not isinstance(contract, dict) or contract.get("valid") is not True:
+        raise SystemExit("Approved plan is missing a valid reading-card contract receipt")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(contract.get("receipt_hash") or "")):
+        raise SystemExit("Approved plan has an invalid reading-card contract receipt hash")
     raw_card_path = str(plan.get("card_path") or "").strip()
     card_path = Path(raw_card_path)
     if not raw_card_path or card_path.is_absolute() or ".." in card_path.parts:
@@ -668,6 +677,11 @@ def write_command(args: argparse.Namespace) -> int:
     evidence_blockers = affiliation_publish_blockers(parse_metadata(card_body))
     if evidence_blockers:
         raise SystemExit("Reading card affiliation evidence is not publishable: " + ", ".join(evidence_blockers))
+    contract = validate_reading_card(card_body, expected_item_key=plan["item_key"])
+    if not contract.valid:
+        raise SystemExit("Reading card contract is not publishable: " + ", ".join(contract.issue_codes))
+    if contract.to_dict()["receipt_hash"] != plan["reading_card_contract"]["receipt_hash"]:
+        raise SystemExit("Reading card contract changed after dry-run; generate a new plan")
     note_html = markdown_to_zotero_html(card_body, plan["card_id"])
     if content_sha256(card_body) != plan["source_hash"] or sha256_text(note_html) != plan["note_html_hash"]:
         raise SystemExit("Reading card changed after dry-run; generate a new plan")

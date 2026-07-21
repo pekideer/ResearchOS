@@ -225,9 +225,11 @@
 3. 优先读取 SQLite 中 `text_normalized_cache_path` 指向的规范化 PDF 文本；如路径因跨设备变化失效，按当前 `corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt` 回退。
 4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过工作流 1C 的本机 staging 调用 `sync` / `ocr-needed` / `normalize-text-cache`；验证后再进入 corpus 发布流程。
 5. 旧项目 `.research/fulltext_cache/` 仅可只读兼容；新增项目局部文本进入 `02-证据材料/全文缓存/`，并应从父文档派生或能回溯到父文档。
-7. 使用 `tools/reading_cards/build_affiliation_semantic_packet.py` 或同等缓存片段准备首页题录区证据，再用 `paper-deep-reading` 生成读书卡；读书卡写法按 `RUNBOOKS/reading-card-governance.md` 执行。
-8. 保存读书卡前先确认课题读书卡落点：默认先写本机 staging，发布后进入 `corpus/reading-cards/cards/`，并在课题目录保留项目指针、阅读总表或团队追踪链接。项目局部 PDF 文本进入 `02-证据材料/全文缓存/`；跨项目事实源先写本机 staging，再由 Corpus Publisher 发布到 `corpus/fulltext/`。
-9. 如需维护项目级阅读总表，运行 `tools/reading_cards/sync_reading_summary_table.py` 同步 `LM-004_reading-summary-table.html`。
+6. 使用 `tools/reading_cards/build_affiliation_semantic_packet.py` 或同等缓存片段准备首页题录区证据。
+7. 用 `paper-deep-reading` 完成第 1–6 节语义判断和第 7 节证据回执；批处理脚本不得替代该判断。
+8. 调用 `tools.reading_cards.reading_card_contract.validate_reading_card`；只有 `deep_read_complete=true` 才能报告全文精读完成。
+9. 保存前确认落点：默认先写本机 staging，发布后进入 `corpus/reading-cards/cards/`；项目目录只保留指针、阅读总表或团队追踪链接。
+10. 如需维护项目级阅读总表，运行 `tools/reading_cards/sync_reading_summary_table.py`。
 
 命令入口：
 
@@ -252,7 +254,7 @@
 
 完成标准：
 
-- 读书卡满足 `RUNBOOKS/reading-card-governance.md`。
+- 读书卡满足 `RUNBOOKS/reading-card-governance.md`，且统一契约返回 `valid=true`；全文精读返回 `deep_read_complete=true`。
 - 如同步阅读总表，每行能回溯到读书卡路径和 Zotero 条目 key。
 - 论文结论区分事实、推断、建议和假设。
 - 未写入 Zotero，未移动或复制 Zotero PDF。
@@ -349,11 +351,12 @@
 5. 流水线只记录首页文本是否可用和证据路径，初始状态为 `not_processed`；不得用正则单位候选填充读书卡字段。
 6. 运行 `semantic-packet`，从 SQLite 指向的规范化全文提取第 1–3 页并生成带 `item version + input hash` 的批次。模型按首页题录提示词亲自判断作者、作者标号、单位标号、第一作者对应的第一个一级单位和国家；首页为封面时检查后续页。
 7. 模型输出 `semantic_confirmed`、`semantic_needs_check`、`semantic_not_found` 或 `source_unavailable` 结果。先用 `semantic-apply` 默认预检，校验 item version、证据哈希、页码、原始片段和来源；通过后才用 `--write-local` 更新 SQLite 与读书卡。
-8. 现有人工/精读卡只更新受控题录、单位和元数据字段，不覆盖人工正文、annotation 生成区、项目关联或第 6 章。无卡条目先生成 `auto_initial_screening` 卡，再由模型根据题录、摘要和可用全文更新 1–5、7 章，不把摘要或片段冒充全文结论。
-9. 初筛卡默认不生成第 6 章“借鉴”，也不自动建立项目用途；项目关联确认后再按关联时间顺序追加 6.1.1、6.1.2 等三级目录。
-10. 增量模式以 `item version + pipeline version` 判定是否需要重跑；显式 `--item-key` 可触发单条同一流程。
-11. 完成本地卡后运行 `audit --strict`。只要仍有 `heuristic_candidate`、`existing_card_candidate`、旧 `not_found` 或 `not_processed`，不得报告单位识别完成。
-12. `run` 只写本机 `.researchos/outputs/machine/M-006-zotero-ingestion-pipeline/staging/`；后续 `semantic-packet`、`semantic-apply` 和 `audit` 自动沿用该 staging。共享更新只能由 Corpus Publisher 通过 `publish_corpus.py` 的受控发布完成，其他工具直接写 `corpus/` 时 fail-closed。用户要求同步 Zotero 时，转入工作流 1B：先 live dry-run，再对具体批准计划执行金丝雀；本工作流本身不授权写 Zotero。
+8. 无卡条目可生成 `auto_initial_screening` 骨架；它只陈述题录、摘要原文和材料状态，不作科研结论，也不生成未映射的第 6 节。
+9. 对要求精读或增量治理中全文可用的条目，逐条调用 `paper-deep-reading`；编排工具不覆盖人工/精读正文、annotation 区或项目用途。
+10. 每张卡调用共享 `reading_card_contract`。全文精读需同时满足声明、正文实质内容、全文来源与页码、第 6 节项目结构；不能再用两个头部字段替代完成判定。
+11. 增量模式以 `item version + pipeline version` 判定是否准备新语料；显式 `--item-key` 可触发单条同一流程。语料变更后必须重新生成语义回执。
+12. 完成本地卡后运行 `audit --strict --curation-strict`。单位待处理或读书卡合同错误均阻断完成报告。
+13. `run` 只写本机 `.researchos/outputs/machine/M-006-zotero-ingestion-pipeline/staging/`；共享更新只能由 Corpus Publisher 发布。用户要求同步 Zotero 时转入工作流 1B，发布预检和写前检查再次验证同一合同。
 
 命令入口：
 
@@ -371,7 +374,7 @@
 - 文本成功、OCR、缺 PDF、抽取错误分别计数；成功记录有可访问的原始与规范化文本路径。
 - 期刊字段无裸 `?`；单位只有 `semantic_confirmed` 或 `manual_confirmed` 可作为确定事实显示，其余状态明确说明语义未决、未找到或来源不可用。
 - 请求范围满足数量守恒，不存在未说明的候选或未处理条目；确定单位均有原始片段、页码、来源和证据哈希。
-- 现有人工读书卡正文未被模板覆盖；自动初筛卡没有项目借鉴章，也没有把摘要改写成已核实全文结论。
+- 现有人工读书卡正文未被模板覆盖；自动初筛卡没有未映射项目借鉴章，也没有把摘要改写成全文结论；旧式第 6 节、空项目块或含义不明的“本课题”会被合同阻断。
 - 默认 staging 运行已明确报告 `corpus_publication_required`；未完成 Corpus Publisher 发布和共享快照校验时，不报告共享父文档或集中主卡已更新。
 - 未写入 Zotero，未复制、移动、删除或重命名 Zotero PDF。
 
@@ -387,7 +390,7 @@
 2. 运行工作流 1C 的本机 staging 同步，随后按 DOI 与 item key 审计重键、活动/删除条目同 DOI、多卡同 key 和同 DOI 多活动卡；未完成 Corpus Publisher 发布时把共享语料状态标为待发布。
 3. 对本次范围逐个父条目审计 ResearchOS 读书卡 note 数。`>1` 时冻结 keeper/删除计划并停止发布；真实删除必须单独批准并逐条回读。
 4. 单位原文证据与显示值分开：当前 agent 识别作者对应关系和一级机构，显示值统一为 `中文一级机构，中文国家`；代码只验证格式和证据状态。
-5. 有全文的新条目必须使用 `paper-deep-reading` 完成 1–5、7 章并标记 `llm_fulltext_deep_reading/full_text_reviewed`；无全文时明确阻断，不把摘要卡报告为精读卡。
+5. 有全文的新条目必须使用 `paper-deep-reading` 完成语义正文与证据回执，并由共享合同确认 `deep_read_complete=true`；两个精读标记本身不是完成证据。无全文时明确阻断。
 6. 当前 agent 逐条判断 collection 与 tags，分别生成 dry-run。项目用途不明确时保持 triage，不用阅读状态推断用途。
 7. 运行 `audit --strict --curation-strict --item-key ...`，再为缺失/需更新的唯一读书卡 note 生成 live dry-run。真实 Zotero 写入仍走工作流 1B 或相应 metadata 写入审批、金丝雀和回读。
 

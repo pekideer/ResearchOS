@@ -22,8 +22,8 @@
 | 处理阅读批注、映射意见、更新批注文档 | C03 | `human-annotation-inbox` | 0X | 人工批注 |
 | 记录碎片想法、建立 IDEA、初步潜力判断 | C04 | `idea-to-research-potential` | 0 | 点子潜力 |
 | 父文档缺失/过期、Local API 排障、定位 PDF | C05 | `zotero-literature-access` | 1 | 来源、Zotero 父文档 |
-| 单篇论文精读、仅生成本地读书卡 | C06 | `paper-deep-reading` | 1、1A | 证据、来源、输出 |
-| 为某个或多个明确 Zotero 条目抽取全文、识别第一作者单位、生成或更新读书卡 | C05、C06、C11 | `zotero-reading-card-pipeline` | 1C、1B | 证据、Zotero 父文档、输出、写入 |
+| 单篇论文/专利语义精读、按最新模板生成或深化本地读书卡、检查旧卡是否真精读 | C06 | `paper-deep-reading` | 1、1A | 证据、来源、读书卡契约、输出 |
+| 为一个、多个、新增或全库 Zotero 条目准备全文、识别第一作者单位、编排精读卡和同步移交 | C05、C06、C11 | `zotero-reading-card-pipeline` | 1C、1B | 证据、Zotero 父文档、读书卡契约、输出、写入 |
 | 检查 Zotero 库增减并把新增条目完整推进到精读卡、中文单位、父条目 note 互斥、collection 与 tags 计划；每日完整增量治理 | C05、C06、C11 | `zotero-incremental-curator` | 1D、1B、0A | 证据、Zotero 父文档、collection/tags 语义、输出、写入 |
 | 仅把已有读书卡发布为 Zotero 笔记、仅同步 PDF 高亮/批注并回流读书卡 | C06、C11 | `zotero-reading-card-annotation-sync` | 1B | 证据、Zotero 父文档、写入 |
 | 关键词、检索式、数据库路线、候选发现 | C07 | `literature-search-map` | 2A | 来源、输出 |
@@ -55,6 +55,7 @@
 - Zotero 标注回流由 `zotero-reading-card-annotation-sync` 处理；本地批注文件仍由 `human-annotation-inbox` 处理。
 - 普通任务结尾不触发项目地图；只有用户明确要求恢复、定位或导航时使用 `project-map-builder`。
 - 每个请求默认只有一个主 skill；辅助 skill 不重复生成主输出。
+- `paper-deep-reading` 是单篇语义引擎；`zotero-reading-card-pipeline` 是范围、语料、staging 和审计编排器。后者调用前者，不复制其科研判断。
 
 ## 上下文与安全
 

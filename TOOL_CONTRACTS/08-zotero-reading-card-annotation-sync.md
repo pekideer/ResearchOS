@@ -41,6 +41,7 @@
 - 全局 annotation 枚举或目标条目 children 读取失败：相关 attachment 不执行软删除。
 - Local API 不可用：停止 annotation 同步并报告故障。
 - 找到多个生成笔记、映射缺失、实质内容指纹不匹配或版本冲突：停止写入并生成冲突报告。
+- 读书卡统一契约无效，或精读声明与正文结构、来源回执不一致：停止生成可批准写入计划。
 - 实质内容指纹覆盖标题、段落、列表、引用、强调、正文和链接/图像目标；只忽略经过金丝雀验证的 Zotero schema、`rel`、blockquote 段落包装、空列表节点和 `small`/`pre > code` 规范化。
 - `--repair-local-mapping` 仅在已追踪 note key 与当前读书卡实质内容指纹一致时更新 ResearchOS 映射，不调用 Zotero 写接口。
 - Web API、代理或权限测试失败：不得从 Local API 或原始数据库绕过写入。
@@ -51,5 +52,5 @@
 - annotation 可回溯到 item、attachment、页码和 annotation key。
 - 页码显示区分 PDF 物理页序/总页数与文献印刷页码。
 - 读书卡生成区可重复执行且不重复、不改其他正文。
-- note dry-run 与实际写入使用同一 source hash 和原始 note HTML hash；写后冲突检测另用稳定内容指纹。
+- note dry-run 与实际写入使用同一 source hash、原始 note HTML hash 和读书卡契约回执；写前重新校验回执，写后冲突检测另用稳定内容指纹。
 - 金丝雀执行保存 before、after、rollback plan 和脱敏代理记录。

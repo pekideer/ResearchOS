@@ -157,6 +157,17 @@ ResearchOS 读书卡长期采用“集中主卡 + 项目引用”的规则：
 - 未明确项目名称和具体用途时标为“待映射”，不得由条目主题相似性自动推断项目归属。
 - 简短 YAML 头部优先使用内联 JSON 数组 `project_links` 保存多项目索引；旧 `project_id` 只作为兼容字段，后续按人工审查逐卡迁移，不批量猜测。
 
+#### 4.0.2 统一读书卡契约
+
+读书卡只使用一套结构与证据回执契约，由 `tools/reading_cards/reading_card_contract.py` 做确定性校验；科研内容仍由当前 agent 使用 `paper-deep-reading` 判断，不交给代码推断。
+
+- `auto_initial_screening`：仅形成可追溯初筛骨架，不声明全文精读完成；没有明确项目关联时省略第 6 节。
+- `llm_partial_fulltext_review`：明确记录已读文本来源和页码范围，但不得冒充全文精读。
+- `llm_fulltext_deep_reading`：必须与 `full_text_reviewed`、等价的深读状态一致，并通过正文结构、项目用途和证据回执校验后，才产生 `deep_read_complete=true`。
+- v2 卡使用 `researchos-reading-card/v2`，保存 `reviewed_sections` 与 `source_text_sha256`；旧卡可兼容读取，但不能只更新状态字段而保留旧正文或旧第 6 章。
+- 全文精读卡必须有实质性的第 1–5、7 节；存在 `project_links` 时必须有 `6.1 项目关联与具体用途`、`6.2 跨项目可复用观点`、`6.3 不建议引用或需要核查`，并为每个项目建立独立完整的 `6.1.n` 块。
+- 增量治理审计与 Zotero reading-card note 发布共同调用该契约。任一结构、来源、页码、项目用途或回执校验失败，都必须在发布前阻断。
+
 如需要执行“来源副本改指针页”这类写入，必须先提交脚本必要性说明，并以
 `corpus/reading-cards/`、项目工作区和审计留存边界为基准制定执行方案。
 
