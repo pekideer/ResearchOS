@@ -25,6 +25,8 @@ QUALITY_GATES.md 使用 C01-C12 组织验收
 
 所有能力默认先判断是否可以由 LLM 直接完成。只有需要获取本地语料、读取 Zotero、抽取 PDF、批量整理文件、生成机器中间产物或执行外部写入时，才进入工具层。工具不是 ResearchOS 的主体，而是为科研助理准备上下文和连接外部系统的补足层。
 
+工具层不得自行调用通用语言模型 API，也不得用关键词或评分逻辑替代 LLM 完成研究语义分类。批量任务采用“工具准备带溯源语料包 → 当前 ChatGPT/Codex agent 判断 → 工具校验并应用结构化结果”的统一模式。
+
 | 编号 | 能力名称 | 触发入口 | 流程入口 | 主要质量检查 |
 |---|---|---|---|---|
 | C01 | 语义路由与能力定位 | `TRIGGERS.md` 语义路由与能力定位 | `WORKFLOWS.md` 工作流 00 | 语义路由检查 |
@@ -32,7 +34,7 @@ QUALITY_GATES.md 使用 C01-C12 组织验收
 | C03 | 人工批注收件箱 | `TRIGGERS.md` 人工批注收件箱 | `WORKFLOWS.md` 工作流 0X | 人工批注检查 |
 | C04 | 点子捕获与研究潜力评估 | `TRIGGERS.md` 点子捕获与研究潜力评估 | `WORKFLOWS.md` 工作流 0 | 点子潜力检查 |
 | C05 | Zotero 文献读取与父文档维护 | `TRIGGERS.md` Zotero 检索与读取 | `WORKFLOWS.md` 工作流 1 | 来源检查、Zotero 父文档检查 |
-| C06 | 单篇论文精读与读书卡 | `TRIGGERS.md` 单篇论文精读 | `WORKFLOWS.md` 工作流 1、1A | 证据检查、来源检查、输出检查 |
+| C06 | 论文阅读与读书卡 | `TRIGGERS.md` 单篇论文精读、Zotero 条目到读书卡流水线、读书卡与标注闭环 | `WORKFLOWS.md` 工作流 1、1A、1B、1C | 证据检查、来源检查、Zotero 读书卡标注闭环检查、输出检查 |
 | C07 | 多篇文献矩阵与 PRISMA | `TRIGGERS.md` 文献检索路线、多篇文献综述矩阵、PRISMA 检索筛选状态 | `WORKFLOWS.md` 工作流 2、2A | 证据检查、来源检查 |
 | C08 | 研究缺口到选题 | `TRIGGERS.md` Gap 到选题立项、科研选题凝练 | `WORKFLOWS.md` 工作流 2B、3 | 方法检查、证据检查 |
 | C09 | 论文写作、论断证据与方法审查 | `TRIGGERS.md` 方法路线审查、论文 论断-证据 审计、论文记忆 构建 | `WORKFLOWS.md` 工作流 4 | 方法检查、证据检查、过度声称检查 |
@@ -66,10 +68,13 @@ ResearchOS 的能力按六个科研助理场景域理解；具体细目以“统
 |---|---|---|---|
 | 自然语言语义路由 | `semantic-route-planner` | 用户原始自然语言请求、当前上下文、能力索引和触发路由 | 主意图/次级意图判断、推荐 skill、工作流、runbook、质量检查和执行路线 |
 | 项目地图构建 | `project-map-builder` | 项目入口、`docs/` 治理记录、`.researchos` 指针、过程记录、用户开放文本 | 项目蓝图、起点到当前位置路线、当前阶段、未决问题和可能下一步 |
-| 汇报导航优化 | `report-context-navigator` | 本次请求、执行结果、生成文件、项目地图或上下文 | 汇报尾部的当前位置、路线推进、下一步建议和需要确认事项 |
+| 项目上下文与汇报导航 | `project-map-builder` | 项目指针、manifest、运行状态和用户明确的导航请求 | 恢复摘要、当前位置、路线推进、下一步建议和需要确认事项 |
 | 命名规则治理 | `RUNBOOKS/naming-governance.md` | 对象类型、已有目录/文件、命名冲突或新增命名规则需求 | 统一命名规则、命名审查清单、目录/编号/文件名建议 |
 | 从 Zotero 或 PDF 准备阅读语料 | `zotero-literature-access`、`zotero-library-governance`、既有工具契约 | 条目 key、查询词、项目目录、父文档状态 | 可回溯上下文包、规范化文本、缺失材料说明；科研判断仍由 LLM 完成 |
-| 单篇论文精读 | `paper-deep-reading` | 论文文本、题录信息、页码范围 | 读书卡、可引用观点、局限性和需要核查内容 |
+| 单篇论文精读 | `paper-deep-reading` | 单篇论文/专利文本、题录、页码和可选项目问题 | 结构化语义精读、合同有效的读书卡、可引用观点、局限和核查项 |
+| Zotero 条目到语义读书卡 | `zotero-reading-card-pipeline` | 一个或多个 item key、新增/全库范围、父文档和规范化文本 | 语料与单位语义批次、初筛骨架、委托单篇精读、统一合同审计和可选发布预检 |
+| Zotero 增量完整治理 | `zotero-incremental-curator` | 同步前后 key/version、父文档、规范化全文、集中读书卡、父条目 children | 增减与重键审计、全文精读卡、中文单位、note 互斥审计、collection/tags/note 冻结计划 |
+| Zotero 读书卡与标注闭环 | `zotero-reading-card-annotation-sync` | 集中读书卡、item key、Zotero 原生 annotation、批准的 note 计划 | Zotero 读书卡子笔记、annotation 镜像、受控标注区和金丝雀审计 |
 | 设计检索路线 | `literature-search-map` | 研究主题、对象、关键词 | 中英文关键词、检索式、数据库路线和引用追踪策略 |
 | 撰写深度研究情报报告 | `research-intelligence-report` | 课题方向、技术细节、库内证据、可选外部数据库导出 | 人工阅读研究报告、证据矩阵、库内覆盖和需补足材料清单 |
 | 处理人工批注收件箱 | `human-annotation-inbox` | 项目/idea 本地 `10-批注/inbox.md`、全局 inbox、目标文档路径或锚点 | 批注映射、检查判断、建议更新、review log 和 processed 归档 |
@@ -99,12 +104,12 @@ ResearchOS 的能力按六个科研助理场景域理解；具体细目以“统
 | 安全入口 | 管理科研诚信、输出语言、API key 和 Zotero 写入审批 | `POLICIES/` |
 | 操作手册入口 | 承载复杂任务细则，避免根目录文档过重 | `RUNBOOKS/` |
 | 测试入口 | 检查 skill 稳定性、科研诚信和可复核输出 | `EVALS.md` |
-| 状态模板入口 | 支持长任务中断后的状态恢复 | `RUN_STATE_TEMPLATE.md`、`templates/research-run-state.md` |
+| 状态模板入口 | 支持长任务中断后的状态恢复 | `RUN_STATE_TEMPLATE.md`、`templates/project-state/run-state.md` |
 | 项目工作区能力映射 | 固化能力、基础功能文件和项目目录作用 | `docs/capabilities/project-workspace-capability-map.md` |
 
-`.research/` manifest 建议使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。
+`.research/` manifest 建议使用 `templates/project-state/project-manifest.yml`、`templates/project-state/run-state.json`、`templates/project-state/experiment-matrix.yml`、`templates/project-state/data-dictionary.yml` 和 `templates/project-state/open-questions.md`。
 
-PRISMA 综述状态建议使用课题目录 `03-文献矩阵/prisma/`，并从 `templates/prisma-records.csv`、`templates/prisma-search-log.csv` 和 `templates/prisma-zotero-tag-map.yml` 初始化。主状态保存在 `prisma-records.csv` 和读书卡文末元数据；Zotero 只镜像 `rs:*` 标签。
+PRISMA 综述状态建议使用课题目录 `03-文献矩阵/prisma/`，并从 `templates/prisma/records.csv`、`templates/prisma/search-log.csv` 和 `templates/prisma/zotero-tag-map.yml` 初始化。主状态保存在 `prisma-records.csv` 和读书卡文末元数据；Zotero 只镜像 `rs:*` 标签。
 
 ## 自然语言入口
 

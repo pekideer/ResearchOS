@@ -23,8 +23,9 @@ ResearchOS 是方法论与生成物工作区，负责：
 
 ## Collection、Tag、Note 配合方式
 
-- Zotero collection 用于保存项目或主题下的文献集合。
-- Zotero 标签 用于标注文献属性，如方法、对象、场景、数据类型、待读、已读。
+- Zotero collection 用于保存项目或主题用途；`00-待分配-triage` 是项目相关性与用途尚未完成分配时的唯一临时入口。
+- Zotero 标签 用于标注文献属性和阅读状态。`rs:read/todo` 固定表示尚未生成读书卡，`rs:read/initial-card` 表示已有初步读书卡，`rs:read/deep-read` 表示已完成精读。
+- “待读”不再作为项目 collection 名称；需要浏览待读文献时，应根据读书卡索引或 `rs:read/todo` 建立保存检索。
 - Zotero note 可用于保存最终人工确认后的读书卡摘要。
 - ResearchOS 生成的读书卡优先保存在 `corpus/reading-cards/cards/`；无课题目录时先确认项目路径或进入平级 `0.Inbox/`。
 - PRISMA 主状态保存在 `03-文献矩阵/prisma/prisma-records.csv` 和读书卡 YAML 头部；Zotero 只镜像少量 `rs:*` 标签。
@@ -34,7 +35,7 @@ ResearchOS 是方法论与生成物工作区，负责：
 
 1. 先查询 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite`。
 2. 通过 条目 key、标题、作者、DOI 或关键词确认候选条目。
-3. 使用 `tools/build_zotero_library_context_packet.py` 构建题录、attachment 和 规范化文本 上下文包。
+3. 使用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 构建题录、attachment 和规范化文本内容上下文包；只有库结构治理才改用 `--profile library`。
 4. 优先读取 SQLite 中 `text_normalized_cache_path` 指向的文本。
 5. 如果 SQLite 中的绝对路径因跨设备同步失效，回退到当前工作区 `corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt`。
 6. 将父文档中的题录和 规范化文本 交给阅读、综述、AI 分类或治理 skill。
@@ -42,9 +43,9 @@ ResearchOS 是方法论与生成物工作区，负责：
 ## Local API 维护流程
 
 1. 只有父文档缺失、过期、路径失效或需要增量同步时，才打开 Zotero 桌面端并启用 Zotero Local API。
-2. 使用 `tools/zotero_library_index.py sync` / `watch` 更新 SQLite 父文档和 PDF text 缓存链接。
-3. 使用 `tools/zotero_library_index.py normalize-text-cache` 维护 `zotero-library-normalized/`。
-4. `tools/zotero_local_api_cli.py` 只作为底层排障或维护工具，不作为普通阅读、综述或治理的默认入口。
+2. 使用 `tools/zotero/zotero_library_index.py sync` / `watch` 更新 SQLite 父文档和 PDF text 缓存链接。
+3. 使用 `tools/zotero/zotero_library_index.py normalize-text-cache` 维护 `zotero-library-normalized/`。
+4. `tools/zotero/zotero_local_api_cli.py` 只作为底层排障或维护工具，不作为普通阅读、综述或治理的默认入口。
 
 ## 读书卡与 Zotero note
 
@@ -59,7 +60,7 @@ ResearchOS 是方法论与生成物工作区，负责：
 ## PRISMA 状态如何镜像 Zotero 标签
 
 1. 在 `prisma-records.csv` 和读书卡 YAML 头部 中维护主状态。
-2. 使用 `tools/build_prisma_status_outputs.py` 生成 `zotero-tag-mirror-plan.json`。
+2. 使用 `tools/reading_cards/build_prisma_status_outputs.py` 生成 `zotero-tag-mirror-plan.json`。
 3. 复核 plan 中的 `rs:*` 标签。
 4. 如需写入 Zotero，转入 `POLICIES/ZOTERO_WRITE_POLICY.md` 和 `RUNBOOKS/zotero-web-api-write-canary.md`。
 

@@ -6,7 +6,7 @@
 
 复杂任务执行前，优先查看 `QUALITY_GATES.md` 和对应 `RUNBOOKS/`。涉及 Zotero 写入时，不在本工作流中直接执行，必须转入 `POLICIES/ZOTERO_WRITE_POLICY.md` 和 `RUNBOOKS/zotero-web-api-write-canary.md`。
 
-凡工作流需要读取 Zotero 元数据、PDF 或大段全文，必须先执行 `RUNBOOKS/zotero-library-parent-documents.md` 和 `RUNBOOKS/fulltext-cache-governance.md`：优先读取同步盘 SQLite 父文档和 规范化 PDF 文本；项目 文献集 层级和项目归属保持最新时，优先使用 `tools/zotero_fast_collection_sync.py`；只有需要补齐条目附件状态、全文缓存或 OCR 状态时，才通过 `tools/zotero_library_index.py` 更新父文档。
+凡工作流需要读取 Zotero 元数据、PDF 或大段全文，必须先执行 `RUNBOOKS/zotero-library-parent-documents.md` 和 `RUNBOOKS/fulltext-cache-governance.md`：优先读取同步盘 SQLite 父文档和 规范化 PDF 文本；项目 文献集 层级和项目归属保持最新时，优先使用 `tools/zotero/zotero_fast_collection_sync.py`；只有需要补齐条目附件状态、全文缓存或 OCR 状态时，才通过 `tools/zotero/zotero_library_index.py` 更新父文档。
 
 ## 工作流总门禁：先判断任务层级
 
@@ -29,10 +29,11 @@
 
 1. 用户请求模糊、跨多个能力或要求“判断下一步”时，先使用 `semantic-route-planner`。
 2. 用户要求“当前项目全貌”“我走到哪一步”“从起点到现在做了什么”时，使用 `project-map-builder`，并读取用户开放权限内的项目入口、索引、过程记录和汇报文件。
-3. 用户要求“汇报末尾说明当前位置和下一步”，或任务本身属于持续科研推进，使用 `report-context-navigator` 收束最终汇报。
-4. 涉及文件、目录、编号或 Zotero 项目文献集命名时，先读取 `RUNBOOKS/naming-governance.md`，再决定新增或修改名称。
-5. 语义路由只负责定位能力和路线；实际执行仍转入对应 skill、已有工具或工作流。
-6. 项目地图中的未来路线必须标注为“基于当前材料的推断”，不得写成用户已决定事项。
+3. 用户明确要求“恢复当前课题”“说明当前位置和下一步”或“构建项目地图”时，使用 `project-map-builder`；普通任务结尾不额外触发项目状态 skill。
+4. 上下文恢复只执行 `docs/modes/AGENTS.local-research.md` 的唯一链；复杂任务或状态变化结束后更新 `run_state.json` 并追加一条 `run-log.jsonl` 最小记录。
+5. 涉及文件、目录、编号或 Zotero 项目文献集命名时，先读取 `RUNBOOKS/naming-governance.md`，再决定新增或修改名称。
+6. 语义路由只负责定位能力和路线；实际执行仍转入对应 skill、已有工具或工作流。
+7. 项目地图中的未来路线必须标注为“基于当前材料的推断”，不得写成用户已决定事项。
 
 主要输出：
 
@@ -83,13 +84,26 @@
 - 未闭环功能标明阻断点和最小修复方向。
 - 未经用户明确要求，不发生代码修复或批量改写。
 
+## 工作流 0D：共享 corpus 发布与项目写入
+
+能力编号：`C12`
+
+1. 所有摄取、OCR、全文规范化、集中读书卡和索引更新先进入本机 `M-006` staging；不得把 staging 完成报告为共享 corpus 已更新。
+2. 使用 `publish_corpus.py plan` 冻结允许区域、源哈希、目标基线、SQLite 健康状态和 `plan_hash`。计划阶段只读 corpus。
+3. 真实 corpus 必须先审批一个精确金丝雀；批准前不运行 `apply --apply`。Corpus Publisher 角色只是必要条件，不替代本次用户批准。
+4. apply 前重新校验计划和基线；逐文件同目录原子替换，release manifest 最后提交。verify 必须回读全部 manifest 文件；任一不符即视为未提交或混合版本。
+5. rollback 使用发布时生成的精确计划，并单独审批。禁止将回滚扩展为目录清理。
+6. 任一工具写项目文件前调用共用 `project_write_guard.py`；handoff 所有权或 Agent Core/corpus 锚点漂移时整体停止。
+
+完成标准：发布计划、角色、基线、提交清单、回读和回滚证据闭环；项目写入入口在首个写操作前 fail-closed。
+
 ## 工作流 0X：人工批注收件箱
 
 能力编号：`C03`
 
 目标：让用户在项目/idea 本地固定文件中记录阅读想法、意见和疑问；未归属内容才进入全局入口。agent 后续读取这些条目，映射到对应文档位置，检查证据边界，并给出建议、更新或归档。
 
-1. 用户优先在当前项目/idea 的 `10-批注/inbox.md` 追加批注条目；跨项目或暂时不知道归属时，写入 `.researchos/human-annotation-inbox/inbox.md`。可复制 `templates/human-annotation-inbox-entry.md`。
+1. 用户优先在当前项目/idea 的 `10-批注/inbox.md` 追加批注条目；跨项目或暂时不知道归属时，写入 `.researchos/human-annotation-inbox/inbox.md`。可复制 `templates/annotations/inbox-entry.md`。
 2. 用户触发“处理我的批注/读取我的阅读意见/根据批注更新文档”。
 3. 使用 `human-annotation-inbox` 选择本地 inbox 或全局 inbox，读取 `status: new`、`status: needs-confirmation` 或用户指定条目。
 4. 根据 `target_document`、`target_anchor`、引用片段、标题、IDEA ID、Zotero key 或关键词映射到目标文档位置。
@@ -207,18 +221,20 @@
 读书卡版式、元数据位置、引用显示、作者单位和期刊等级规则唯一以 `RUNBOOKS/reading-card-governance.md` 为准；本工作流只定义从 Zotero 父文档到单篇精读的执行顺序。
 
 1. 先查询 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite`。
-2. 搜索或确认候选 条目 key 后，用 `tools/build_zotero_library_context_packet.py` 构建题录和 规范化文本 上下文包。
+2. 搜索或确认候选条目 key 后，用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 构建题录和规范化文本内容上下文包。
 3. 优先读取 SQLite 中 `text_normalized_cache_path` 指向的规范化 PDF 文本；如路径因跨设备变化失效，按当前 `corpus/fulltext/zotero-library-normalized/ITEMKEY__ATTACHMENTKEY.txt` 回退。
-4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过 `tools/zotero_library_index.py sync` / `ocr-needed` / `normalize-text-cache` 更新父文档。
-5. 课题 `.research/fulltext_cache/` 可作为项目局部缓存，但应从父文档派生或能回溯到父文档。
-7. 使用 `tools/build_affiliation_semantic_packet.py` 或同等缓存片段准备首页题录区证据，再用 `paper-deep-reading` 生成读书卡；读书卡写法按 `RUNBOOKS/reading-card-governance.md` 执行。
-8. 保存读书卡前先确认课题读书卡落点：默认保存到 `corpus/reading-cards/cards/`，并在课题目录保留项目指针、阅读总表或团队追踪链接。无课题目录时先要求确认项目路径。临时 PDF 文本抽取进入项目 `.research/fulltext_cache/` 或 `corpus/fulltext/`。
-9. 如需维护项目级阅读总表，运行 `tools/sync_reading_summary_table.py` 同步 `LM-004_reading-summary-table.html`。
+4. 仅在父文档缺失、过期或 PDF 文本状态为缺失/失败/needs_ocr 时，通过工作流 1C 的本机 staging 调用 `sync` / `ocr-needed` / `normalize-text-cache`；验证后再进入 corpus 发布流程。
+5. 旧项目 `.research/fulltext_cache/` 仅可只读兼容；新增项目局部文本进入 `02-证据材料/全文缓存/`，并应从父文档派生或能回溯到父文档。
+6. 使用 `tools/reading_cards/build_affiliation_semantic_packet.py` 或同等缓存片段准备首页题录区证据。
+7. 用 `paper-deep-reading` 完成第 1–6 节语义判断和第 7 节证据回执；批处理脚本不得替代该判断。
+8. 调用 `tools.reading_cards.reading_card_contract.validate_reading_card`；只有 `deep_read_complete=true` 才能报告全文精读完成。
+9. 保存前确认落点：默认先写本机 staging，发布后进入 `corpus/reading-cards/cards/`；项目目录只保留指针、阅读总表或团队追踪链接。
+10. 如需维护项目级阅读总表，运行 `tools/reading_cards/sync_reading_summary_table.py`。
 
 命令入口：
 
-- 普通阅读优先使用 `tools/build_zotero_library_context_packet.py`、`tools/build_fulltext_cache_packet.py` 和 `tools/build_affiliation_semantic_packet.py`。
-- 阅读总表同步使用 `tools/sync_reading_summary_table.py`。
+- 普通阅读优先使用 `tools/zotero/build_zotero_library_context_packet.py --profile content`、`tools/reading_cards/build_fulltext_cache_packet.py` 和 `tools/reading_cards/build_affiliation_semantic_packet.py`。
+- 阅读总表同步使用 `tools/reading_cards/sync_reading_summary_table.py`。
 - 父文档缺失、过期或排障时，才使用 `zotero-literature-access` 的 Local API 工具；完整参数和禁止行为见 `TOOL_CONTRACTS/01-zotero-parent-documents.md`。
 
 使用的质量检查：
@@ -238,7 +254,7 @@
 
 完成标准：
 
-- 读书卡满足 `RUNBOOKS/reading-card-governance.md`。
+- 读书卡满足 `RUNBOOKS/reading-card-governance.md`，且统一契约返回 `valid=true`；全文精读返回 `deep_read_complete=true`。
 - 如同步阅读总表，每行能回溯到读书卡路径和 Zotero 条目 key。
 - 论文结论区分事实、推断、建议和假设。
 - 未写入 Zotero，未移动或复制 Zotero PDF。
@@ -250,16 +266,17 @@
 目标：在生成或更新每篇读书卡后，同步一张可筛选的大表，用于跨文献浏览、写作素材管理、评分、PRISMA 状态追踪和 Zotero 回溯。
 
 1. 读书卡文末 `## 7. 元数据（折叠）` 尽量填写 `zotero_item_key`、`generated_at`、`read_status`、`importance`、`planned_use`、`topic_relevance`、`tags`、`journal_abbrev`、`publication_tags`、`rating_5`、`evidence_strength`、`one_paragraph_review`、`prisma_record_id`、`prisma_stage` 和 `gap_ids`。
-2. 读书卡正文保留 `## 一段话综述`，用一段话压缩“背景 + 目的 + 方法 + 结论 + 意义”。
-3. 运行同步脚本，按课题 manifest 或项目登记确认读书卡来源；默认读取 `corpus/reading-cards/cards/` 中的集中主卡及项目链接，不把缺失的旧本地读书卡目录当作有效输入。
-4. 脚本生成或更新人工活动总表 `03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html`，并按课题方向生成 `03-文献矩阵/04-阅读总表/分主题阅读总表/LM-004_reading-summary-table-<code>.html`；方向优先来自 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv`，若未配置则从读书卡 `tags` 中的 `T数字_方向名` 自动发现；同时生成 Markdown 备用表，并在 `03-文献矩阵/.internal/` 生成 CSV 镜像和 `reading-summary-reminders.csv`。
-5. 如已有总表，脚本按 Zotero 条目 key、读书卡路径或题目匹配既有行；读书卡中明确填写的字段可更新总表，读书卡缺失字段不覆盖既有人工填写内容。
-6. 这张表不替代 `literature-review-matrix.csv`：它偏阅读管理和写作素材汇总；完整综述矩阵仍负责研究对象、方法、指标、solved problem、real 研究缺口 和 pseudo 研究缺口。
-7. 所有需要人工打开参阅的条目使用 `RC-###` 编号；提醒使用 `TODO-###` 编号，便于逐条处理。
-8. `Zotero引用链接` 跳转 Zotero 母条目；人工表中的文献显示标签优先用 `Author(year)`，`Zotero PDF链接` 只有在读书卡或 PRISMA records 提供 PDF 附件 key 时生成。条目 key 放在机器镜像、元数据或审计字段；若人工表确需显示 条目 key，本身也必须是可点击 `zotero://select/library/items/KEY` 链接。
-9. HTML 中“卡”按钮使用本地文件链接。
+2. `topic_relevance` 只接受用户或当前 agent 的明确判断；缺失时保持为空或待判断，汇总脚本不得根据 tags 或方向默认值自动补齐。
+3. 读书卡正文保留 `## 一段话综述`，用一段话压缩“背景 + 目的 + 方法 + 结论 + 意义”。
+4. 运行同步脚本，按课题 manifest 或项目登记确认读书卡来源；默认读取 `corpus/reading-cards/cards/` 中的集中主卡及项目链接，不把缺失的旧本地读书卡目录当作有效输入。
+5. 脚本生成或更新人工活动总表 `03-文献矩阵/04-阅读总表/LM-004_reading-summary-table.html`，并按课题方向生成 `03-文献矩阵/04-阅读总表/分主题阅读总表/LM-004_reading-summary-table-<code>.html`；方向优先来自 `.research/project_manifest.yml` 的 `topic_directions` 或 `.research/topic_directions.csv`，若未配置则从读书卡 `tags` 中的 `T数字_方向名` 自动发现；同时生成 Markdown 备用表，并在 `03-文献矩阵/.internal/` 生成 CSV 镜像和 `reading-summary-reminders.csv`。
+6. 如已有总表，脚本按 Zotero 条目 key、读书卡路径或题目匹配既有行；读书卡中明确填写的字段可更新总表，读书卡缺失字段不覆盖既有人工填写内容。
+7. 这张表不替代 `literature-review-matrix.csv`：它偏阅读管理和写作素材汇总；完整综述矩阵仍负责研究对象、方法、指标、solved problem、real 研究缺口 和 pseudo 研究缺口。
+8. 所有需要人工打开参阅的条目使用 `RC-###` 编号；提醒使用 `TODO-###` 编号，便于逐条处理。
+9. `Zotero引用链接` 跳转 Zotero 母条目；人工表中的文献显示标签优先用 `Author(year)`，`Zotero PDF链接` 只有在读书卡或 PRISMA records 提供 PDF 附件 key 时生成。条目 key 放在机器镜像、元数据或审计字段；若人工表确需显示 条目 key，本身也必须是可点击 `zotero://select/library/items/KEY` 链接。
+10. HTML 中“卡”按钮使用本地文件链接。
 
-命令入口：使用 `tools/sync_reading_summary_table.py`；完整参数和输出约束见 `TOOL_CONTRACTS/04-reading-cards-prisma.md`。
+命令入口：使用 `tools/reading_cards/sync_reading_summary_table.py`；完整参数和输出约束见 `TOOL_CONTRACTS/04-reading-cards-prisma.md`。
 
 输出建议：
 
@@ -282,6 +299,103 @@
 - 缺失的一段话综述、与主题相关性、评分、期刊缩写或 PRISMA 字段会进入 reminders。
 - 不面向人工日常阅读的 CSV 镜像、提醒、候选池、种子矩阵等机器产物应放入 `.internal/`。
 
+## 工作流 1B：Zotero 读书卡与人工标注闭环
+
+能力编号：`C05`、`C06`、`C11`
+
+目标：把集中读书卡作为对应 Zotero 条目下的阅读笔记，并将 Zotero 原生 PDF 高亮和评论以可追溯证据回流读书卡。
+
+1. 使用 `zotero-reading-card-annotation-sync`，确认目标 item key 已映射到唯一集中读书卡。
+2. 先运行 `tools/zotero/zotero_annotation_sync.py` 的只读 dry-run；从题录 children 定位 PDF attachment，并通过一次全局 `itemType=annotation` 分页枚举按 `parentItem` 过滤目标标注。
+3. 用户确认范围后加 `--write-mirror`，只写 ResearchOS 父文档的 `annotations` 表；全局枚举或目标条目读取失败时不执行相关 attachment 的软删除。
+4. 运行 `tools/reading_cards/sync_zotero_annotations_to_cards.py` 生成读书卡受控区预览；原文摘录、人工判断、定位线索和需要核查分开显示。
+5. 用户要求应用后才加 `--write-cards`，并必须显式给出至少一个 `--item-key`；工具只能替换唯一且配对正确的 `researchos:zotero-annotations` 起止标记内内容。
+6. 需要在 Zotero 中阅读读书卡时，运行 `tools/zotero/write/publish_reading_card_note.py --card ...` 生成 live dry-run 和 HTML 预览。
+7. 用户必须确认具体 `approved-plan-candidate.json`；随后只用 `--write --canary --approved-plan ...` 执行单条创建或版本安全更新。
+8. 用户在 Zotero 中检查条目归属、排版、链接和同步结果；未确认前不得扩大批量。
+
+主要输出：
+
+- 父文档 `annotations` 与 `reading_card_zotero_notes` 表。
+- 读书卡 `6.99 人工阅读标注（Zotero 同步）` 生成区。
+- `.researchos/outputs/machine/M-005-reading-card-annotation-sync/`。
+- `.researchos/outputs/archive/A-003-reading-card-note-publish/`。
+
+使用的质量检查：
+
+- `证据检查`
+- `Zotero 父文档检查`
+- `Zotero 写入检查`
+- `Zotero 读书卡标注闭环检查`
+- `输出检查`
+
+完成标准：
+
+- Zotero annotation 读取未修改 Zotero、PDF 或原始数据库。
+- 标注可回溯到 item、attachment、页码和 annotation key。
+- 读书卡其他正文未被同步程序覆盖。
+- 真实 note 写入具有来源受限的具体批准计划、版本检查、写后身份/归属/标签/内容核验、执行前后证据和独立回滚计划。
+
+## 工作流 1C：Zotero 条目到语义读书卡流水线
+
+能力编号：`C05`、`C06`、`C11`
+
+主 skill：`zotero-reading-card-pipeline`
+
+目标：响应“生成某条阅读卡并同步到 Zotero”“处理新增条目”“全库生成读书卡”等自然语言，对一个、多个、新增或全库条目连续完成父文档、PDF 文本、期刊词典、第一作者单位语义识别、集中初筛读书卡和审计；真实 Zotero 笔记发布另行进入工作流 1B 的审批边界。
+
+1. 按 `load_workspace_dependencies -> Zotero Local API 探测 -> sync -> 条件校验` 的顺序更新父文档；Zotero 不可用时停止，不扩大为直接读取 `zotero.sqlite`。
+2. 代理地址属于机器私有配置：优先继承各电脑自己的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`、`NO_PROXY`，也可写入未跟踪的 `.local/machine_config.json` 的 `proxy` 段；共享脚本、自动任务和仓库配置不得写死代理 host/port。`127.0.0.1`、`localhost`、`::1` 始终加入直连名单。
+3. 原始抽取文本写入 `corpus/fulltext/zotero-library/`，AI 规范化文本写入 `corpus/fulltext/zotero-library-normalized/`；普通抽取后只对 `needs_ocr` 队列执行受限 OCR，超页数、book/thesis 默认跳过并保留原因；缺 PDF 和抽取错误保留明确状态，不伪装为成功。
+4. 期刊词典只对 `journalArticle` 的期刊名称查询；`待查询`、`未收录`、`查询失败，待重试` 和 `不适用` 必须显式区分，禁止用裸 `?` 代替状态。
+5. 流水线只记录首页文本是否可用和证据路径，初始状态为 `not_processed`；不得用正则单位候选填充读书卡字段。
+6. 运行 `semantic-packet`，从 SQLite 指向的规范化全文提取第 1–3 页并生成带 `item version + input hash` 的批次。模型按首页题录提示词亲自判断作者、作者标号、单位标号、第一作者对应的第一个一级单位和国家；首页为封面时检查后续页。
+7. 模型输出 `semantic_confirmed`、`semantic_needs_check`、`semantic_not_found` 或 `source_unavailable` 结果。先用 `semantic-apply` 默认预检，校验 item version、证据哈希、页码、原始片段和来源；通过后才用 `--write-local` 更新 SQLite 与读书卡。
+8. 无卡条目可生成 `auto_initial_screening` 骨架；它只陈述题录、摘要原文和材料状态，不作科研结论，也不生成未映射的第 6 节。
+9. 对要求精读或增量治理中全文可用的条目，逐条调用 `paper-deep-reading`；编排工具不覆盖人工/精读正文、annotation 区或项目用途。
+10. 每张卡调用共享 `reading_card_contract`。全文精读需同时满足声明、正文实质内容、全文来源与页码、第 6 节项目结构；不能再用两个头部字段替代完成判定。
+11. 增量模式以 `item version + pipeline version` 判定是否准备新语料；显式 `--item-key` 可触发单条同一流程。语料变更后必须重新生成语义回执。
+12. 完成本地卡后运行 `audit --strict --curation-strict`。单位待处理或读书卡合同错误均阻断完成报告。
+13. `run` 只写本机 `.researchos/outputs/machine/M-006-zotero-ingestion-pipeline/staging/`；共享更新只能由 Corpus Publisher 发布。用户要求同步 Zotero 时转入工作流 1B，发布预检和写前检查再次验证同一合同。
+
+命令入口：
+
+- 全库/首次运行：`python tools/reading_cards/zotero_library_pipeline.py run --scope all`
+- 日常增量：`python tools/reading_cards/zotero_library_pipeline.py run --scope new`
+- 单条自然语言触发对应命令：`python tools/reading_cards/zotero_library_pipeline.py run --item-key ITEMKEY`
+- 生成待语义处理批次：`python tools/reading_cards/zotero_library_pipeline.py semantic-packet --scope pending --batch-size 20`
+- 语义结果预检：`python tools/reading_cards/zotero_library_pipeline.py semantic-apply --results RESULTS.jsonl`
+- 写入本地父文档和读书卡：`python tools/reading_cards/zotero_library_pipeline.py semantic-apply --results RESULTS.jsonl --write-local`
+- 严格覆盖率审计：`python tools/reading_cards/zotero_library_pipeline.py audit --strict`
+
+完成标准：
+
+- 活跃条目、流水线状态和集中读书卡可按 item key 对齐。
+- 文本成功、OCR、缺 PDF、抽取错误分别计数；成功记录有可访问的原始与规范化文本路径。
+- 期刊字段无裸 `?`；单位只有 `semantic_confirmed` 或 `manual_confirmed` 可作为确定事实显示，其余状态明确说明语义未决、未找到或来源不可用。
+- 请求范围满足数量守恒，不存在未说明的候选或未处理条目；确定单位均有原始片段、页码、来源和证据哈希。
+- 现有人工读书卡正文未被模板覆盖；自动初筛卡没有未映射项目借鉴章，也没有把摘要改写成全文结论；旧式第 6 节、空项目块或含义不明的“本课题”会被合同阻断。
+- 默认 staging 运行已明确报告 `corpus_publication_required`；未完成 Corpus Publisher 发布和共享快照校验时，不报告共享父文档或集中主卡已更新。
+- 未写入 Zotero，未复制、移动、删除或重命名 Zotero PDF。
+
+## 工作流 1D：Zotero 增量完整治理
+
+能力编号：`C05`、`C06`、`C11`
+
+主 skill：`zotero-incremental-curator`
+
+目标：把“发现新增或变化”推进到可审计的完整语义资产，而不是停在初筛占位卡。
+
+1. 同步前后分别冻结 Local API 顶层条目 `key + version` 快照；意外变化时废弃旧语义结果并重新取证。
+2. 运行工作流 1C 的本机 staging 同步，随后按 DOI 与 item key 审计重键、活动/删除条目同 DOI、多卡同 key 和同 DOI 多活动卡；未完成 Corpus Publisher 发布时把共享语料状态标为待发布。
+3. 对本次范围逐个父条目审计 ResearchOS 读书卡 note 数。`>1` 时冻结 keeper/删除计划并停止发布；真实删除必须单独批准并逐条回读。
+4. 单位原文证据与显示值分开：当前 agent 识别作者对应关系和一级机构，显示值统一为 `中文一级机构，中文国家`；代码只验证格式和证据状态。
+5. 有全文的新条目必须使用 `paper-deep-reading` 完成语义正文与证据回执，并由共享合同确认 `deep_read_complete=true`；两个精读标记本身不是完成证据。无全文时明确阻断。
+6. 当前 agent 逐条判断 collection 与 tags，分别生成 dry-run。项目用途不明确时保持 triage，不用阅读状态推断用途。
+7. 运行 `audit --strict --curation-strict --item-key ...`，再为缺失/需更新的唯一读书卡 note 生成 live dry-run。真实 Zotero 写入仍走工作流 1B 或相应 metadata 写入审批、金丝雀和回读。
+
+验收：增减、重键、卡片互斥、精读状态、中文单位、collection、tags、note 与共享语料发布均有明确的完成/待审批/待发布/阻断状态；“占位卡已创建”不等于“精读完成”。
+
 ## 工作流 2：从多篇文献到 只追加 综述矩阵
 
 能力编号：`C07`
@@ -289,7 +403,7 @@
 目标：把多篇读书卡转化为可比较的综述矩阵。
 
 1. 先检查是否已有 `literature-review-matrix.csv`。
-2. 收集同一课题下的读书卡、笔记、文末元数据或 Zotero 父文档元信息；若需要 PDF 全文，先用 `tools/build_zotero_library_context_packet.py` 或 `.research/fulltext_cache/` 生成证据包，PDF 重新抽取只作为父文档和缓存均缺失时的最后手段。
+2. 收集同一课题下的读书卡、笔记、文末元数据或 Zotero 父文档元信息；若需要 PDF 全文，先用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 或 `02-证据材料/全文缓存/` 生成证据包；旧 `.research/fulltext_cache/` 只读兼容。PDF 重新抽取只作为父文档和缓存均缺失时的最后手段。
 3. 统一元信息字段：标题、作者、年份、DOI、条目 key。
 4. 使用 `literature-matrix` 比较研究对象、方法、数据、指标和结论。
 5. 只追加新增文献行，不覆盖已有人工确认字段。
@@ -331,14 +445,14 @@
 目标：在文献综述过程中维护可复查的 PRISMA 主状态，并把少量状态镜像到 Zotero 标签。
 
 1. 在课题目录下使用 `03-文献矩阵/prisma/`。
-2. 用 `templates/prisma-search-log.csv` 记录每次检索的数据库、检索式、筛选条件和导出文件。
-3. 用 `templates/prisma-records.csv` 维护每条候选文献的 PRISMA 阶段、筛选决策、排除原因、阅读状态、重要性和计划用途。
-4. 读书卡使用 `templates/paper-reading-card.md`。全部元数据保存在文末 `## 7. 元数据（折叠）`。
+2. 用 `templates/prisma/search-log.csv` 记录每次检索的数据库、检索式、筛选条件和导出文件。
+3. 用 `templates/prisma/records.csv` 维护每条候选文献的 PRISMA 阶段、筛选决策、排除原因、阅读状态、重要性和计划用途。
+4. 读书卡使用 `templates/literature/paper-reading-card.md`。全部元数据保存在文末 `## 7. 元数据（折叠）`。
 5. 主状态以读书卡文末元数据块和 `prisma-records.csv` 为准；Zotero 只镜像 `rs:*` 标签。
-6. 运行 `tools/build_prisma_status_outputs.py` 生成提醒、PRISMA 计数和 `zotero-tag-mirror-plan.json`。
+6. 运行 `tools/reading_cards/build_prisma_status_outputs.py` 生成提醒、PRISMA 计数和 `zotero-tag-mirror-plan.json`。
 7. 如需要真正写入 Zotero 标签，必须转入 `POLICIES/ZOTERO_WRITE_POLICY.md`，按试运行、人工确认、金丝雀测试和小批量执行。
 
-命令入口：使用 `tools/build_prisma_status_outputs.py`；完整参数和输出约束见 `TOOL_CONTRACTS/04-reading-cards-prisma.md`。
+命令入口：使用 `tools/reading_cards/build_prisma_status_outputs.py`；完整参数和输出约束见 `TOOL_CONTRACTS/04-reading-cards-prisma.md`。
 
 输出建议：
 
@@ -411,17 +525,17 @@
 3. 生成字段清单，判断哪些字段对科研、分类和治理有用。
 4. 读取文献集，建立文件夹层级路径。
 5. 读取 顶层条目，提取元信息、文献集、标签、期刊、年份、DOI 和 规范化文本 可用性。
-6. 使用 `configs/zotero_governance_rules.example.json` 或用户自定义规则匹配研究方向、研究方法、研究对象和期刊级别。
-7. 输出 `zotero_library_matrix.csv` 和可选 JSON。
-8. 基于题目、摘要、标签和期刊生成相近主题文献簇与相似文献对。
-9. 基于矩阵输出 `zotero_governance_report.md` 和可审批的 `zotero_governance_plan.json`。
-10. 默认只生成治理建议和 计划，不写入 Zotero。
-11. 若用户明确要求写入 Zotero，必须转到 `POLICIES/ZOTERO_WRITE_POLICY.md`。
-12. 写入前必须执行试运行、人工确认、金丝雀测试、分批执行和回滚计划。
+6. 先选择互斥任务：`content-tags` 只处理文献自身内容标签，`library-structure` 只处理领域和文献集结构；同时需要时分两条管线运行。
+7. 内容标签语料必须物理排除当前 tags、collection、项目名称和项目用途；筛选范围只决定 item keys，不构成语义证据。文献库结构任务才可把当前状态放在独立 `current_state` 字段。
+8. 当前 ChatGPT/Codex agent 读取任务专属语料并输出结构化结果；`build-plan --task ...` 只校验该任务的字段、命名空间和条目映射。代码不得调用模型 API，也不得依据关键词直接产出语义结论。
+9. 内容标签 agent 结果表达“从文献内容可成立的完整目标集合”；随后才与当前 Zotero tags 做确定性对账。已有任意 `#` 标签不等于充分，机器 tags 和 `rs:*` 不计入内容标签充分性；`rs:*` 由集中读书卡状态单独确定。
+10. 基于 agent 判断和校验后的矩阵输出治理报告和可审批的只读语义计划。
+11. 默认不写入 Zotero；若用户明确要求写入，转到 `POLICIES/ZOTERO_WRITE_POLICY.md`。
+12. 写入前必须把语义结果、当前 tags/collection 状态及独立读书卡状态对账为冻结 item mutation plan：绑定来源包哈希，逐条冻结完整版本/tags/collection keys/预期写后状态；全批任一漂移时在任何 PATCH 前整体停止。
 
 命令入口：
 
-- 普通治理优先使用 `tools/build_zotero_library_context_packet.py` 和 `zotero-library-governance` skill。
+- 普通内容治理优先使用 `tools/zotero/build_zotero_library_context_packet.py --profile content`；库结构治理才使用 `--profile library`，并由 `zotero-library-governance` skill 路由到对应任务。
 - 父文档维护或排障时，才使用带 `--allow-local-api` 的 Local API 工具。
 - 完整参数、输出文件和禁止行为见 `TOOL_CONTRACTS/02-zotero-library-governance.md`；写入边界见 `TOOL_CONTRACTS/03-zotero-web-api-write.md`。
 
@@ -462,29 +576,26 @@
 
 能力编号：`C11`
 
-目标：发现 Zotero 中晚于 ResearchOS 父文档水位线的新顶层条目，先做元数据级分诊，再决定是否同步父文档、生成读书卡、加入项目文献集或进入 Zotero 写入审批流程。
+目标：发现 Zotero 中晚于 ResearchOS 父文档水位线的新顶层条目，准备元数据语料供当前 agent 分诊，再决定是否同步父文档、生成读书卡、加入项目文献集或进入 Zotero 写入审批流程。
 
 该工作流是父文档规则的受控例外：为了发现父文档尚未同步的新条目，可以只读访问 Zotero Local API 顶层条目元数据；不得读取 PDF、附件文件或全文缓存，不得抽取全文，不得写入 Zotero。
 
 1. 检查 ResearchOS 父文档水位线，默认读取 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 中已有顶层条目的最新添加时间。
-2. 使用 `tools/zotero_new_item_monitor.py check` 只读查询 Zotero Local API 顶层条目，找出晚于水位线的新条目。
+2. 使用 `tools/zotero/zotero_new_item_monitor.py check` 只读查询 Zotero Local API 顶层条目，找出晚于水位线的新条目。
 3. 生成新增条目报告，人工版写入 `docs/reports/zotero-new-item-monitor/new-items-report.md`，机器 CSV/JSON 和状态写入低层留存区 `.researchos/outputs/machine/M-004-zotero-new-item-monitor/`。
-4. 使用 `tools/zotero_new_item_monitor.py classify` 基于题名、摘要、标签、期刊等元数据生成分类建议和 `zotero-new-item-write-plan-dry-run.json`；分类只能作为人工复核线索。
-5. 对需要进入父文档的新条目，使用 `sync-selected` 或 `tools/zotero_library_index.py sync` 同步元数据到父文档；如后续需要全文，仍按父文档维护流程处理 PDF 文本状态。
-6. 用 `monitor_state.jsonl` 追加记录状态，保留既有状态。建议状态包括：`detected`、`reported`、`classified_metadata_only`、`dry_run_created`、`metadata_synced`、`write_approved`、`zotero_written`、`card_created`、`assigned_to_project_collection`、`excluded`、`needs_review`。
+4. 当前 ChatGPT/Codex agent 读取 `new-items-latest.jsonl` 和人工报告，结合用户目标判断研究方向、方法、对象、相关性和后续动作；监控代码不执行关键词分类，也不自动生成研究标签或文献集建议。
+5. 对需要进入父文档的新条目，使用 `sync-selected` 或 `tools/zotero/zotero_library_index.py sync` 同步元数据到父文档；如后续需要全文，仍按父文档维护流程处理 PDF 文本状态。
+6. 用 `monitor_state.jsonl` 追加记录确定性运行状态，保留既有状态。建议状态包括：`detected`、`reported`、`metadata_synced`、`write_approved`、`zotero_written`、`card_created`、`assigned_to_project_collection`、`excluded`、`needs_review`；agent 语义判断进入人读报告或经审批计划，不由监控脚本伪装为机器事实。
 7. 若需要真正写入 Zotero 文献集或标签，必须转入 `POLICIES/ZOTERO_WRITE_POLICY.md` 和 `RUNBOOKS/zotero-web-api-write-canary.md`，完成试运行、人工确认、金丝雀测试、分批执行和回滚计划。
 8. 若需要生成读书卡，转入“工作流 1：从 Zotero 到单篇读书卡”；读书卡必须优先使用同步后的父文档和规范化文本，不能因为监控报告存在就直接读取 PDF。
 
-命令入口：使用 `tools/zotero_new_item_monitor.py`；完整子命令、状态字段和禁止行为见 `TOOL_CONTRACTS/02-zotero-library-governance.md`。
+命令入口：使用 `tools/zotero/zotero_new_item_monitor.py`；完整子命令、状态字段和禁止行为见 `TOOL_CONTRACTS/02-zotero-library-governance.md`。
 
 输出建议：
 
 - `docs/reports/zotero-new-item-monitor/new-items-report.md`
 - `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-items-report.csv`
 - `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-items-latest.jsonl`
-- `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-item-classification-plan.csv`
-- `.researchos/outputs/machine/M-004-zotero-new-item-monitor/new-item-classification-plan.json`
-- `.researchos/outputs/machine/M-004-zotero-new-item-monitor/zotero-new-item-write-plan-dry-run.json`
 - `.researchos/outputs/machine/M-004-zotero-new-item-monitor/monitor_state.jsonl`
 
 使用的质量检查：
@@ -564,7 +675,7 @@
 
 输出建议：
 
-- `manuscript-outline.md`
+- `manuscript-outline.md`（结构模板：`templates/writing/manuscript-outline.md`）
 - `.paper/论断s.yml`
 - `.paper/figures.yml`
 - `.paper/evidence_artifacts.yml`
@@ -688,7 +799,7 @@
 - 本机配置优先读取 `%USERPROFILE%\.researchos\machine_config.json`。
 - 如果没有配置，则默认使用 `00_ResearchOS` 的父目录作为 `projects_root`。
 - 仍然支持 `--root` 传入完整路径，适合一次性特殊目录。
-- `.research/` manifest 可使用 `templates/research-project-manifest.yml`、`templates/research-run-state.json`、`templates/research-experiment-matrix.yml`、`templates/research-data-dictionary.yml` 和 `templates/research-open-questions.md`。manifest 必须声明读书卡落点模式：默认 `centralized_links` 对应集中主卡和项目指针；如确需项目本地读书卡，必须显式声明中文本地落点。
+- `.research/` manifest 可使用 `templates/project-state/project-manifest.yml`、`templates/project-state/run-state.json`、`templates/project-state/experiment-matrix.yml`、`templates/project-state/data-dictionary.yml` 和 `templates/project-state/open-questions.md`。manifest 必须声明读书卡落点模式：默认 `centralized_links` 对应集中主卡和项目指针；如确需项目本地读书卡，必须显式声明中文本地落点。
 
 使用的质量检查：
 

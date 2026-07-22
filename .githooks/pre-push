@@ -1,0 +1,3 @@
+#!/bin/sh
+root="$(git rev-parse --show-toplevel)" || exit 1
+python "$root/tools/runtime/terminal_roles.py" --root "$root" check --action framework-push

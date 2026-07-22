@@ -1,4 +1,4 @@
 interface:
-  display_name: "Human Annotation Inbox"
-  short_description: "Process and archive local project reading notes."
-  default_prompt: "处理当前项目或 IDEA 的人工批注收件箱，把想法映射到文档位置，给出检查建议并归档已处理条目。"
+  display_name: "人工批注收件箱"
+  short_description: "映射、检查并归档项目或点子的人工阅读批注。"
+  default_prompt: "使用 $human-annotation-inbox 处理当前项目的人工批注，把意见映射到文档位置并归档已处理条目。"

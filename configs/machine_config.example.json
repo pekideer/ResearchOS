@@ -2,5 +2,11 @@
   "researchos_root": "C:\\Users\\YOUR_NAME\\ResearchOS",
   "projects_root": "C:\\Users\\YOUR_NAME\\ResearchProjects",
   "zotero_api_base": "http://localhost:23119/api",
-  "zotero_user_id": "0"
+  "zotero_user_id": "0",
+  "proxy": {
+    "http_proxy": "",
+    "https_proxy": "",
+    "all_proxy": "",
+    "no_proxy": "127.0.0.1,localhost,::1"
+  }
 }

@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from typing import Any
 
-from tools import zotero_new_item_monitor as monitor
+from tools.zotero import zotero_new_item_monitor as monitor
 
 
 def zotero_item(
@@ -99,7 +99,7 @@ class ZoteroNewItemMonitorTests(unittest.TestCase):
         )
         self.assertEqual([row["item_key"] for row in rows], ["REAL0001"])
 
-    def test_classification_handles_missing_doi_author_and_abstract(self) -> None:
+    def test_compact_record_is_evidence_only_without_semantic_recommendations(self) -> None:
         row = monitor.compact_item_record(
             zotero_item(
                 "NOMETA01",
@@ -111,33 +111,16 @@ class ZoteroNewItemMonitorTests(unittest.TestCase):
             "2026-07-05T00:00:00+00:00",
         )
         row["creators"] = ""
-        rules = {
-            "research_directions": [{"name": "Spectrally Selective Materials", "keywords": ["radiative cooling"]}],
-            "research_methods": [{"name": "Experiment", "keywords": ["experiment"]}],
-            "research_objects": [],
-        }
-        classified = monitor.classify_row(row, rules, "00.09-watchlist-待补读与跟踪")
-        self.assertEqual(classified["review_required"], "no")
-        self.assertIn("rs:topic/spectrally-selective-materials", classified["recommended_tags"])
-        self.assertEqual(classified["classification_basis"], "metadata_only")
+        self.assertEqual(row["doi"], "")
+        self.assertEqual(row["abstract_note"], "")
+        self.assertNotIn("recommended_tags", row)
+        self.assertNotIn("suggested_collections", row)
+        self.assertNotIn("research_direction", row)
 
-    def test_write_plan_is_dry_run_only(self) -> None:
-        plan = monitor.build_write_plan(
-            [
-                {
-                    "item_key": "ITEM0001",
-                    "title": "Example",
-                    "suggested_collections": "00.09-watchlist-待补读与跟踪",
-                    "recommended_tags": "rs:read/todo",
-                    "reason": "test",
-                    "review_required": "no",
-                }
-            ],
-            Path("classification.csv"),
-        )
-        self.assertEqual(plan["mode"], "dry_run_only")
-        self.assertIn("requires explicit user approval", plan["write_policy"])
-        self.assertEqual(plan["pdf_access_policy"], "forbidden; this plan was built from item metadata only")
+    def test_removed_keyword_classify_command_is_rejected(self) -> None:
+        parser = monitor.build_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(["classify"])
 
 
 if __name__ == "__main__":

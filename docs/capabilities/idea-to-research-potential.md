@@ -16,7 +16,7 @@
 用户点子/碎片知识
 -> TRIGGERS.md
 -> idea-to-research-potential skill
--> templates/idea-*
+-> templates/ideas/*
 -> QUALITY_GATES.md
 -> 指定项目工作区或 0.Inbox
 ```

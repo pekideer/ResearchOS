@@ -122,7 +122,7 @@ def run_probe(project: Path) -> dict[str, str]:
     outputs: dict[str, str] = {}
     outputs["fulltext_packet"] = run_command(
         [
-            "tools/build_fulltext_cache_packet.py",
+            "tools/reading_cards/build_fulltext_cache_packet.py",
             "--project-root",
             str(project),
             "--max-pages",
@@ -133,7 +133,7 @@ def run_probe(project: Path) -> dict[str, str]:
     )
     outputs["affiliation_packet"] = run_command(
         [
-            "tools/build_affiliation_semantic_packet.py",
+            "tools/reading_cards/build_affiliation_semantic_packet.py",
             "--project-root",
             str(project),
             "--max-pages",
@@ -142,19 +142,16 @@ def run_probe(project: Path) -> dict[str, str]:
             str(internal / "probe-affiliation-packet.md"),
         ]
     )
-    outputs["summary_table"] = run_command(["tools/sync_reading_summary_table.py", "--project-root", str(project)])
+    outputs["summary_table"] = run_command(["tools/reading_cards/sync_reading_summary_table.py", "--project-root", str(project)])
     outputs["journal_rankings"] = run_command(
         [
-            "tools/sync_journal_rankings.py",
+            "tools/reading_cards/sync_journal_rankings.py",
             "--project-root",
             str(project),
             "--provider-config",
             str(project / ".internal" / "easyscholar.yml"),
             "--dry-run",
         ]
-    )
-    outputs["first_author"] = run_command(
-        ["tools/sync_first_author_affiliations.py", "--project-root", str(project), "--dry-run"]
     )
     return outputs
 
@@ -175,8 +172,6 @@ def verify_probe(project: Path, outputs: dict[str, str]) -> None:
     require("zotero://select/library/items/ABCD1234" in summary_text, "summary output missing clickable Zotero item link")
     require("api_requests: 0" in outputs["journal_rankings"], "journal ranking dry-run unexpectedly requested API")
     require("ranking_table_hits: 1" in outputs["journal_rankings"], "journal ranking dry-run missed local table")
-    require("fulltext_cache_hits: 1" in outputs["first_author"], "first-author dry-run missed fulltext cache")
-    require("pdf_reads: 0" in outputs["first_author"], "first-author dry-run read PDF unexpectedly")
 
 
 def main() -> int:

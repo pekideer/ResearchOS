@@ -1,24 +1,28 @@
 # ResearchOS Templates
 
-`templates/` 保存 ResearchOS 输出模板和提示词模板。模板本身不保存具体项目成果。
+`templates/` 只保存可复用输出结构，不保存具体项目成果。模板按能力主题归组；目录表达
+主题，文件名与实际项目输出名保持一致。
 
-## 按能力归属
+## 模板索引
 
-| 能力 | 模板 |
-|---|---|
-| C03 人工批注 | `human-annotation-inbox-entry.md` |
-| C04 点子捕获 | `idea-card.md`、`idea-research-brief.md`、`idea-source-log.md`、`idea-live-direction.md`、`external-reading-candidates.*` |
-| C06 论文精读 | `paper-reading-card.md`、`reading-card-first-page-bibliographic-extraction-prompt.md` |
-| C07 文献矩阵与 PRISMA | `literature-review-matrix.csv`、`reading-summary-table.*`、`prisma-*` |
-| C08 缺口到选题 | `gap-to-topic-topic-dossier.md`、`gap-to-topic-gaps.yml`、`topic-directions.csv` |
-| C09 论文写作与证据 | `paper-memory-*`、`claim-evidence-audit-table.md`、`manuscript-outline.md` |
-| C10 审稿回复 | `reviewer-response-table.md` |
-| C11 Zotero 治理 | `zotero-library-matrix.csv`、`zotero-governance-report.md` 为人工参考模板；当前工具默认由代码生成报告和矩阵。 |
-| C12 项目状态和审计 | `research-*`、`researchos-code-closure-audit-prompt.md` |
+| 目录 | 能力与调用方 | 模板 | 实际输出 |
+|---|---|---|---|
+| `annotations/` | C03 `human-annotation-inbox` | `inbox-entry.md` | `10-批注/inbox.md` 条目 |
+| `ideas/` | C04 `idea-to-research-potential` | `idea-card.md`、`research-brief.md`、`source-log.md`、`live-direction.md` | `IDEA-..._*.md` |
+| `ideas/` | C04/C05/C08 外部候选阅读 | `external-reading-candidates.md/.csv` | `*-external-reading-candidates.*` |
+| `literature/` | C06 单篇精读 | `paper-reading-card.md`、`first-page-bibliographic-extraction-prompt.md` | 集中读书卡及题录抽取 |
+| `literature/` | C07 文献矩阵 | `literature-review-matrix.csv`、`reading-summary-table.md/.html` | 项目文献矩阵和阅读总表 |
+| `prisma/` | C07 PRISMA | `records.csv`、`search-log.csv`、`zotero-tag-map.yml` | `prisma-records.csv` 等项目状态 |
+| `gap-to-topic/` | C08 `gap-to-topic` | `topic_dossier.md`、`gaps.yml` | 同名选题判断资产 |
+| `writing/` | C09/C10 写作审查 | `manuscript-outline.md`、`claim-evidence-audit-table.md`、`reviewer-response-table.md` | 稿件提纲、审计表和回复表 |
+| `paper-memory/` | C09 `paper-memory-builder` | `manuscript_map.yml`、`claims.yml`、`figures.yml`、`evidence_artifacts.yml`、`revision_history.yml` | `.paper/` 同名文件 |
+| `project-state/` | C12 项目状态 | `project-manifest.yml`、`run-state.*`、`run-record.json`、`data-dictionary.yml`、`experiment-matrix.yml`、`open-questions.md` | 项目 `.research/` 状态资产 |
 
 ## 维护规则
 
-- 被 `WORKFLOWS.md`、skill 或工具引用的模板暂不移动。
-- 未引用或过期模板先审计引用关系，再决定是否删除。
-- 新增模板必须说明能力编号、使用场景、输出位置和是否可分发。
-- C11 Zotero 治理工具以 `tools/zotero_ai_governance.py` 为主入口；静态模板不得替代工具契约或写入审批流程。
+- 每个模板只有一个主维护位置；skill、工作流和工具引用模板，不维护第二套完整结构。
+- 模板文件名应与实际落地文件名一致；项目前缀和编号由调用方添加。
+- 新增模板必须登记能力编号、调用方、实际输出和质量检查。
+- 删除模板前必须确认全仓无直接引用和隐式输出契约。
+- Zotero 治理矩阵和报告由 `tools/zotero/zotero_ai_governance.py` 动态生成，不保留易漂移的静态模板。
+- 代码闭环审计以 `WORKFLOWS.md` 工作流 0C 和 `QUALITY_GATES.md` 为唯一规则源，不维护重复 Prompt 模板。

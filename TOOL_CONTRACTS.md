@@ -1,4 +1,4 @@
-﻿# ResearchOS 工具契约总纲
+# ResearchOS 工具契约总纲
 
 `TOOL_CONTRACTS.md` 是 ResearchOS 工具契约层的根入口。具体工具说明、输入输出、允许行为、禁止行为和失败处理统一归入 `TOOL_CONTRACTS/`。
 
@@ -34,8 +34,11 @@
 | `TOOL_CONTRACTS/03-zotero-web-api-write.md` | Zotero Web API 写入、金丝雀测试、回滚和高风险写入 |
 | `TOOL_CONTRACTS/04-reading-cards-prisma.md` | 读书卡、PRISMA、期刊等级、作者机构和引用显示 |
 | `TOOL_CONTRACTS/05-project-workspace.md` | 点子、课题、项目工作区和项目材料治理；具体科研成果默认写入指定项目路径 |
+| `TOOL_CONTRACTS/08-zotero-reading-card-annotation-sync.md` | Zotero annotation 只读回流、读书卡受控更新和经审批的子笔记发布 |
 | `TOOL_CONTRACTS/06-researchos-governance.md` | ResearchOS 自身规则、输出边界、命名、Obsidian 打开方式和审计 |
 | `TOOL_CONTRACTS/07-runtime-ocr-local-env.md` | 本机运行环境、OCR 和依赖配置 |
+| `TOOL_CONTRACTS/09-local-runtime-lifecycle.md` | 本地 `.researchos/` 初始化、审计、保留期和显式清理门禁 |
+| `TOOL_CONTRACTS/10-corpus-publication-and-project-write.md` | 共享 corpus 受控发布、回滚和项目写入门禁 |
 
 ## 4. 全局边界
 
@@ -94,4 +97,4 @@ ResearchOS 的目的不是代码维护项目，也不是开发科研智能体本
 
 ## 6. 自动审计
 
-自动审计脚本应读取 `docs/`、`corpus/`、`tools/high_risk/`、活跃工具清单和 `TOOL_CONTRACTS/` 专题契约。新增或改造自动审计脚本前，必须按“默认不新增代码”的规则单独汇报并获得用户批准。
+自动审计脚本应读取 `docs/`、`corpus/`、`tools/zotero/write/`、活跃工具清单和 `TOOL_CONTRACTS/` 专题契约。新增或改造自动审计脚本前，必须按“默认不新增代码”的规则单独汇报并获得用户批准。

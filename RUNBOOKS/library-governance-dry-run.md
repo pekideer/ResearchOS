@@ -1,87 +1,43 @@
-﻿# Library Governance Dry Run Runbook
+# Zotero 文献库治理试运行
 
-本操作手册用于 Zotero 文献库治理试运行。默认只读，只生成矩阵、报告和 plan。默认事实源是 ResearchOS 共享事实源：`corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 与 `corpus/fulltext/zotero-library-normalized/`；`.researchos/outputs/machine/` 保存可再生成的机器留存。
+本流程默认只读。事实源为 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 与 `corpus/fulltext/zotero-library-normalized/`。
 
-## 适用场景
+## 先选任务
 
-- 盘点 Zotero 文献库字段、文献集、tag 和期刊。
-- 发现无分类、无 标签、元数据缺失、主题相近或疑似重复文献。
-- 形成可人工审批的治理 plan。
+- 补足/重建文献内容 `#tags`：选择 `content-tags`。
+- 审查领域、主题文献集或库结构：选择 `library-structure`。
+- 两者同时需要时分别运行，不得把项目/collection 选择上下文送入内容标签判断。
 
-## 步骤
-
-### 1. 父文档上下文盘点
+## 内容标签
 
 ```powershell
-python tools\build_zotero_library_context_packet.py --query "KEYWORD" --limit 20
+python tools\zotero\zotero_ai_governance.py prepare-corpus --task content-tags
+python tools\zotero\zotero_ai_governance.py build-agent-packet --task content-tags
+python tools\zotero\zotero_ai_governance.py build-plan --task content-tags --results-jsonl RESULTS.jsonl
 ```
 
-输出：
+检查生成的语料记录：必须有 `semantic_scope=document_content_only`、`selection_is_not_evidence=true` 和 `evidence_hash`；不得出现 `current_state`、当前 tags、collection paths 或项目用途。当前 agent 只从文献内容生成六类 `#` 命名空间标签。
 
-- `zotero-library-context-packet.md`
-- `zotero-library-context-packet.jsonl`
-- `zotero-library-context-index.csv`
-
-### 2. Library matrix
+## 文献库结构
 
 ```powershell
-python tools\zotero_ai_governance.py prepare-corpus
+python tools\zotero\zotero_ai_governance.py prepare-corpus --task library-structure
+python tools\zotero\zotero_ai_governance.py build-agent-packet --task library-structure
+python tools\zotero\zotero_ai_governance.py build-plan --task library-structure --results-jsonl RESULTS.jsonl
 ```
 
-输出：
+此任务可在 `current_state` 中单列现有 tags 和 collection paths，只用于审查库结构，不输出内容标签。
 
-- `ai-governance-corpus.jsonl`
-- `ai-governance-corpus-preview.csv`
-
-### 3. Topic clusters
+## 普通阅读上下文
 
 ```powershell
-python tools\zotero_ai_governance.py prepare-corpus
+python tools\zotero\build_zotero_library_context_packet.py --profile content --item-key ITEMKEY --include-text
 ```
 
-输出：
+只有明确治理库结构时才使用 `--profile library`。
 
-- `zotero_similar_pairs.csv`
-- `zotero_topic_clusters.md`
-- `zotero_topic_cluster_plan.json`
+## 审批边界
 
-### 4. Governance semantic plans
+`build-plan` 产物仍是只读语义计划。若用户要求写 Zotero，必须另行构造绑定来源包哈希和完整条目快照的 item mutation plan，再按 Web API 写入 runbook 预检、审批、金丝雀、执行和回读。
 
-```powershell
-python tools\zotero_ai_governance.py build-plan
-python tools\zotero_ai_governance.py aggregate-directions
-python tools\zotero_ai_governance.py build-collection-plan
-python tools\zotero_ai_governance.py build-tag-plan
-```
-
-输出：
-
-- `ai-governance-classification-plan-report.md`
-- `research-direction-aggregation-report.md`
-- `collection-restructure-plan.md`
-- `tag-aggregation-plan.md`
-- 相关 CSV/JSON 计划文件；仅供审批，不自动写入 Zotero。
-
-### 5. Local API 维护入口
-
-只有父文档缺失、过期或需要排障时，才显式允许 Local API 维护工具读取 Zotero：
-
-```powershell
-python tools\zotero_library_index.py sync
-python tools\zotero_fast_collection_sync.py --include-items
-```
-
-## 人工审批
-
-审批前必须检查：
-
-- 每条建议是否保留 条目 key。
-- 分类依据是否来自题目、摘要、标签、期刊或用户规则。
-- 疑似重复是否只是候选，而非删除指令。
-- 是否需要进入 `RUNBOOKS/zotero-web-api-write-canary.md`。
-
-## 完成标准
-
-- 已生成只读矩阵、聚类、报告和 plan。
-- 未写入 Zotero。
-- 写入相关内容仅作为待审批计划。
+完成标准：语义任务边界明确、证据可回溯、代码未作科研语义判断、未写入 Zotero。

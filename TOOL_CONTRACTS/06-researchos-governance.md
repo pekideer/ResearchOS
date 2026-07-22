@@ -1,4 +1,4 @@
-﻿# ResearchOS 规则、输出边界与审计契约
+# ResearchOS 规则、输出边界与审计契约
 
 ## 1. 适用工具
 
@@ -14,6 +14,7 @@
 - 检查 `docs/`、`corpus/`、`.researchos/outputs/machine/`、`.researchos/outputs/archive/` 和活跃工具边界。
 - 更新系统级人读说明、治理状态、命名规则和工具契约。
 - 在用户批准后修复影响功能闭环的路径常量或脚本入口。
+- 为 Zotero 读书卡标注闭环维护 `M-005-reading-card-annotation-sync` 机器预览和 `A-003-reading-card-note-publish` 写入审计常量。
 
 ## 4. 禁止行为
 
@@ -25,7 +26,7 @@
 
 ## 5. 自动审计边界
 
-自动审计如需启用，应以当前 `docs/`、`corpus/`、`tools/high_risk/`、活跃工具清单和根级权威文档为基准，并先说明：
+自动审计如需启用，应以当前 `docs/`、`corpus/`、`tools/zotero/write/`、活跃工具清单和根级权威文档为基准，并先说明：
 
 1. 修改目的。
 2. 当前检查逻辑。

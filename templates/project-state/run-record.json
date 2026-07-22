@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "run_id": "RUN-YYYYMMDD-HHMMSS",
+  "recorded_at": "YYYY-MM-DDTHH:MM:SS+08:00",
+  "project_id": "",
+  "task_type": "",
+  "goal_summary": "",
+  "capability_ids": [],
+  "primary_skill": "",
+  "source_refs": [],
+  "changed_files": [],
+  "outcome": "completed",
+  "unresolved": [],
+  "next_actions": [],
+  "approval_state": "not_required",
+  "corrects_run_id": ""
+}

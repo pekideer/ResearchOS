@@ -18,7 +18,7 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
 
 ## 工作流
 
-1. 先用 `zotero-library-governance` 或 `tools/build_zotero_library_context_packet.py` 只读筛选候选条目，依据 文献集、标签、题名、摘要和 规范化文本。
+1. 先用 `zotero-library-governance` 的 `library-structure` 任务或 `tools/zotero/build_zotero_library_context_packet.py --profile library` 只读筛选候选条目。项目、文献集和现有标签只用于候选召回与项目用途判断，不得作为内容 `#tags` 的证据。
 2. 使用固定一级目录承载所有项目覆盖层。默认名称为 `00.科研项目`；除非用户明确要求修改，否则长期保持该一级目录名称。
 3. 在固定一级目录下，为具体课题创建项目目录。命名格式：`NN-<项目性质中文缩写>-<项目简称>`，例如 `01-纵向-光谱选择性材料位置效应`。`NN` 为两位序号；项目性质中文缩写可用：
    - `纵向`：纵向项目或依托纵向课题。
@@ -27,22 +27,31 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
    - `论文`：论文驱动课题。
    - `其他`：其他或暂不确定性质。
 4. 在具体课题目录下创建用途子文献集，而不是直接挂在一级目录下。命名采用“编号-中文简写-English slug”，中文在前，尽量精简：
-   - `00-待筛-screen`
+   - `00-待分配-triage`
    - `01-缺口-gap`
    - `02-综述-review`
    - `03-引言-intro`
    - `04-方法-method`
    - `05-实验-experiment`
    - `06-参照-benchmark`
-   - `07-论文-paper`
-   - `08-背景-background`
-   - `09-待读-watchlist`
-   - `10-排除-excluded`
+   - `07-排除-excluded`
 5. 完整路径应形如：`00.科研项目/01-纵向-光谱选择性材料位置效应/02-综述-review`。
 6. 每个条目 可进入多个项目子文献集，但默认不超过 3 个。若超过 3 个，优先保留 `02-综述-review`、`04-方法-method`、`03-引言-intro`。
+   - `00-待分配-triage` 与 `01-缺口-gap` 至 `07-排除-excluded` 严格互斥：条目一旦进入任一稳定用途子文献集，就不得继续留在 `00-待分配-triage`。
 7. 为每条纳入建议输出理由：主题匹配、方法匹配、参数匹配、全文证据、用户指定或引用用途。
 8. 输出 试运行：项目文献集层级、条目分配计划、需人工复核清单、写入风险说明。
 9. 如果用户要求写入 Zotero，必须转入 `POLICIES/ZOTERO_WRITE_POLICY.md` 和 `RUNBOOKS/zotero-web-api-write-canary.md`；不得直接写入。
+
+## 状态与用途边界
+
+- 项目 collection 只表达“这篇文献怎样服务当前项目”，不表达文献自身的稳定主题、方法或对象；内容 `#tags` 必须由独立的 `content-tags` 证据包生成，项目覆盖层不得反向改写它们。
+
+- `00-待分配-triage` 是唯一临时入口，只表示尚未完成项目相关性与用途分配；完成机器分诊后即应退出，不要求用户先阅读全文。
+- `00-待分配-triage` 与 `01-07` 稳定用途子文献集严格互斥。真实写入必须先加入并核验全部目标用途子文献集，再移出 `00-待分配-triage`；任一目标加入失败时保留 `00` 原归属并停止，不得形成无归属条目。
+- “待读”统一表示尚未生成读书卡，事实源是集中读书卡索引；Zotero 可在审批后镜像 `rs:read/todo`，不得再用项目 collection 表达。
+- 已生成初步读书卡使用 `rs:read/initial-card`，完成精读使用 `rs:read/deep-read`；collection 继续表达综述、引言、方法、实验、参照等项目用途。
+- 不得同时创建 `待筛`、`待分配`、`待读`、`待补读`、`watchlist` 等语义重叠的项目 collection。旧名称只作为历史迁移来源，不作为新计划目标。
+- 不创建含义过宽的 `论文` 或与引言/综述重叠的 `背景` collection；条目直接分配到必要的稳定用途。
 
 ## 输出
 
@@ -51,6 +60,7 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
 - `project-collection-hierarchy.json`：拟创建文献集层级。
 - `project-collection-item-assignments.csv`：条目 key、引用标签、Zotero 链接、目标项目文献集、用途、理由、证据来源。
 - `project-collection-write-plan-dry-run.json`：仅供审批的 Zotero Web API 写入计划。
+- 试运行计划必须逐条声明互斥前置条件、目标用途、先加后移的执行顺序、写后条件和恢复原 collection/标签的回滚数据。
 
 ## 质量规则
 
@@ -59,6 +69,7 @@ description: 在固定一级目录 `00.科研项目` 下，为具体项目或课
 - `01-缺口-gap`、`02-综述-review`、`04-方法-method`、`03-引言-intro` 等用途必须由题录、标签、全文片段或用户说明支持。
 - 所有人工 Markdown/YAML 正文引用使用 `[第一作者姓(年份)](zotero://select/library/items/KEY)` 可点击标签；条目 key 只放在 CSV/JSON、试运行计划、审计字段或必要元数据中。
 - 对证据不足的条目标注“需复核”，不得强行分类。
+- 写后必须验证：目标 `01-07` 用途全部存在、`00-待分配-triage` 不存在；两者同时存在或同时不存在均视为失败并停止扩大批量。
 
 ## 安全规则
 

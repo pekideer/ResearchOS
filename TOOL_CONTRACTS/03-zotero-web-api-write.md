@@ -1,61 +1,46 @@
-# Zotero Web API 写入与高风险回滚契约
+# Zotero Web API 写入与冻结执行契约
 
-## 1. 适用工具
+## 适用工具
 
-- `tools/high_risk/execute_project_collection_overlay_write.py`
-- `tools/high_risk/execute_zotero_additive_write_plan.py`
-- `tools/high_risk/execute_zotero_deleted_collection_cleanup.py`
-- `tools/high_risk/zotero_web_api.py`
-- `tools/high_risk/README.md`
+- `tools/zotero/write/execute_zotero_item_mutation_plan.py`
+- `tools/zotero/write/mutation_contract.py`
+- `tools/zotero/write/mutation_executor.py`
+- `tools/zotero/write/execute_project_collection_overlay_write.py`
+- `tools/zotero/write/execute_zotero_deleted_collection_cleanup.py`
+- `tools/zotero/write/publish_reading_card_note.py`
+- `tools/zotero/write/zotero_web_api.py`
 
-## 2. 工具目的
+## 通用 item mutation plan
 
-本专题只用于用户明确批准后的 Zotero Web API 写入。写入范围包括标签、文献集、项目覆盖层等高风险操作。
+标签和条目 collection membership 的通用增减统一使用结构化计划：
 
-这些工具统一放在 `tools/high_risk/`，不得作为普通科研助理能力自动触发。高风险目录只保留追加式、保留式或窄范围清理工具；全量重建标签、全量重建文献集或清理旧 collection 树的旧链路不再作为 ResearchOS 工具入口。
+- 顶层：`schema_version`、`plan_id`、`plan_kind`、`source_packet_hash`、`approval_status`、`actions`。
+- 每个 action：`item_key`、`expected_before`、`mutation`、`expected_after`、`evidence_refs`。
+- `expected_before` 必须冻结 `version + tags + collection_keys`。
+- `mutation` 必须使用数组字段 `add_tags/remove_tags/add_collection_paths/remove_collection_paths`，且至少包含一项变化。
+- `expected_after` 必须冻结完整 tags 和 collection keys，不接受隐式合并结果。
 
-## 3. 强制前置条件
+旧的 additive 兼容入口和旧字段不再接受，避免两套契约并存。
 
-执行任何 Zotero 写入前，必须同时满足：
+## 执行门禁
 
-1. 用户明确要求写入 Zotero。
-2. 已读取 `POLICIES/ZOTERO_WRITE_POLICY.md`。
-3. 已读取 `RUNBOOKS/zotero-web-api-write-canary.md`。
-4. 已生成试运行计划。
-5. 已给出写入范围、影响条目、回滚方式和失败处理。
-6. 已获得用户对具体写入计划的确认。
+1. 用户批准具体计划，计划内 `approval_status` 为 `approved`。
+2. 通过 Web API GET 获取所有入选条目和完整 collection 树。
+3. 在任何 PATCH 前，全局比较每条目的版本、完整 tags、完整 collection keys、collection path 映射及预期写后状态。
+4. 任一条目漂移或计划不一致，整批零写入并记录 `preflight_blocks.json`。
+5. PATCH 使用审批快照对应的 `If-Unmodified-Since-Version`。
+6. 每条写后立即 GET 回读，精确核对完整 tags 和 collection keys；失败立即停止扩大批次。
+7. 无论成功、阻断或中途失败，都保存计划哈希、来源包哈希、before/after、审计和已写条目的 rollback 载荷。
 
-## 4. 允许行为
+## 专用流程
 
-- 读取经过人工确认的写入计划。
-- 通过 Zotero Web API 执行金丝雀测试。
-- 分批写入已批准的标签、文献集或覆盖层变更。
-- 记录脱敏审计信息和回滚材料。
+项目 overlay、deleted-collection cleanup 和 reading-card note 各有额外状态机，保留专用入口；它们不得冒充通用 item mutation plan，也不得绕过各自的审批、金丝雀和回读条件。
 
-## 5. 禁止行为
+reading-card note 使用专用计划 schema v2；计划必须冻结有效的统一读书卡契约回执，真实写入前重新校验本地卡片并比较回执哈希。卡片正文、来源、页码、项目用途结构或回执发生漂移时，计划失效并零写入。
 
-- 不通过 Local API 写入 Zotero。
-- 不跳过试运行和金丝雀测试。
-- 不写入未经确认的 AI 分类、聚类或建议。
-- 不删除 Zotero 条目或 PDF。
-- 不把 API key、完整代理地址、代理账号密码写入文件、日志或报告。
-- 不在失败状态下继续扩大写入批次。
+## 安全边界
 
-## 6. 代理和密钥
-
-访问 `https://api.zotero.org` 前应嗅探可用代理，优先级为：
-
-1. `ZOTERO_HTTPS_PROXY`
-2. `HTTPS_PROXY`
-3. `HTTP_PROXY`
-4. 当前系统代理设置
-
-审计中最多记录“使用了代理”和脱敏后的主机/端口。不得记录完整代理 URL、账号、密码或 API key。
-
-## 7. 验收标准
-
-- 写入前有试运行材料。
-- 写入前有人工确认。
-- 金丝雀测试通过。
-- 分批执行并有失败停止条件。
-- 输出包含回滚计划和实际写入摘要。
+- 仅 Zotero Web API 可写；Local API 永远只读。
+- 不记录 API key、完整代理 URL 或代理凭据。
+- 不删除条目、附件或 PDF。删除 note/collection 等动作必须有单独精确审批。
+- 运行证据写入 `.researchos/outputs/archive/`；项目 overlay 的项目级证据写入其显式项目运行目录。

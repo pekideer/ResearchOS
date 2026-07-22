@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "project_id": "PROJECT-ID",
+  "state_revision": 1,
+  "status": "active",
+  "active_writer_terminal": "TERMINAL-NAME",
+  "released_by_terminal": null,
+  "target_terminal": null,
+  "framework_commit": "0000000000000000000000000000000000000000",
+  "corpus_snapshot_id": "corpus-0000000000000000",
+  "corpus_content_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "last_completed": "LAST-COMPLETED-STABLE-STEP",
+  "next_action": "NEXT-ACTION",
+  "updated_at": "2026-01-01T00:00:00+00:00"
+}

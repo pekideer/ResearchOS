@@ -1,4 +1,4 @@
 interface:
   display_name: "语义路由规划"
   short_description: "把口语化请求定位到 ResearchOS 能力路线。"
-  default_prompt: "请判断我的自然语言请求应该走哪个 ResearchOS 能力和工作流，并给出执行路线。"
+  default_prompt: "使用 $semantic-route-planner 判断我的多目标请求应采用哪个 ResearchOS 主能力，并给出最小执行路线。"

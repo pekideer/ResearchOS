@@ -69,6 +69,25 @@ zotero_ai_governance.py
 sync_reading_summary_table.py
 ```
 
+工具按主题目录组织，不把同一功能域的 Python 文件散放在 `tools/` 顶层：
+
+```text
+tools/zotero/          Zotero 只读、父文档、治理、监控和受控写入
+tools/reading_cards/   读书卡、PRISMA、题录、期刊等级和证据包
+tools/project/         项目工作区和项目材料
+tools/runtime/         本机环境、OCR 和本地服务
+```
+
+跨脚本重复的纯函数、客户端或格式化逻辑应进入同主题目录内的共享模块；入口脚本
+只保留参数解析、任务编排和本任务特有的校验。共享模块不得反向调用高风险执行入口。
+只有确实跨越多个主题的基础路径常量等模块可以保留在 `tools/` 顶层。
+
+模板按能力主题组织在 `templates/<capability>/`，不得把不同能力的模板重新堆放在
+`templates/` 顶层。目录已经表达能力时，文件名使用实际落地名称，例如
+`templates/paper-memory/claims.yml` 对应项目 `.paper/claims.yml`，不再重复使用
+`paper-memory-claims.yml`。每个活跃模板必须在 skill、工作流、runbook 或工具中至少
+保留一个完整相对路径引用。
+
 低层运行留存目录可使用：
 
 ```text
@@ -139,7 +158,7 @@ ResearchOS 自身治理产物进入 `docs/governance/`。
 
 ```text
 03-文献矩阵/.internal/
-.research/fulltext_cache/
+02-证据材料/全文缓存/
 ```
 
 ## 5. 点子与项目指针

@@ -4,13 +4,14 @@
 
 - `configure_easyscholar_api.ps1`
 - `sync_journal_rankings.py`
-- `sync_first_author_affiliations.py`
 - `build_affiliation_semantic_packet.py`
 - `build_prisma_status_outputs.py`
 - `sync_reading_summary_table.py`
-- `journal_ranking_format.py`
+- `card_common.py`
+- `reading_card_contract.py`
 - `sync_zotero_metadata_to_cards.py`
-- `researchos_card_metadata.py`
+- `sync_zotero_annotations_to_cards.py`
+- `zotero_library_pipeline.py`
 
 ## 2. 工具目的
 
@@ -23,6 +24,10 @@
 - 维护 PRISMA 状态输出。
 - 从批准配置读取 EasyScholar 信息并同步期刊等级。
 - 生成可读引用标签和可点击 Zotero 链接。
+- 从父文档 annotation 镜像生成读书卡受控人工标注区。
+- 只读冻结并比较 Zotero Local API 顶层条目的 `key + version` 快照。
+- 在本机 staging 中运行增量同步、语义结果校验和严格治理审计。
+- 对读书卡声明、正文结构、项目用途和来源回执执行确定性一致性校验；不得据此生成科研语义结论。
 
 ## 4. 禁止行为
 
@@ -31,6 +36,7 @@
 - 不删除读书卡正文，替换前必须先归档原正文。
 - 不写入 Zotero。
 - 不编造期刊等级、作者机构或 PRISMA 状态。
+- 默认 staging 不得冒充已经发布的共享父文档或集中读书卡主库。
 
 ## 5. 读书卡规则
 
@@ -39,6 +45,8 @@
 - 集中主卡开头保留简短 YAML 头部。
 - Zotero 详细题录、期刊等级和 ResearchOS 同步元数据放入文末“元数据”部分。
 - 正文引用默认使用 `[第一作者姓(年份)](zotero://select/library/items/KEY)`。
+- `deep_read_complete` 只由统一契约产生：精读模式、全文状态、阅读状态、文本来源、页码范围、正文第 1–5/7 节和条件化第 6 节必须一致。
+- v2 精读卡还必须保存 `reviewed_sections` 和有效的 `source_text_sha256`；旧卡状态与旧正文混合时不得通过。
 
 ## 6. 验收标准
 
@@ -47,9 +55,14 @@
 - 期刊等级来源明确。
 - PRISMA 状态字段可解释。
 - 项目索引和集中主卡关系清楚。
+- 审计能识别只有精读状态、但正文仍为旧模板或旧第 6 章的混合卡。
 
 ## 7. 工具入口要求
 
 - 读书卡汇总表使用 `sync_reading_summary_table.py`。
 - 期刊等级同步使用 `sync_journal_rankings.py`。
-- 第一作者单位证据准备使用 `build_affiliation_semantic_packet.py`。
+- 第一作者单位证据准备使用 `build_affiliation_semantic_packet.py` 或 `zotero_library_pipeline.py semantic-packet`；代码只截取证据，不再用独立正则工具把单位候选写入读书卡。
+- 全库、新增或指定条目的首页证据准备优先使用 `zotero_library_pipeline.py semantic-packet`；语义结果必须先经 `semantic-apply` 默认预检，再用 `--write-local` 写入本地 SQLite 和集中读书卡。
+- `zotero_library_pipeline.py run` 默认写入本机 `M-006` staging；同一 staging 存在时，`semantic-packet`、`semantic-apply` 和 `audit` 自动沿用它。共享 `corpus/` 发布属于 Corpus Publisher 的独立步骤，未发布时必须报告 `corpus_publication_required`。
+- `snapshot` 和 `audit --curation-strict` 只读访问 Local API；后者同时检查规范化 DOI、卡片身份、全文精读状态、中文单位显示和父条目 ResearchOS note 数量。
+- `heuristic_candidate`、`existing_card_candidate`、旧 `not_found` 和 `not_processed` 不得作为确定单位显示，也不得通过 Zotero 读书卡发布预检。

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "retention_days": {
+    "tmp": 7,
+    "cache": 30,
+    "logs": 14,
+    "failed-runs": 30,
+    "audit-staging": 30
+  },
+  "protected_scopes": {
+    "failed-runs": {
+      "marker": "cleanup-state.json",
+      "required_true": ["issue_closed"]
+    },
+    "audit-staging": {
+      "marker": "cleanup-state.json",
+      "required_true": ["task_closed", "promoted"]
+    }
+  }
+}

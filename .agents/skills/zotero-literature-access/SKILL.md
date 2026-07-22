@@ -23,13 +23,13 @@ description: 当 ResearchOS Zotero 父文档缺失、过期或需要维护时，
 
 ## 工作流
 
-1. 先检查父文档：`tools/build_zotero_library_context_packet.py --item-key ITEM_KEY --include-text` 或按查询词读取 SQLite。
+1. 先检查父文档：`tools/zotero/build_zotero_library_context_packet.py --profile content --item-key ITEM_KEY --include-text` 或按查询词读取 SQLite。
 2. 父文档命中时，直接把父文档上下文包交给 `paper-deep-reading`、`literature-matrix` 或治理流程，不继续调用 Local API。
-3. 只有父文档缺失、过期、路径失效或明确需要增量同步时，运行 `python tools/zotero_local_api_cli.py ping --allow-local-api`，确认 Zotero Local API 可访问。
-4. 优先用 `tools/zotero_library_index.py sync` / `watch` 更新 SQLite 父文档和 PDF 文本缓存链接。
-5. 临时排障时，可使用 `python tools/zotero_local_api_cli.py search --allow-local-api --query "关键词" --limit N` 搜索候选文献，或使用 `python tools/zotero_local_api_cli.py get-item --allow-local-api --key ITEM_KEY` 读取母条目元信息和子条目。
-6. 只有父文档和缓存均缺失时，才使用 `python tools/zotero_local_api_cli.py get-pdf --allow-local-api --key ITEM_KEY` 获取 PDF 路径。
-7. 使用 `python tools/zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEM_KEY --max-pages N` 抽取文本时，应优先把结果写回父文档维护链路或可回溯的 全文缓存。
+3. 只有父文档缺失、过期、路径失效或明确需要增量同步时，运行 `python tools/zotero/zotero_local_api_cli.py ping --allow-local-api`，确认 Zotero Local API 可访问。
+4. 优先用 `tools/zotero/zotero_library_index.py sync` / `watch` 更新 SQLite 父文档和 PDF 文本缓存链接。
+5. 临时排障时，可使用 `python tools/zotero/zotero_local_api_cli.py search --allow-local-api --query "关键词" --limit N` 搜索候选文献，或使用 `python tools/zotero/zotero_local_api_cli.py get-item --allow-local-api --key ITEM_KEY` 读取母条目元信息和子条目。
+6. 只有父文档和缓存均缺失时，才使用 `python tools/zotero/zotero_local_api_cli.py get-pdf --allow-local-api --key ITEM_KEY` 获取 PDF 路径。
+7. 使用 `python tools/zotero/zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEM_KEY --max-pages N` 抽取文本时，应优先把结果写回父文档维护链路或可回溯的 全文缓存。
 
 ## 输出
 

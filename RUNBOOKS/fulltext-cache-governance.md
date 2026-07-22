@@ -2,29 +2,29 @@
 
 本操作手册定义 ResearchOS 对长文本材料的统一读取规则。目标是避免同一 PDF 或大段全文在不同任务中被反复解析、反复上传或反复消耗 token。
 
-全库 Zotero 文献的默认父文档见 `RUNBOOKS/zotero-library-parent-documents.md`：先读取 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 和 `corpus/fulltext/zotero-library-normalized/`，课题 `.research/fulltext_cache/` 是项目局部缓存或派生缓存。
+全库 Zotero 文献的默认父文档见 `RUNBOOKS/zotero-library-parent-documents.md`：先读取 `corpus/zotero/M-001-zotero-library/zotero_library.sqlite` 和 `corpus/fulltext/zotero-library-normalized/`。新增项目局部派生文本进入 `02-证据材料/全文缓存/`；旧 `.research/fulltext_cache/` 仅只读兼容。
 
 ## 1. 适用范围
 
 凡任务需要读取大段文字，尤其是 PDF 全文、PDF 前几页、论文全文、书稿章节、项目材料包、长篇报告，都必须先检查可用父文档或 缓存。Zotero 全库条目优先使用同步盘父文档；具体课题材料再检查课题目录的 全文缓存：
 
 ```text
-<project-root>/.research/fulltext_cache/
+<project-root>/02-证据材料/全文缓存/
 ```
 
 规定位置：
 
-- `.research/fulltext_cache/ITEMKEY.txt`
-- `.research/fulltext_cache/<material-derived-name>.txt`
+- `02-证据材料/全文缓存/ITEMKEY.txt`
+- `02-证据材料/全文缓存/<material-derived-name>.txt`
 
 ## 2. 读取顺序
 
-1. 已知 Zotero 条目 key 时，先用 `tools/build_zotero_library_context_packet.py` 从 SQLite 父文档和 规范化文本 构建上下文。
-2. 如果任务绑定具体课题且已有 `.research/fulltext_cache/ITEMKEY.txt`，可复用项目局部缓存，但应优先确认其来源能回溯到父文档。
-3. 如果任务是多篇读书卡、综述矩阵、论断审计、方法审查或文本精读，优先用父文档上下文包或 `tools/build_fulltext_cache_packet.py` 从 缓存 生成紧凑证据包。
+1. 已知 Zotero 条目 key 时，先用 `tools/zotero/build_zotero_library_context_packet.py --profile content` 从 SQLite 父文档和规范化文本构建不含当前 tags/collection 的内容上下文。
+2. 如果任务绑定具体课题，优先复用 `02-证据材料/全文缓存/ITEMKEY.txt`；旧 `.research/fulltext_cache/ITEMKEY.txt` 可只读复用，但不得继续写入。来源应能回溯到父文档。
+3. 如果任务是多篇读书卡、综述矩阵、论断审计、方法审查或文本精读，优先用父文档上下文包或 `tools/reading_cards/build_fulltext_cache_packet.py` 从 缓存 生成紧凑证据包。
 4. 如果只需要作者/单位题录区，优先读取父文档 规范化文本 或 缓存 的 第 1-2 页，必要时 第 3 页。
 5. 父文档或 全文缓存 存在时，不得为同一任务重新读取 Zotero PDF 或重新抽取 PDF 文本。
-6. 只有父文档和 缓存均缺失时，才允许通过 `tools/zotero_library_index.py` 或 Zotero Local API 只读定位 PDF 并抽取文本；抽取后必须写回父文档或 `.research/fulltext_cache/` 供后续复用。
+6. 只有父文档和缓存均缺失时，才允许通过本机 staging 工具或 Zotero Local API 只读定位 PDF 并抽取文本；项目局部结果写入 `02-证据材料/全文缓存/`，共享结果先写本机 staging，再由 Corpus Publisher 发布。
 
 ## 3. 输出边界
 
@@ -39,26 +39,26 @@
 通用长文本证据包：
 
 ```powershell
-python tools\build_zotero_library_context_packet.py --item-key ITEMKEY --include-text
-python tools\build_fulltext_cache_packet.py --project-root "课题目录" --max-pages 5
+python tools\zotero\build_zotero_library_context_packet.py --profile content --item-key ITEMKEY --include-text
+python tools\reading_cards\build_fulltext_cache_packet.py --project-root "课题目录" --max-pages 5
 ```
 
 第一作者单位证据包：
 
 ```powershell
-python tools\build_affiliation_semantic_packet.py --project-root "课题目录"
+python tools\reading_cards\build_affiliation_semantic_packet.py --project-root "课题目录"
 ```
 
 PDF 抽取并写入 缓存：
 
 ```powershell
-python tools\zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEMKEY --cache-subdir .
+python tools\zotero\zotero_local_api_cli.py extract-pdf --pdf "PDF_PATH" --project-root "课题目录" --item-key ITEMKEY --cache-subdir .
 ```
 
 项目材料抽取并写入 缓存：
 
 ```powershell
-python tools\extract_project_materials.py --project-root "课题目录" --output-dir "课题目录\.research\material_text"
+python tools\project\extract_project_materials.py --project-root "课题目录" --output-dir "课题目录\02-证据材料\材料文本"
 ```
 
 ## 5. 质量门禁
